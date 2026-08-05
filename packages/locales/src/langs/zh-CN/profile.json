@@ -1,0 +1,14 @@
+{
+  "updatePassword": "更新密码",
+  "updateBasicProfile": "更新基本信息",
+  "security": {
+    "accountPassword": "账户密码",
+    "lastChanged": "上次修改时间：{0}",
+    "neverChanged": "尚未修改过密码",
+    "phone": "密保手机",
+    "phoneBound": "已绑定手机：{0}",
+    "email": "备用邮箱",
+    "emailBound": "已绑定邮箱：{0}",
+    "unbound": "未绑定"
+  }
+}

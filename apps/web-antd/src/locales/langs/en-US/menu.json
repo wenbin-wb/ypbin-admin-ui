@@ -1,0 +1,28 @@
+{
+  "system": {
+    "title": "System Management",
+    "dict": "Dictionary",
+    "config": "Configuration",
+    "log": "Logs",
+    "onlineUser": "Online Users",
+    "client": "Clients",
+    "file": "File Management",
+    "notice": "Notice",
+    "job": "Scheduled Jobs",
+    "app": "App Management",
+    "post": "Posts",
+    "user": "User Management",
+    "role": "Role Management",
+    "menu": "Menu Management",
+    "dept": "Department Management"
+  },
+  "org": {
+    "title": "Organization"
+  },
+  "auth": {
+    "title": "Authorization"
+  },
+  "sys": {
+    "title": "System"
+  }
+}

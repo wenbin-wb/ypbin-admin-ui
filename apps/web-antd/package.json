@@ -1,0 +1,51 @@
+{
+  "name": "@vben/web-antd",
+  "version": "5.7.0",
+  "description": "ypbin-admin 企业级中后台前端，基于 vue-vben-admin (MIT) 改造。",
+  "homepage": "https://github.com/wenbin-wb/ypbin-admin-ui",
+  "bugs": "https://github.com/wenbin-wb/ypbin-admin-ui/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wenbin-wb/ypbin-admin-ui.git",
+    "directory": "apps/web-antd"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "ypbin-admin authors",
+    "url": "https://github.com/wenbin-wb/ypbin-admin-ui"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "pnpm vite build --mode production",
+    "build:analyze": "pnpm vite build --mode analyze",
+    "dev": "pnpm vite --mode development",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit --skipLibCheck"
+  },
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "dependencies": {
+    "@vben/access": "workspace:*",
+    "@vben/common-ui": "workspace:*",
+    "@vben/constants": "workspace:*",
+    "@vben/hooks": "workspace:*",
+    "@vben/icons": "workspace:*",
+    "@vben/layouts": "workspace:*",
+    "@vben/locales": "workspace:*",
+    "@vben/plugins": "workspace:*",
+    "@vben/preferences": "workspace:*",
+    "@vben/request": "workspace:*",
+    "@vben/stores": "workspace:*",
+    "@vben/styles": "workspace:*",
+    "@vben/types": "workspace:*",
+    "@vben/utils": "workspace:*",
+    "@vueuse/core": "catalog:",
+    "ant-design-vue": "catalog:",
+    "dayjs": "catalog:",
+    "dompurify": "^3.4.13",
+    "pinia": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "updatePassword": "Update Password",
+  "updateBasicProfile": "Update Basic Profile",
+  "security": {
+    "accountPassword": "Account Password",
+    "lastChanged": "Last changed: {0}",
+    "neverChanged": "Password never changed",
+    "phone": "Security Phone",
+    "phoneBound": "Bound phone: {0}",
+    "email": "Backup Email",
+    "emailBound": "Bound email: {0}",
+    "unbound": "Not bound"
+  }
+}

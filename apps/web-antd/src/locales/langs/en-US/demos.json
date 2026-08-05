@@ -1,0 +1,9 @@
+{
+  "title": "Demos",
+  "antd": "Ant Design Vue",
+  "project": {
+    "title": "Project",
+    "about": "About",
+    "document": "Document"
+  }
+}
