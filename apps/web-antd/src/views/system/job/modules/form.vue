@@ -48,7 +48,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
       const data = drawerApi.getData<Record<string, any>>();
       isUpdate.value = !!data?.isUpdate;
       drawerApi.setState({
-        title: isUpdate.value ? $t('common.edit') : $t('common.add'),
+        title: isUpdate.value
+          ? $t('ui.actionTitle.edit', [$t('system.job.title')])
+          : $t('ui.actionTitle.create', [$t('system.job.title')]),
       });
       // 等表单挂载就绪再回填/重置，避免重开时 setValues 早于表单初始化
       await nextTick();

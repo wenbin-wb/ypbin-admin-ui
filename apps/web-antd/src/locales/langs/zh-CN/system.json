@@ -3,7 +3,7 @@
   "user": {
     "title": "用户管理",
     "list": "用户列表",
-    "name": "用户名",
+    "name": "用户",
     "userName": "用户名",
     "password": "密码",
     "realName": "真实姓名",

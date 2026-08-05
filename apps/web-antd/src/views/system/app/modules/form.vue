@@ -50,7 +50,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
       const data = drawerApi.getData<Record<string, any>>();
       isUpdate.value = !!data?.isUpdate;
       drawerApi.setState({
-        title: isUpdate.value ? $t('common.edit') : $t('common.add'),
+        title: isUpdate.value
+          ? $t('ui.actionTitle.edit', [$t('system.app.title')])
+          : $t('ui.actionTitle.create', [$t('system.app.title')]),
       });
       if (isUpdate.value && data?.row) {
         rowId.value = data.row.id;

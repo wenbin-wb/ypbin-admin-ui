@@ -10,6 +10,11 @@
   "dashboard": {
     "title": "Dashboard",
     "analytics": "Analytics",
-    "workspace": "Workspace"
+    "workspace": "Workspace",
+    "welcome": "Good morning",
+    "latestActivity": "Latest Activity",
+    "quickNav": "Quick Nav",
+    "logTrend": "Operation Log Trend",
+    "total": "Total"
   }
 }

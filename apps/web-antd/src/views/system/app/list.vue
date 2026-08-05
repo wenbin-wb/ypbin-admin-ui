@@ -89,7 +89,7 @@ async function onStatusChange(status: number, row: SystemAppApi.AppResp) {
           "
         >
           <template #icon><Plus /></template>
-          {{ $t('common.add') }}
+          {{ $t('ui.actionTitle.create', [$t('system.app.title')]) }}
         </Button>
       </template>
 

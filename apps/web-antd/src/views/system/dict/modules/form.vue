@@ -75,7 +75,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
       updateId = data?.id;
       formApi.setValues(data || {});
       drawerApi.setState({
-        title: isUpdate ? $t('common.edit') : $t('common.add'),
+        title: isUpdate
+          ? $t('ui.actionTitle.edit', [$t('system.dict.title')])
+          : $t('ui.actionTitle.create', [$t('system.dict.title')]),
       });
     }
   },

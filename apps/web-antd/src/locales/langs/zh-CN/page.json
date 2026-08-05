@@ -10,6 +10,11 @@
   "dashboard": {
     "title": "概览",
     "analytics": "分析页",
-    "workspace": "工作台"
+    "workspace": "工作台",
+    "welcome": "早安",
+    "latestActivity": "最新动态",
+    "quickNav": "快捷导航",
+    "logTrend": "操作日志趋势",
+    "total": "总数"
   }
 }

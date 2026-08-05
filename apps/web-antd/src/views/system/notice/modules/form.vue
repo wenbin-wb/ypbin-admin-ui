@@ -60,7 +60,9 @@ const [Modal, modalApi] = useVbenModal({
       const data = modalApi.getData<Record<string, any>>();
       isUpdate.value = !!data?.isUpdate;
       modalApi.setState({
-        title: isUpdate.value ? $t('common.edit') : $t('common.add'),
+        title: isUpdate.value
+          ? $t('ui.actionTitle.edit', [$t('system.notice.title')])
+          : $t('ui.actionTitle.create', [$t('system.notice.title')]),
       });
       // 等表单实例挂载就绪再回填/重置，否则重开时 setValues 早于表单初始化会失效
       await nextTick();

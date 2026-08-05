@@ -67,21 +67,27 @@ function onDelete(row: SystemJobApi.JobResp) {
     .catch(() => {});
 }
 function onStart(row: SystemJobApi.JobResp) {
-  startJob(row.id).then(() => {
-    message.success($t('common.success'));
-    onRefresh();
-  });
+  startJob(row.id)
+    .then(() => {
+      message.success($t('common.success'));
+      onRefresh();
+    })
+    .catch(() => {});
 }
 function onStop(row: SystemJobApi.JobResp) {
-  stopJob(row.id).then(() => {
-    message.success($t('common.success'));
-    onRefresh();
-  });
+  stopJob(row.id)
+    .then(() => {
+      message.success($t('common.success'));
+      onRefresh();
+    })
+    .catch(() => {});
 }
 function onRun(row: SystemJobApi.JobResp) {
-  runJob(row.id).then(() => {
-    message.success($t('common.success'));
-  });
+  runJob(row.id)
+    .then(() => {
+      message.success($t('common.success'));
+    })
+    .catch(() => {});
 }
 function onViewLog(row: SystemJobApi.JobResp) {
   logDrawerApi.setData(row).open();
@@ -95,7 +101,7 @@ function onViewLog(row: SystemJobApi.JobResp) {
       <template #toolbar-tools>
         <Button type="primary" @click="onCreate">
           <Plus class="size-5" />
-          {{ $t('common.add') }}
+          {{ $t('ui.actionTitle.create', [$t('system.job.title')]) }}
         </Button>
       </template>
 

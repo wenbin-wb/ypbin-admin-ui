@@ -77,7 +77,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
       const data = drawerApi.getData<Record<string, any>>();
       formApi.reset();
       drawerApi.setState({
-        title: data?.isUpdate ? $t('common.edit') : $t('common.add'),
+        title: data?.isUpdate
+          ? $t('ui.actionTitle.edit', [$t('system.authTemplate.title')])
+          : $t('ui.actionTitle.create', [$t('system.authTemplate.title')]),
       });
       await loadPermissions();
       await nextTick();

@@ -57,7 +57,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
       parentDictId.value = data?.dictId || '';
 
       drawerApi.setState({
-        title: isUpdate.value ? $t('common.edit') : $t('common.add'),
+        title: isUpdate.value
+          ? $t('ui.actionTitle.edit', [$t('system.dictItem.title')])
+          : $t('ui.actionTitle.create', [$t('system.dictItem.title')]),
       });
 
       if (isUpdate.value && data?.row) {

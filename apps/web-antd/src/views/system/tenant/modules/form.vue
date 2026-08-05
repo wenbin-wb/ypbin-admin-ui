@@ -43,7 +43,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
     if (isOpen) {
       const data = drawerApi.getData<Record<string, any>>();
       drawerApi.setState({
-        title: data?.isUpdate ? $t('common.edit') : $t('common.add'),
+        title: data?.isUpdate
+          ? $t('ui.actionTitle.edit', [$t('system.tenant.title')])
+          : $t('ui.actionTitle.create', [$t('system.tenant.title')]),
       });
       if (data?.isUpdate && data?.row) {
         formApi.setValues(data.row);

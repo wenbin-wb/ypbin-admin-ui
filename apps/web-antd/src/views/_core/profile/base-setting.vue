@@ -20,7 +20,7 @@ const formSchema = computed((): VbenFormSchema[] => {
     {
       fieldName: 'username',
       component: 'Input',
-      label: $t('system.user.name'),
+      label: $t('system.user.userName'),
       componentProps: { disabled: true },
     },
     {
