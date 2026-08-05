@@ -4,11 +4,7 @@
 
 **企业级中后台管理前端 · Enterprise Admin UI**
 
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![vue](https://img.shields.io/badge/Vue-3.5-green.svg)](https://vuejs.org/)
-[![vite](https://img.shields.io/badge/Vite-6-blueviolet.svg)](https://vitejs.dev/)
-[![typescript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)](https://www.typescriptlang.org/)
-[![ant-design-vue](https://img.shields.io/badge/Ant%20Design%20Vue-4-1677ff.svg)](https://next.antdv.com/)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![vue](https://img.shields.io/badge/Vue-3.5-green.svg)](https://vuejs.org/) [![vite](https://img.shields.io/badge/Vite-6-blueviolet.svg)](https://vitejs.dev/) [![typescript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)](https://www.typescriptlang.org/) [![ant-design-vue](https://img.shields.io/badge/Ant%20Design%20Vue-4-1677ff.svg)](https://next.antdv.com/)
 
 </div>
 

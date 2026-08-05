@@ -192,12 +192,9 @@ export const VbenTableAction = defineComponent(
       // 真实 actions 可能经 vxe #action slot 从 attrs 传入（而非 props），
       // 这里合并注入翻译，并让注入结果覆盖 attrs 里的原始 actions
       const { actions: _a, dropdownActions: _d, ...restAttrs } = attrs;
-      const rawActions =
-        props.actions ??
-        (_a as TableActionProps['actions']);
+      const rawActions = props.actions ?? (_a as TableActionProps['actions']);
       const rawDropdown =
-        props.dropdownActions ??
-        (_d as TableActionProps['dropdownActions']);
+        props.dropdownActions ?? (_d as TableActionProps['dropdownActions']);
       return h(
         VbenTableActionCore,
         {

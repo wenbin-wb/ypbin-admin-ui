@@ -89,7 +89,7 @@ const projectDescriptionItems: DescriptionItem[] = [
     content: h('div', [
       authorUrl
         ? renderLink(authorUrl, `${authorName || ''}  `)
-        : (authorName || ''),
+        : authorName || '',
       authorEmail ? renderLink(`mailto:${authorEmail}`, authorEmail) : '',
     ]),
     title: '作者',

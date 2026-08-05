@@ -237,6 +237,9 @@ catalogs:
     defu:
       specifier: ^6.1.7
       version: 6.1.7
+    dompurify:
+      specifier: ^3.4.13
+      version: 3.4.13
     dotenv:
       specifier: ^17.4.2
       version: 17.4.2
@@ -708,7 +711,7 @@ importers:
         specifier: 'catalog:'
         version: 1.11.21
       dompurify:
-        specifier: ^3.4.13
+        specifier: 'catalog:'
         version: 3.4.13
       pinia:
         specifier: ^4.0.2

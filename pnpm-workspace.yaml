@@ -117,6 +117,7 @@ catalog:
   czg: ^1.13.1
   dayjs: ^1.11.21
   defu: ^6.1.7
+  dompurify: ^3.4.13
   dotenv: ^17.4.2
   echarts: ^6.1.0
   element-plus: ^2.14.3

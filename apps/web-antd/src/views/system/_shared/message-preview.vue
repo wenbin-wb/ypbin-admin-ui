@@ -20,7 +20,9 @@ const emit = defineEmits<{
   'update:open': [boolean];
 }>();
 
-const title = computed(() => props.data?.title || $t('system.message.msgTitle'));
+const title = computed(
+  () => props.data?.title || $t('system.message.msgTitle'),
+);
 
 function onOpenChange(open: boolean) {
   emit('update:open', open);
