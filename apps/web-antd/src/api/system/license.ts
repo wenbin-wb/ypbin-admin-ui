@@ -41,6 +41,8 @@ export namespace SystemLicenseApi {
     attributes?: Record<string, string>;
     /** 交付模式 */
     deliveryMode: DeliveryMode;
+    /** 签发来源：manual 手工 / payment 支付（预留，当前均为手工） */
+    source?: string;
     /** 审批状态 */
     approveStatus?: ApproveStatus;
     /** 审批人 */

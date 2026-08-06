@@ -356,6 +356,7 @@
     "deliveryMode": "交付模式",
     "deliveryModeCode": "内联授权码",
     "deliveryModeFile": "授权文件",
+    "deliveryModeTip": "授权码交付适合精简授权（有字符上限）；模块/额度/属性较多时建议用授权文件",
     "effectiveAt": "生效时间",
     "expireAt": "到期时间",
     "expireAtTip": "为空表示永久授权",

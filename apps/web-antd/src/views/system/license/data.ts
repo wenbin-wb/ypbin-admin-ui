@@ -57,6 +57,7 @@ export function useFormSchema(): VbenFormSchema[] {
       component: 'RadioGroup',
       fieldName: 'deliveryMode',
       label: $t('system.license.deliveryMode'),
+      help: $t('system.license.deliveryModeTip'),
       componentProps: {
         buttonStyle: 'solid',
         optionType: 'button',

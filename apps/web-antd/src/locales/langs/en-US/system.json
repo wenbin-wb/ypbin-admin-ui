@@ -356,6 +356,7 @@
     "deliveryMode": "Delivery Mode",
     "deliveryModeCode": "Inline Code",
     "deliveryModeFile": "License File",
+    "deliveryModeTip": "Inline code suits simple licenses (has a length cap); use a license file for many modules/quotas/attributes",
     "effectiveAt": "Effective At",
     "expireAt": "Expire At",
     "expireAtTip": "Empty means perpetual license",
