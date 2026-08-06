@@ -29,6 +29,11 @@ function useAccess() {
   function hasAccessByCodes(codes: string[]) {
     const userCodesSet = new Set(accessStore.accessCodes);
 
+    // Sa-Token 超管通配权限码 `*:*:*`：存在即视为拥有全部权限码。
+    if (userCodesSet.has('*:*:*')) {
+      return true;
+    }
+
     const intersection = codes.filter((item) => userCodesSet.has(item));
     return intersection.length > 0;
   }
