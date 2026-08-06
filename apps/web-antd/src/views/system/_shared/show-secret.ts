@@ -33,6 +33,89 @@ export function showSecretOnce(secret: string, title?: string) {
   });
 }
 
+/** 授权交付信息（授权码 + 签发时自动创建/复用的联机应用密钥） */
+export interface LicenseDelivery {
+  /** 授权串（Base64，CODE 交付展示） */
+  authCode?: string;
+  /** 联机应用名称（= 被授权方） */
+  appName?: string;
+  /** 联机应用 Access Key */
+  accessKey?: string;
+  /** 联机应用 Secret Key */
+  secretKey?: string;
+}
+
+/**
+ * 弹窗展示授权交付信息（授权码 + 联机应用 AK/SK），各段可复制。
+ * 联机应用在审批通过时按被授权方自动创建/复用，交付给消费端配置 online.access-key / secret-key。
+ *
+ * @param delivery 交付信息
+ * @param title    弹窗标题
+ */
+export function showLicenseDelivery(delivery: LicenseDelivery, title?: string) {
+  if (!delivery) {
+    return;
+  }
+  const items: { label: string; value: string }[] = [];
+  if (delivery.authCode) {
+    items.push({
+      label: $t('system.license.authCodeTitle'),
+      value: delivery.authCode,
+    });
+  }
+  if (delivery.appName || delivery.accessKey) {
+    if (delivery.appName) {
+      items.push({
+        label: $t('system.license.appName'),
+        value: delivery.appName,
+      });
+    }
+    if (delivery.accessKey) {
+      items.push({
+        label: $t('system.app.accessKey'),
+        value: delivery.accessKey,
+      });
+    }
+    if (delivery.secretKey) {
+      items.push({
+        label: $t('system.app.secretKey'),
+        value: delivery.secretKey,
+      });
+    }
+  }
+  if (items.length === 0) {
+    return;
+  }
+  Modal.success({
+    title: title ?? $t('system.license.deliveryTitle'),
+    width: 640,
+    content: h('div', { class: 'flex flex-col gap-2' }, [
+      h('div', { class: 'text-warning' }, $t('system.license.deliveryTip')),
+      ...items.map(({ label, value }) =>
+        h(
+          'div',
+          { class: 'flex flex-col gap-1 rounded border border-gray-200 p-2' },
+          [
+            h('span', { class: 'text-xs text-gray-500' }, label),
+            h(
+              Typography.Text,
+              {
+                class: 'break-all select-all',
+                copyable: {
+                  text: value,
+                  tooltip: false,
+                  onCopy: () => message.success($t('common.copySuccess')),
+                },
+              },
+              () => value,
+            ),
+          ],
+        ),
+      ),
+    ]),
+  });
+}
+
 /** 新生成的签发密钥对（SM2 公钥/私钥 + SM4 密钥） */
 interface KeyPairEntry {
   publicKey: string;

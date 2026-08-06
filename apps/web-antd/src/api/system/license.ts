@@ -76,6 +76,20 @@ export namespace SystemLicenseApi {
     /** Base64 SM4 密钥 */
     sm4Key: string;
   }
+
+  /** 授权交付信息：授权码 + 签发时按被授权方自动创建/复用的联机应用密钥 */
+  export interface LicenseDelivery {
+    /** 授权串（Base64） */
+    authCode?: string;
+    /** 联机应用 ID */
+    appId?: string;
+    /** 联机应用名称（= 被授权方） */
+    appName?: string;
+    /** 联机应用 Access Key */
+    accessKey?: string;
+    /** 联机应用 Secret Key */
+    secretKey?: string;
+  }
 }
 
 /**
@@ -175,11 +189,13 @@ async function downloadLicenseFile(id: string) {
 }
 
 /**
- * 查看内联授权码（仅 CODE 交付模式的已签发授权）
+ * 获取授权交付信息（授权码 + 联机应用 AK/SK）
  * @param id 授权 ID
  */
-async function getLicenseAuthCode(id: string) {
-  return requestClient.get<string>(`/system/license/${id}/auth-code`);
+async function getLicenseDelivery(id: string) {
+  return requestClient.get<SystemLicenseApi.LicenseDelivery>(
+    `/system/license/${id}/delivery`,
+  );
 }
 
 export {
@@ -188,7 +204,7 @@ export {
   deleteLicense,
   downloadLicenseFile,
   generateLicenseKey,
-  getLicenseAuthCode,
+  getLicenseDelivery,
   getLicenseDetail,
   getLicenseList,
   revokeLicense,

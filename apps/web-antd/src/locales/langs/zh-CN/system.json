@@ -404,6 +404,10 @@
     "authCodeTitle": "内联授权码",
     "authCodeTip": "将以下授权码交付被授权方，配置到其 ypbin.license.auth-code 即可。",
     "viewAuthCode": "查看授权码",
+    "deliveryTitle": "交付信息",
+    "deliveryTip": "将以下授权与联机应用密钥交付被授权方；联机应用在签发时按被授权方自动创建（同主体复用），消费端配置到其 ypbin.license.online.access-key / secret-key。",
+    "appName": "联机应用",
+    "viewAppInfo": "联机应用信息",
     "detailTitle": "授权详情"
   }
 }

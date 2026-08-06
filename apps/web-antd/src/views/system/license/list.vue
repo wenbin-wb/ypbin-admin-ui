@@ -12,14 +12,14 @@ import {
   deleteLicense,
   downloadLicenseFile,
   generateLicenseKey,
-  getLicenseAuthCode,
+  getLicenseDelivery,
   getLicenseList,
   revokeLicense,
   submitLicense,
 } from '#/api/system/license';
 import { $t } from '#/locales';
 
-import { showKeyPairOnce, showSecretOnce } from '../_shared/show-secret';
+import { showKeyPairOnce, showLicenseDelivery } from '../_shared/show-secret';
 import { useColumns, useGridFormSchema } from './data';
 import Approve from './modules/approve.vue';
 import Detail from './modules/detail.vue';
@@ -136,10 +136,10 @@ async function onDownload(row: SystemLicenseApi.SystemLicense) {
   }
 }
 
-/** 查看内联授权码：复用密钥展示弹窗，内置复制 */
-function onViewAuthCode(row: SystemLicenseApi.SystemLicense) {
-  getLicenseAuthCode(row.id).then((authCode) => {
-    showSecretOnce(authCode, $t('system.license.authCodeTitle'));
+/** 查看交付信息：授权码（CODE 模式）+ 签发时按被授权方自动创建的联机应用 AK/SK，各段可复制 */
+function onViewDelivery(row: SystemLicenseApi.SystemLicense) {
+  getLicenseDelivery(row.id).then((delivery) => {
+    showLicenseDelivery(delivery, $t('system.license.deliveryTitle'));
   });
 }
 
@@ -228,7 +228,7 @@ function onGenerateKey() {
               auth: 'system:license:list',
               ifShow:
                 row.approveStatus === 'ISSUED' && row.deliveryMode === 'CODE',
-              onClick: () => onViewAuthCode(row),
+              onClick: () => onViewDelivery(row),
             },
             {
               text: $t('system.license.download'),
@@ -236,6 +236,13 @@ function onGenerateKey() {
               ifShow:
                 row.approveStatus === 'ISSUED' && row.deliveryMode === 'FILE',
               onClick: () => onDownload(row),
+            },
+            {
+              text: $t('system.license.viewAppInfo'),
+              auth: 'system:license:list',
+              ifShow:
+                row.approveStatus === 'ISSUED' && row.deliveryMode === 'FILE',
+              onClick: () => onViewDelivery(row),
             },
             {
               text: $t('system.license.revoke'),
