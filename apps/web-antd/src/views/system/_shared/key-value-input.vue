@@ -1,5 +1,5 @@
 <script lang="ts" setup generic="V extends number | string">
-import { computed } from 'vue';
+import { shallowRef, watch } from 'vue';
 
 import { IconifyIcon } from '@vben/icons';
 
@@ -29,29 +29,56 @@ interface Row {
   value: undefined | V;
 }
 
-/** 对象与有序行的双向映射：编辑期用行保持顺序与空行，回写时收敛为对象 */
-const rows = computed<Row[]>({
-  get() {
-    const obj = modelValue.value ?? {};
-    return Object.keys(obj).map((key) => ({ key, value: obj[key] }));
-  },
-  set(next) {
-    const obj: Record<string, V> = {};
-    for (const row of next) {
-      const key = row.key.trim();
-      if (key && row.value !== undefined && (row.value as any) !== '') {
-        obj[key] = row.value as V;
-      }
+/** 编辑期行数据：组件内独立持有，未填完的空行不落模型，避免「添加一行随即被收敛消失」 */
+const rows = shallowRef<Row[]>([]);
+
+// 组件内部回写模型时置位，跳过 watch 重建，否则会把正在编辑的空行冲掉
+let internalCommit = false;
+
+/** 由外部赋值（编辑回填 / 外部重置）重建行 */
+function syncFromModel() {
+  const obj = (modelValue.value ?? {}) as Record<string, V>;
+  rows.value = Object.keys(obj).map((key) => ({
+    key,
+    value: obj[key] as unknown as undefined | V,
+  }));
+}
+
+watch(
+  modelValue,
+  () => {
+    if (internalCommit) {
+      internalCommit = false;
+      return;
     }
-    modelValue.value = obj;
+    syncFromModel();
   },
-});
+  { immediate: true },
+);
+
+/** 将非空行收敛为对象写回模型 */
+function commit() {
+  const obj: Record<string, V> = {};
+  for (const row of rows.value) {
+    const key = row.key.trim();
+    if (
+      key &&
+      row.value !== undefined &&
+      row.value !== null &&
+      (row.value as any) !== ''
+    ) {
+      obj[key] = row.value as V;
+    }
+  }
+  internalCommit = true;
+  modelValue.value = obj;
+}
 
 function updateRow(index: number, patch: Partial<Row>) {
-  const next = rows.value.map((row, i) =>
+  rows.value = rows.value.map((row, i) =>
     i === index ? { ...row, ...patch } : row,
   );
-  rows.value = next;
+  commit();
 }
 
 function addRow() {
@@ -60,6 +87,7 @@ function addRow() {
 
 function removeRow(index: number) {
   rows.value = rows.value.filter((_, i) => i !== index);
+  commit();
 }
 </script>
 <template>

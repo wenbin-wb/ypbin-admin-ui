@@ -366,7 +366,9 @@
     "modules": "Modules",
     "modulesTip": "Press Enter to add module keys; empty means no module restriction",
     "quotas": "Quotas",
+    "quotasTip": "Business quota caps as key-value pairs (e.g. device=100, user=500); empty means no limit",
     "attributes": "Attributes",
+    "attributesTip": "Custom extension params as key-value pairs, written into the license content for the consumer; empty means none",
     "remark": "Remark",
     "approveStatus": "Approve Status",
     "statusDraft": "Draft",
@@ -400,6 +402,7 @@
     "sm4Key": "SM4 Key",
     "authCodeTitle": "Inline Auth Code",
     "authCodeTip": "Deliver the auth code below to the licensee and configure it into their ypbin.license.auth-code.",
-    "viewAuthCode": "View Auth Code"
+    "viewAuthCode": "View Auth Code",
+    "detailTitle": "License Detail"
   }
 }

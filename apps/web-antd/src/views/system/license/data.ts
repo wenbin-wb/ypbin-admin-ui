@@ -2,6 +2,7 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridColumns } from '#/adapter/vxe-table';
 import type { SystemLicenseApi } from '#/api/system/license';
 
+import { getTenantList } from '#/api/system/tenant';
 import { $t } from '#/locales';
 
 /** 审批状态选项（含标签色，供 CellTag 与筛选下拉复用） */
@@ -65,10 +66,18 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
     },
     {
-      component: 'Input',
+      component: 'ApiSelect',
       fieldName: 'tenantId',
       label: $t('system.license.tenantId'),
       help: $t('system.license.tenantIdTip'),
+      componentProps: {
+        api: getTenantList,
+        labelField: 'name',
+        valueField: 'id',
+        allowClear: true,
+        class: 'w-full',
+        optionLabelProp: 'label',
+      },
     },
     {
       component: 'DatePicker',
@@ -108,6 +117,7 @@ export function useFormSchema(): VbenFormSchema[] {
         mode: 'tags',
         open: false,
         tokenSeparators: [',', ' '],
+        class: 'w-full',
       },
     },
     {
@@ -119,12 +129,14 @@ export function useFormSchema(): VbenFormSchema[] {
         mode: 'tags',
         open: false,
         tokenSeparators: [',', ' '],
+        class: 'w-full',
       },
     },
     {
       component: 'Input',
       fieldName: 'quotas',
       label: $t('system.license.quotas'),
+      help: $t('system.license.quotasTip'),
       formItemClass: 'items-start',
       modelPropName: 'modelValue',
     },
@@ -132,6 +144,7 @@ export function useFormSchema(): VbenFormSchema[] {
       component: 'Input',
       fieldName: 'attributes',
       label: $t('system.license.attributes'),
+      help: $t('system.license.attributesTip'),
       formItemClass: 'items-start',
       modelPropName: 'modelValue',
     },
@@ -160,9 +173,17 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      component: 'Input',
+      component: 'ApiSelect',
       fieldName: 'tenantId',
       label: $t('system.license.tenantId'),
+      componentProps: {
+        api: getTenantList,
+        labelField: 'name',
+        valueField: 'id',
+        allowClear: true,
+        class: 'w-full',
+        optionLabelProp: 'label',
+      },
     },
   ];
 }
@@ -177,7 +198,8 @@ export function useColumns(): VxeTableGridColumns<SystemLicenseApi.SystemLicense
     {
       field: 'licenseId',
       title: $t('system.license.licenseId'),
-      width: 200,
+      width: 280,
+      slots: { default: 'licenseId' },
     },
     {
       field: 'deliveryMode',
@@ -221,7 +243,7 @@ export function useColumns(): VxeTableGridColumns<SystemLicenseApi.SystemLicense
       title: $t('system.license.operation'),
       field: 'action',
       fixed: 'right',
-      width: 220,
+      width: 280,
       slots: { default: 'action' },
     },
   ];

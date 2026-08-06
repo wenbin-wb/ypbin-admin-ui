@@ -160,12 +160,16 @@ async function generateLicenseKey() {
 
 /**
  * 下载授权文件（.lic）
+ *
+ * 用 requestClient.download 而非 get + responseType:'blob'：后者走实例默认的
+ * responseReturn:'data'，defaultResponseInterceptor 会去读响应体（Blob）的 code 字段，
+ * 而 download 接口返回的是纯文本授权串（无 {code,data} 包装），Blob 没有 code 字段即抛错。
+ * download 内部传 responseReturn:'body'，拦截器直接返回 Blob，不判 code。
+ *
  * @param id 授权 ID
  */
 async function downloadLicenseFile(id: string) {
-  return requestClient.get<Blob>(`/system/license/${id}/download`, {
-    responseType: 'blob',
-  });
+  return requestClient.download<Blob>(`/system/license/${id}/download`);
 }
 
 /**

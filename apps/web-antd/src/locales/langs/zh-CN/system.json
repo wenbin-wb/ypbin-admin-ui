@@ -366,7 +366,9 @@
     "modules": "授权模块",
     "modulesTip": "回车分隔多个模块标识；为空表示不限模块",
     "quotas": "额度限制",
+    "quotasTip": "业务额度上限，键值对录入（如 device=100、user=500）；为空表示不限制",
     "attributes": "扩展参数",
+    "attributesTip": "自定义扩展参数，键值对录入，写入授权内容供消费端读取；为空表示无",
     "remark": "备注",
     "approveStatus": "审批状态",
     "statusDraft": "草稿",
@@ -400,6 +402,7 @@
     "sm4Key": "SM4 密钥",
     "authCodeTitle": "内联授权码",
     "authCodeTip": "将以下授权码交付被授权方，配置到其 ypbin.license.auth-code 即可。",
-    "viewAuthCode": "查看授权码"
+    "viewAuthCode": "查看授权码",
+    "detailTitle": "授权详情"
   }
 }

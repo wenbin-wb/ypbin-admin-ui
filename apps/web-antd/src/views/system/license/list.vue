@@ -5,7 +5,7 @@ import type { SystemLicenseApi } from '#/api/system/license';
 import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
-import { Button, message } from 'ant-design-vue';
+import { Button, message, Typography } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
@@ -19,12 +19,16 @@ import {
 } from '#/api/system/license';
 import { $t } from '#/locales';
 
-import { showSecretOnce } from '../_shared/show-secret';
+import { showKeyPairOnce, showSecretOnce } from '../_shared/show-secret';
 import { useColumns, useGridFormSchema } from './data';
 import Approve from './modules/approve.vue';
+import Detail from './modules/detail.vue';
 import Form from './modules/form.vue';
 
 const [FormDrawer, formDrawerApi] = useVbenDrawer({ connectedComponent: Form });
+const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
+  connectedComponent: Detail,
+});
 const [ApproveModal, approveModalApi] = useVbenModal({
   connectedComponent: Approve,
 });
@@ -67,6 +71,10 @@ function onEdit(row: SystemLicenseApi.SystemLicense) {
   formDrawerApi.setData(row).open();
 }
 
+function onViewDetail(row: SystemLicenseApi.SystemLicense) {
+  detailDrawerApi.setData(row).open();
+}
+
 function onApprove(row: SystemLicenseApi.SystemLicense) {
   approveModalApi.setData(row).open();
 }
@@ -99,15 +107,33 @@ function onRevoke(row: SystemLicenseApi.SystemLicense) {
 }
 
 /** 下载 .lic 授权文件：后端以二进制流返回，前端触发浏览器下载 */
-function onDownload(row: SystemLicenseApi.SystemLicense) {
-  downloadLicenseFile(row.id).then((blob) => {
+async function onDownload(row: SystemLicenseApi.SystemLicense) {
+  try {
+    const blob = await downloadLicenseFile(row.id);
+    // 后端业务失败时返回统一 JSON（HTTP 恒 200），不能把错误信息当 .lic 下载下来掩盖问题
+    const text = await blob.text();
+    if (text.trimStart().startsWith('{')) {
+      try {
+        const err = JSON.parse(text) as { code?: number; message?: string };
+        if (err.code !== undefined && err.code !== 200) {
+          message.error(
+            err.message || $t('ui.fallback.http.internalServerError'),
+          );
+          return;
+        }
+      } catch {
+        // 非 JSON 说明是正常授权串，继续走下载
+      }
+    }
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `${row.licenseId ?? row.id}.lic`;
     link.click();
     URL.revokeObjectURL(url);
-  });
+  } catch {
+    // 请求级失败已由全局错误拦截器统一提示
+  }
 }
 
 /** 查看内联授权码：复用密钥展示弹窗，内置复制 */
@@ -117,21 +143,17 @@ function onViewAuthCode(row: SystemLicenseApi.SystemLicense) {
   });
 }
 
-/** 生成签发密钥对：结果仅此一次可见，弹窗展示并可复制 */
+/** 生成签发密钥对：结果仅此一次可见，分块弹窗展示，支持复制与保存为文件 */
 function onGenerateKey() {
   generateLicenseKey().then((keyPair) => {
-    const content = [
-      `${$t('system.license.publicKey')}:\n${keyPair.publicKey}`,
-      `${$t('system.license.privateKey')}:\n${keyPair.privateKey}`,
-      `${$t('system.license.sm4Key')}:\n${keyPair.sm4Key}`,
-    ].join('\n\n');
-    showSecretOnce(content, $t('system.license.genkeyTitle'));
+    showKeyPairOnce(keyPair, $t('system.license.genkeyTitle'));
   });
 }
 </script>
 <template>
   <Page auto-content-height>
     <FormDrawer @success="onRefresh" />
+    <DetailDrawer />
     <ApproveModal @success="onRefresh" />
     <Grid :table-title="$t('system.license.list')">
       <template #toolbar-tools>
@@ -152,9 +174,28 @@ function onGenerateKey() {
         </Button>
       </template>
 
+      <template #licenseId="{ row }">
+        <Typography.Text
+          v-if="row.licenseId"
+          :copyable="{
+            tooltip: false,
+            onCopy: () => message.success($t('common.copySuccess')),
+          }"
+        >
+          {{ row.licenseId }}
+        </Typography.Text>
+        <span v-else>-</span>
+      </template>
+
       <template #action="{ row }">
         <VbenTableAction
           :actions="[
+            {
+              text: $t('common.detail'),
+              icon: 'lucide:eye',
+              auth: 'system:license:list',
+              onClick: () => onViewDetail(row),
+            },
             {
               text: $t('common.edit'),
               icon: 'lucide:edit',

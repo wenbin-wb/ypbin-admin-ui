@@ -29,5 +29,10 @@
   "hideSearchPanel": "Hide search panel",
   "notShow": "Don't Show",
   "more": "More",
-  "keyword": "Keyword"
+  "keyword": "Keyword",
+  "copySuccess": "Copied",
+  "copyFailed": "Copy Failed",
+  "copyAll": "Copy All",
+  "saveToFile": "Save to File",
+  "close": "Close"
 }
