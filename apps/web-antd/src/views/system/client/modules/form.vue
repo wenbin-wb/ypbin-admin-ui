@@ -1,4 +1,6 @@
 ﻿<script lang="ts" setup>
+import type { SystemClientApi } from '#/api/system/client';
+
 import { useVbenDrawer } from '@vben/common-ui';
 
 import { message } from 'ant-design-vue';
@@ -49,7 +51,7 @@ const [Form, formApi] = useVbenForm({
 let isUpdate = false;
 let updateId = '';
 
-const [Drawer, drawerApi] = useVbenDrawer({
+const [Drawer, drawerApi] = useVbenDrawer<null | SystemClientApi.ClientResp>({
   onCancel() {
     drawerApi.close();
   },
@@ -77,10 +79,14 @@ const [Drawer, drawerApi] = useVbenDrawer({
   },
   onOpenChange(isOpen: boolean) {
     if (isOpen) {
-      const data = drawerApi.getData<any>();
+      const data = drawerApi.getData();
       isUpdate = !!data?.id;
-      updateId = data?.id;
-      formApi.setValues(data || {});
+      updateId = data?.id ?? '';
+      if (data) {
+        formApi.setValues(data);
+      } else {
+        formApi.reset();
+      }
       drawerApi.setState({
         title: isUpdate
           ? $t('ui.actionTitle.edit', [$t('system.client.title')])
@@ -89,6 +95,8 @@ const [Drawer, drawerApi] = useVbenDrawer({
     }
   },
 });
+
+defineExpose({ drawerApi });
 </script>
 <template>
   <Drawer><Form /></Drawer>

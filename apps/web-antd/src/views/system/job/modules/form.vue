@@ -1,4 +1,6 @@
 ﻿<script lang="ts" setup>
+import type { SystemJobApi } from '#/api/system/job';
+
 import { nextTick, ref } from 'vue';
 
 import { useVbenDrawer } from '@vben/common-ui';
@@ -21,7 +23,11 @@ const [Form, formApi] = useVbenForm({
   showDefaultActions: false,
 });
 
-const [Drawer, drawerApi] = useVbenDrawer({
+type JobFormData =
+  | { isUpdate: false }
+  | { isUpdate: true; row: SystemJobApi.JobResp };
+
+const [Drawer, drawerApi] = useVbenDrawer<JobFormData>({
   onCancel() {
     drawerApi.close();
   },
@@ -45,7 +51,7 @@ const [Drawer, drawerApi] = useVbenDrawer({
   },
   async onOpenChange(isOpen: boolean) {
     if (isOpen) {
-      const data = drawerApi.getData<Record<string, any>>();
+      const data = drawerApi.getData();
       isUpdate.value = !!data?.isUpdate;
       drawerApi.setState({
         title: isUpdate.value
@@ -54,16 +60,18 @@ const [Drawer, drawerApi] = useVbenDrawer({
       });
       // 等表单挂载就绪再回填/重置，避免重开时 setValues 早于表单初始化
       await nextTick();
-      if (isUpdate.value && data?.row) {
+      if (data?.isUpdate) {
         rowId.value = data.row.id;
         formApi.setValues(data.row);
       } else {
         rowId.value = '';
-        formApi.resetForm();
+        formApi.reset();
       }
     }
   },
 });
+
+defineExpose({ drawerApi });
 </script>
 <template>
   <Drawer class="w-[700px]">

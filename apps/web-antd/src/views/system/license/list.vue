@@ -64,7 +64,7 @@ function onRefresh() {
 }
 
 function onCreate() {
-  formDrawerApi.setData({}).open();
+  formDrawerApi.setData(null).open();
 }
 
 function onEdit(row: SystemLicenseApi.SystemLicense) {

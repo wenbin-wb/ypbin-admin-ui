@@ -14,7 +14,9 @@ import { $t } from '#/locales';
 import { useSchema } from '../data';
 
 const emit = defineEmits(['success']);
-const formData = ref<SystemDeptApi.SystemDept>();
+type DeptFormData = null | Partial<SystemDeptApi.SystemDept>;
+
+const formData = ref<Partial<SystemDeptApi.SystemDept>>();
 const getTitle = computed(() => {
   return formData.value?.id
     ? $t('ui.actionTitle.edit', [$t('system.dept.name')])
@@ -32,7 +34,7 @@ function resetForm() {
   formApi.setValues(formData.value || {});
 }
 
-const [Drawer, drawerApi] = useVbenDrawer({
+const [Drawer, drawerApi] = useVbenDrawer<DeptFormData>({
   async onConfirm() {
     const { valid } = await formApi.validate();
     if (valid) {
@@ -51,17 +53,23 @@ const [Drawer, drawerApi] = useVbenDrawer({
   },
   onOpenChange(isOpen) {
     if (isOpen) {
-      const data = drawerApi.getData<SystemDeptApi.SystemDept>();
+      const data = drawerApi.getData();
       if (data) {
-        if (data.pid === '0') {
-          data.pid = undefined;
-        }
+        // 不直接改写共享数据，顶级部门的 pid 仅在表单取值上置空
         formData.value = data;
-        formApi.setValues(formData.value);
+        formApi.setValues({
+          ...data,
+          ...(data.pid === '0' ? { pid: undefined } : {}),
+        });
+      } else {
+        formData.value = undefined;
+        formApi.reset();
       }
     }
   },
 });
+
+defineExpose({ drawerApi });
 </script>
 
 <template>

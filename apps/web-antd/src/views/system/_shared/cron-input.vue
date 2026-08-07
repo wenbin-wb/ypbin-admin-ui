@@ -26,6 +26,8 @@ const partLabel: Record<CronPart, string> = {
 };
 
 const expression = computed(() => stateToCron(state.value));
+// 抽出带全角冒号的标签，避免模板里整行超宽被迫折行
+const expressionLabel = computed(() => `${$t('system.cron.expression')}：`);
 
 // 状态变化 → 回写 v-model
 watch(
@@ -150,7 +152,7 @@ function toggleValue(part: CronPart, v: number) {
     </Tabs>
 
     <div class="bg-accent mt-2 rounded px-3 py-2 text-sm">
-      <span class="text-foreground/60">{{ $t('system.cron.expression') }}：</span>
+      <span class="text-foreground/60">{{ expressionLabel }}</span>
       <code class="font-mono">{{ expression }}</code>
     </div>
   </div>

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+import type { SystemJobApi } from '#/api/system/job';
 
 import { ref } from 'vue';
 
@@ -33,16 +34,18 @@ const [Grid, gridApi] = useVbenVxeGrid({
   } as VxeTableGridOptions,
 });
 
-const [Drawer, drawerApi] = useVbenDrawer({
+const [Drawer, drawerApi] = useVbenDrawer<SystemJobApi.JobResp>({
   footer: false,
   onOpenChange(isOpen: boolean) {
     if (isOpen) {
-      const data = drawerApi.getData<Record<string, any>>();
+      const data = drawerApi.getData();
       jobId.value = data?.id ?? '';
       gridApi.query();
     }
   },
 });
+
+defineExpose({ drawerApi });
 </script>
 <template>
   <Drawer class="w-[900px]" :title="$t('system.jobLog.title')">

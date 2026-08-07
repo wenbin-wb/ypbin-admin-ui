@@ -141,16 +141,12 @@ function handleClick(item: NotificationItem) {
     const full = recentMessages.value.find(
       (m) => String(m.id) === String(item.id),
     );
-    if (full) {
-      previewData.value = full;
-    } else {
-      // 兜底：完整数据未命中时用列表项自身展示
-      previewData.value = {
-        title: item.title,
-        content: item.message,
-        createTime: item.date,
-      };
-    }
+    // 兜底：完整数据未命中时用列表项自身展示
+    previewData.value = full ?? {
+      title: item.title,
+      content: item.message,
+      createTime: item.date,
+    };
     previewVisible.value = true;
   }
 }

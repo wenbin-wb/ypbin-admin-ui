@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { SystemNoticeApi } from '#/api/system/notice';
+
 import { nextTick, ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
@@ -48,7 +50,11 @@ async function submit(draft: boolean) {
   }
 }
 
-const [Modal, modalApi] = useVbenModal({
+type NoticeFormData =
+  | { isUpdate: false }
+  | { isUpdate: true; row: SystemNoticeApi.NoticeResp };
+
+const [Modal, modalApi] = useVbenModal<NoticeFormData>({
   onCancel() {
     modalApi.close();
   },
@@ -57,7 +63,7 @@ const [Modal, modalApi] = useVbenModal({
   },
   async onOpenChange(isOpen: boolean) {
     if (isOpen) {
-      const data = modalApi.getData<Record<string, any>>();
+      const data = modalApi.getData();
       isUpdate.value = !!data?.isUpdate;
       modalApi.setState({
         title: isUpdate.value
@@ -66,23 +72,24 @@ const [Modal, modalApi] = useVbenModal({
       });
       // 等表单实例挂载就绪再回填/重置，否则重开时 setValues 早于表单初始化会失效
       await nextTick();
-      if (isUpdate.value && data?.row) {
+      if (data?.isUpdate) {
         rowId.value = data.row.id;
-        const row = { ...data.row };
-        // 逗号分隔字符串还原为数组供 CheckboxGroup 使用
-        if (typeof row.notifyMethods === 'string') {
-          row.notifyMethods = row.notifyMethods
-            ? row.notifyMethods.split(',')
-            : [];
-        }
-        formApi.setValues(row);
+        // 逗号分隔字符串还原为数组供多选组件使用
+        formApi.setValues({
+          ...data.row,
+          notifyMethods: data.row.notifyMethods
+            ? data.row.notifyMethods.split(',')
+            : [],
+        });
       } else {
         rowId.value = '';
-        formApi.resetForm();
+        formApi.reset();
       }
     }
   },
 });
+
+defineExpose({ modalApi });
 </script>
 <template>
   <Modal class="w-[1000px]">

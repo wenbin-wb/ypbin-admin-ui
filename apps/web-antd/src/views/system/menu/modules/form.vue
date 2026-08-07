@@ -29,7 +29,9 @@ import { getMenuTypeOptions } from '../data';
 const emit = defineEmits<{
   success: [];
 }>();
-const formData = ref<SystemMenuApi.SystemMenu>();
+type MenuFormData = null | Partial<SystemMenuApi.SystemMenu>;
+
+const formData = ref<Partial<SystemMenuApi.SystemMenu>>();
 const titleSuffix = ref<string>();
 
 type MenuSubmitValues = Omit<SystemMenuApi.SystemMenu, 'children' | 'id'>;
@@ -501,11 +503,11 @@ const [Form, formApi] = useVbenForm({
   showDefaultActions: false,
   wrapperClass: 'grid-cols-2 gap-x-4',
 });
-const [Drawer, drawerApi] = useVbenDrawer({
+const [Drawer, drawerApi] = useVbenDrawer<MenuFormData>({
   onConfirm: onSubmit,
   async onOpenChange(isOpen) {
     if (isOpen) {
-      const data = drawerApi.getData<SystemMenuApi.SystemMenu>();
+      const data = drawerApi.getData();
       if (data) {
         formData.value = data;
         await formApi.setSubmitValues(data);
@@ -541,6 +543,8 @@ const getDrawerTitle = computed(() =>
     ? $t('ui.actionTitle.edit', [$t('system.menu.name')])
     : $t('ui.actionTitle.create', [$t('system.menu.name')]),
 );
+
+defineExpose({ drawerApi });
 </script>
 <template>
   <Drawer class="w-full max-w-200" :title="getDrawerTitle">

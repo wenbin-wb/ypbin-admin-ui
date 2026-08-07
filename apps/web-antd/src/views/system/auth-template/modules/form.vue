@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import type { Recordable } from '@vben/types';
 
+import type { SystemAuthTemplateApi } from '#/api/system/auth-template';
+
 import { nextTick, ref } from 'vue';
 
 import { Tree, useVbenDrawer } from '@vben/common-ui';
@@ -49,7 +51,11 @@ function getNodeClass(node: Recordable<any>) {
   return classes.join(' ');
 }
 
-const [Drawer, drawerApi] = useVbenDrawer({
+type AuthTemplateFormData =
+  | { id: string; isUpdate: true; row: SystemAuthTemplateApi.AuthTemplateResp }
+  | { isUpdate: false };
+
+const [Drawer, drawerApi] = useVbenDrawer<AuthTemplateFormData>({
   onCancel() {
     drawerApi.close();
   },
@@ -61,7 +67,7 @@ const [Drawer, drawerApi] = useVbenDrawer({
         return;
       }
       const values = await formApi.getValues();
-      const data = drawerApi.getData<Record<string, any>>();
+      const data = drawerApi.getData();
       await (data?.isUpdate
         ? updateAuthTemplate(data.id, values)
         : createAuthTemplate(values));
@@ -74,7 +80,7 @@ const [Drawer, drawerApi] = useVbenDrawer({
   },
   async onOpenChange(isOpen: boolean) {
     if (isOpen) {
-      const data = drawerApi.getData<Record<string, any>>();
+      const data = drawerApi.getData();
       formApi.reset();
       drawerApi.setState({
         title: data?.isUpdate
@@ -83,12 +89,14 @@ const [Drawer, drawerApi] = useVbenDrawer({
       });
       await loadPermissions();
       await nextTick();
-      if (data?.isUpdate && data?.row) {
+      if (data?.isUpdate) {
         formApi.setValues(data.row);
       }
     }
   },
 });
+
+defineExpose({ drawerApi });
 </script>
 <template>
   <Drawer class="w-[700px]">
@@ -99,6 +107,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
             :tree-data="permissions"
             multiple
             bordered
+            show-expand-all
+            show-select-all
+            :select-all-label="$t('ui.tree.selectAll')"
             :default-expanded-level="2"
             :get-node-class="getNodeClass"
             v-bind="slotProps.componentProps"

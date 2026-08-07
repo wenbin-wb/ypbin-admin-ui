@@ -177,7 +177,7 @@ function onRefresh() {
 }
 
 function onCreate() {
-  formDrawerApi.setData({}).open();
+  formDrawerApi.setData(null).open();
 }
 
 function onAssignRoles(row: SystemUserApi.SystemUser) {

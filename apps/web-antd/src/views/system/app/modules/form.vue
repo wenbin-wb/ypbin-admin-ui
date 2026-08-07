@@ -1,4 +1,6 @@
 ﻿<script lang="ts" setup>
+import type { SystemAppApi } from '#/api/system/app';
+
 import { ref } from 'vue';
 
 import { useVbenDrawer } from '@vben/common-ui';
@@ -20,7 +22,11 @@ const [Form, formApi] = useVbenForm({
   showDefaultActions: false,
 });
 
-const [Drawer, drawerApi] = useVbenDrawer({
+type AppFormData =
+  | { isUpdate: false }
+  | { isUpdate: true; row: SystemAppApi.AppResp };
+
+const [Drawer, drawerApi] = useVbenDrawer<AppFormData>({
   onCancel() {
     drawerApi.close();
   },
@@ -47,23 +53,25 @@ const [Drawer, drawerApi] = useVbenDrawer({
   },
   onOpenChange(isOpen: boolean) {
     if (isOpen) {
-      const data = drawerApi.getData<Record<string, any>>();
+      const data = drawerApi.getData();
       isUpdate.value = !!data?.isUpdate;
       drawerApi.setState({
         title: isUpdate.value
           ? $t('ui.actionTitle.edit', [$t('system.app.title')])
           : $t('ui.actionTitle.create', [$t('system.app.title')]),
       });
-      if (isUpdate.value && data?.row) {
+      if (data?.isUpdate) {
         rowId.value = data.row.id;
         formApi.setValues(data.row);
       } else {
         rowId.value = '';
-        formApi.resetForm();
+        formApi.reset();
       }
     }
   },
 });
+
+defineExpose({ drawerApi });
 </script>
 <template>
   <Drawer>

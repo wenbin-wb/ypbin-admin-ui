@@ -74,7 +74,7 @@ function onRefresh() {
   gridApi.query();
 }
 function onCreate() {
-  formDrawerApi.setData({}).open();
+  formDrawerApi.setData(null).open();
 }
 </script>
 <template>

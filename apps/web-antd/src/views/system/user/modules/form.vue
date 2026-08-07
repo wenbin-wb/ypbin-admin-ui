@@ -20,7 +20,7 @@ const [Form, formApi] = useVbenForm({
   showDefaultActions: false,
 });
 
-const [Drawer, drawerApi] = useVbenDrawer({
+const [Drawer, drawerApi] = useVbenDrawer<null | SystemUserApi.SystemUser>({
   async onConfirm() {
     const { valid } = await formApi.validate();
     if (!valid) return;
@@ -38,13 +38,14 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
   async onOpenChange(isOpen) {
     if (isOpen) {
-      const data = drawerApi.getData<SystemUserApi.SystemUser>();
+      const data = drawerApi.getData();
       formApi.reset();
 
       if (data) {
         formData.value = data;
         id.value = data.id;
       } else {
+        formData.value = undefined;
         id.value = undefined;
       }
 
@@ -61,6 +62,8 @@ const getDrawerTitle = computed(() => {
     ? $t('ui.actionTitle.edit', [$t('system.user.name')])
     : $t('ui.actionTitle.create', [$t('system.user.name')]);
 });
+
+defineExpose({ drawerApi });
 </script>
 <template>
   <Drawer :title="getDrawerTitle">

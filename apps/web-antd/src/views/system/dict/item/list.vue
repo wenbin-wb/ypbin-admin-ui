@@ -52,14 +52,19 @@ const [Grid, gridApi] = useVbenVxeGrid({
   } as VxeTableGridOptions<SystemDictItemApi.DictItemResp>,
 });
 
-const [Drawer, drawerApi] = useVbenDrawer({
+interface DictItemListData {
+  dictId: string;
+  dictName?: string;
+}
+
+const [Drawer, drawerApi] = useVbenDrawer<DictItemListData>({
   onOpenChange(isOpen) {
     if (isOpen) {
-      const data = drawerApi.getData<Record<string, any>>();
-      if (data && data.dictId) {
+      const data = drawerApi.getData();
+      if (data?.dictId) {
         dictId.value = data.dictId;
         drawerApi.setState({
-          title: `${$t('system.dictItem.title')} - ${data.dictName || ''}`,
+          title: `${$t('system.dictItem.title')} - ${data.dictName ?? ''}`,
         });
         gridApi.query();
       }
@@ -104,6 +109,8 @@ function onDelete(row: SystemDictItemApi.DictItemResp) {
       hideLoading();
     });
 }
+
+defineExpose({ drawerApi });
 </script>
 
 <template>

@@ -7,6 +7,10 @@ defineOptions({
   name: 'FormModelDemo',
 });
 
+interface FormModalData {
+  values?: Record<string, unknown>;
+}
+
 const [Form, formApi] = useVbenForm({
   schema: [
     {
@@ -44,7 +48,7 @@ const [Form, formApi] = useVbenForm({
   showDefaultActions: false,
 });
 
-const [Modal, modalApi] = useVbenModal({
+const [Modal, modalApi] = useVbenModal<FormModalData>({
   fullscreenButton: false,
   onCancel() {
     modalApi.close();
@@ -55,14 +59,19 @@ const [Modal, modalApi] = useVbenModal({
   },
   onOpenChange(isOpen: boolean) {
     if (isOpen) {
-      const { values } = modalApi.getData<Record<string, any>>();
-      if (values) {
-        formApi.setValues(values);
+      const data = modalApi.getData();
+      if (data?.values) {
+        formApi.setValues(data.values);
+      } else {
+        // 与 playground 表单弹窗示例保持一致：无数据时清空上一次的残留值
+        formApi.reset();
       }
     }
   },
   title: '内嵌表单示例',
 });
+
+defineExpose({ modalApi });
 </script>
 <template>
   <Modal>

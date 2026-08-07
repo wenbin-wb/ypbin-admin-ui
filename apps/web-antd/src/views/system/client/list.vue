@@ -51,7 +51,7 @@ function onEdit(row: SystemClientApi.ClientResp) {
   formDrawerApi.setData(row).open();
 }
 function onCreate() {
-  formDrawerApi.setData({}).open();
+  formDrawerApi.setData(null).open();
 }
 function onDelete(row: SystemClientApi.ClientResp) {
   const hideLoading = message.loading({

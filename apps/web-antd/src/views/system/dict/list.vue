@@ -67,7 +67,7 @@ function onItems(row: SystemDictApi.DictResp) {
 }
 
 function onCreate() {
-  formDrawerApi.setData({}).open();
+  formDrawerApi.setData(null).open();
 }
 
 function onDelete(row: SystemDictApi.DictResp) {

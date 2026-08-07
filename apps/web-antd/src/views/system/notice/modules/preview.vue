@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { SystemNoticeApi } from '#/api/system/notice';
+
 import { ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
@@ -11,17 +13,19 @@ const title = ref('');
 const content = ref('');
 const publishTime = ref('');
 
-const [Modal, modalApi] = useVbenModal({
+const [Modal, modalApi] = useVbenModal<SystemNoticeApi.NoticeResp>({
   footer: false,
   onOpenChange(isOpen: boolean) {
     if (isOpen) {
-      const data = modalApi.getData<Record<string, any>>();
+      const data = modalApi.getData();
       title.value = data?.title ?? '';
       content.value = data?.content ?? '';
       publishTime.value = data?.publishTime ?? '';
     }
   },
 });
+
+defineExpose({ modalApi });
 </script>
 <template>
   <Modal :title="$t('system.notice.preview')" class="w-[800px]">

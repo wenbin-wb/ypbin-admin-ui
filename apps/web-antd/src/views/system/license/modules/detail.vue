@@ -33,10 +33,11 @@ function toMapText(map?: Record<string, number | string>) {
     .join('\n');
 }
 
-const [Drawer, drawerApi] = useVbenDrawer({
+const [Drawer, drawerApi] = useVbenDrawer<SystemLicenseApi.SystemLicense>({
   async onOpenChange(isOpen) {
     if (!isOpen) return;
-    const data = drawerApi.getData<SystemLicenseApi.SystemLicense>();
+    const data = drawerApi.getData();
+    if (!data) return;
     loading.value = true;
     detail.value = undefined;
     try {
@@ -49,6 +50,8 @@ const [Drawer, drawerApi] = useVbenDrawer({
     }
   },
 });
+
+defineExpose({ drawerApi });
 </script>
 <template>
   <Drawer :title="$t('system.license.detailTitle')" class="w-[720px]">

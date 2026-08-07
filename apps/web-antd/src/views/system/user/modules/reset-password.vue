@@ -25,7 +25,12 @@ const [Form, formApi] = useVbenForm({
   showDefaultActions: false,
 });
 
-const [Modal, modalApi] = useVbenModal({
+interface ResetPasswordData {
+  id: string;
+  realName?: string;
+}
+
+const [Modal, modalApi] = useVbenModal<ResetPasswordData>({
   onConfirm: async () => {
     try {
       modalApi.setState({ confirmLoading: true });
@@ -42,15 +47,17 @@ const [Modal, modalApi] = useVbenModal({
   },
   onOpenChange(isOpen: boolean) {
     if (isOpen) {
-      const data = modalApi.getData<Record<string, any>>();
-      userId.value = data?.id;
-      formApi.resetForm();
+      const data = modalApi.getData();
+      userId.value = data?.id ?? '';
+      formApi.reset();
       modalApi.setState({
         title: `${$t('system.user.resetPassword')} - ${data?.realName ?? ''}`,
       });
     }
   },
 });
+
+defineExpose({ modalApi });
 </script>
 <template>
   <Modal>

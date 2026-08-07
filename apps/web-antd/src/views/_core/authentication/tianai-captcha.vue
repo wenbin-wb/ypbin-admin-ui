@@ -58,13 +58,14 @@ const templateHeight = computed(() =>
   captcha.value ? captcha.value.templateImageHeight / scale.value : 0,
 );
 const maxDragX = computed(() => props.width - HANDLE_WIDTH);
-const statusText = computed(() =>
-  loadFailed.value
-    ? $t('ui.captcha.tianaiLoadFailed')
-    : dragging.value
-      ? $t('ui.captcha.tianaiDragging')
-      : $t('ui.captcha.tianaiDefaultText'),
-);
+const statusText = computed(() => {
+  if (loadFailed.value) {
+    return $t('ui.captcha.tianaiLoadFailed');
+  }
+  return dragging.value
+    ? $t('ui.captcha.tianaiDragging')
+    : $t('ui.captcha.tianaiDefaultText');
+});
 
 async function fetchCaptcha() {
   loading.value = true;

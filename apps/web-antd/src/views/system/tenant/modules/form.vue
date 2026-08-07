@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { SystemTenantApi } from '#/api/system/tenant';
+
 import { useVbenDrawer } from '@vben/common-ui';
 
 import { message } from 'ant-design-vue';
@@ -11,12 +13,16 @@ import { useFormSchema } from '../data';
 
 const emit = defineEmits(['reload']);
 
+type TenantFormData =
+  | { id: string; isUpdate: true; row: SystemTenantApi.TenantResp }
+  | { isUpdate: false };
+
 const [Form, formApi] = useVbenForm({
   schema: useFormSchema(),
   showDefaultActions: false,
 });
 
-const [Drawer, drawerApi] = useVbenDrawer({
+const [Drawer, drawerApi] = useVbenDrawer<TenantFormData>({
   onCancel() {
     drawerApi.close();
   },
@@ -28,7 +34,7 @@ const [Drawer, drawerApi] = useVbenDrawer({
         return;
       }
       const values = await formApi.getValues();
-      const data = drawerApi.getData<Record<string, any>>();
+      const data = drawerApi.getData();
       await (data?.isUpdate
         ? updateTenant(data.id, values)
         : createTenant(values));
@@ -41,13 +47,13 @@ const [Drawer, drawerApi] = useVbenDrawer({
   },
   onOpenChange(isOpen: boolean) {
     if (isOpen) {
-      const data = drawerApi.getData<Record<string, any>>();
+      const data = drawerApi.getData();
       drawerApi.setState({
         title: data?.isUpdate
           ? $t('ui.actionTitle.edit', [$t('system.tenant.title')])
           : $t('ui.actionTitle.create', [$t('system.tenant.title')]),
       });
-      if (data?.isUpdate && data?.row) {
+      if (data?.isUpdate) {
         formApi.setValues(data.row);
       } else {
         formApi.reset();
@@ -55,6 +61,8 @@ const [Drawer, drawerApi] = useVbenDrawer({
     }
   },
 });
+
+defineExpose({ drawerApi });
 </script>
 <template>
   <Drawer>

@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { SystemDictItemApi } from '#/api/system/dictItem';
+
 import { ref } from 'vue';
 
 import { useVbenDrawer } from '@vben/common-ui';
@@ -21,7 +23,14 @@ const [Form, formApi] = useVbenForm({
   showDefaultActions: false,
 });
 
-const [Drawer, drawerApi] = useVbenDrawer({
+type DictItemFormData = {
+  dictId: string;
+} & (
+  | { isUpdate: false }
+  | { isUpdate: true; row: SystemDictItemApi.DictItemResp }
+);
+
+const [Drawer, drawerApi] = useVbenDrawer<DictItemFormData>({
   onCancel() {
     drawerApi.close();
   },
@@ -52,9 +61,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
   },
   onOpenChange(isOpen: boolean) {
     if (isOpen) {
-      const data = drawerApi.getData<Record<string, any>>();
+      const data = drawerApi.getData();
       isUpdate.value = !!data?.isUpdate;
-      parentDictId.value = data?.dictId || '';
+      parentDictId.value = data?.dictId ?? '';
 
       drawerApi.setState({
         title: isUpdate.value
@@ -62,16 +71,18 @@ const [Drawer, drawerApi] = useVbenDrawer({
           : $t('ui.actionTitle.create', [$t('system.dictItem.title')]),
       });
 
-      if (isUpdate.value && data?.row) {
+      if (data?.isUpdate) {
         rowId.value = data.row.id;
         formApi.setValues(data.row);
       } else {
         rowId.value = '';
-        formApi.resetForm();
+        formApi.reset();
       }
     }
   },
 });
+
+defineExpose({ drawerApi });
 </script>
 
 <template>

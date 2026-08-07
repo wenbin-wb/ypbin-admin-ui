@@ -56,7 +56,7 @@ function onEdit(row: SystemConfigApi.ConfigResp) {
   formDrawerApi.setData(row).open();
 }
 function onCreate() {
-  formDrawerApi.setData({}).open();
+  formDrawerApi.setData(null).open();
 }
 function onDelete(row: SystemConfigApi.ConfigResp) {
   deleteConfig(row.id)

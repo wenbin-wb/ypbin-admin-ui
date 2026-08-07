@@ -48,7 +48,7 @@ const [Form, formApi] = useVbenForm({
   ],
 });
 
-const [Modal, modalApi] = useVbenModal({
+const [Modal, modalApi] = useVbenModal<SystemLicenseApi.SystemLicense>({
   async onConfirm() {
     const { valid } = await formApi.validate();
     if (!valid) return;
@@ -67,13 +67,15 @@ const [Modal, modalApi] = useVbenModal({
 
   async onOpenChange(isOpen) {
     if (!isOpen) return;
-    const data = modalApi.getData<SystemLicenseApi.SystemLicense>();
+    const data = modalApi.getData();
     formApi.reset();
     id.value = data?.id;
     await nextTick();
     formApi.setValues({ approve: true });
   },
 });
+
+defineExpose({ modalApi });
 </script>
 <template>
   <Modal :title="$t('system.license.approveTitle')" class="w-[560px]">

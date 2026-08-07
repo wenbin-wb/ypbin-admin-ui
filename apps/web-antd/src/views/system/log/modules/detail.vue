@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { SystemLogApi } from '#/api/system/log';
+
 import { ref } from 'vue';
 
 import { useVbenDrawer } from '@vben/common-ui';
@@ -7,9 +9,9 @@ import { Descriptions, DescriptionsItem } from 'ant-design-vue';
 
 import { $t } from '#/locales';
 
-const record = ref<any>({});
+const record = ref<Partial<SystemLogApi.LogResp>>({});
 
-const [Drawer, drawerApi] = useVbenDrawer({
+const [Drawer, drawerApi] = useVbenDrawer<SystemLogApi.LogResp>({
   onCancel() {
     drawerApi.close();
   },
@@ -18,11 +20,13 @@ const [Drawer, drawerApi] = useVbenDrawer({
   },
   onOpenChange(isOpen: boolean) {
     if (isOpen) {
-      record.value = drawerApi.getData<any>() || {};
+      record.value = drawerApi.getData() ?? {};
       drawerApi.setState({ title: $t('common.detail') });
     }
   },
 });
+
+defineExpose({ drawerApi });
 </script>
 <template>
   <Drawer>

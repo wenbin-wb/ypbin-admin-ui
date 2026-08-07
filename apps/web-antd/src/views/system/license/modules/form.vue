@@ -21,7 +21,9 @@ const [Form, formApi] = useVbenForm({
 
 const id = ref<string>();
 
-const [Drawer, drawerApi] = useVbenDrawer({
+type LicenseFormData = null | SystemLicenseApi.SystemLicense;
+
+const [Drawer, drawerApi] = useVbenDrawer<LicenseFormData>({
   async onConfirm() {
     const { valid } = await formApi.validate();
     if (!valid) return;
@@ -42,12 +44,12 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
   async onOpenChange(isOpen) {
     if (!isOpen) return;
-    const data = drawerApi.getData<SystemLicenseApi.SystemLicense>();
+    const data = drawerApi.getData();
     formApi.reset();
     id.value = data?.id;
     // 等表单字段挂载再回填，否则 setValues 早于初始化会丢值
     await nextTick();
-    if (data && data.id) {
+    if (data?.id) {
       formApi.setValues(data);
     }
   },
@@ -58,6 +60,8 @@ const getDrawerTitle = computed(() =>
     ? $t('ui.actionTitle.edit', [$t('system.license.name')])
     : $t('ui.actionTitle.create', [$t('system.license.name')]),
 );
+
+defineExpose({ drawerApi });
 </script>
 <template>
   <Drawer :title="getDrawerTitle" class="w-[720px]">
