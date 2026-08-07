@@ -14,6 +14,8 @@ export interface TreeProps {
   checkStrictly?: boolean;
   /** 子级字段名 */
   childrenField?: string;
+  /** 收起全部操作的无障碍文案（title/aria-label） */
+  collapseAllLabel?: string;
   /** 默认展开的键 */
   defaultExpandedKeys?: Array<number | string>;
   /** 默认展开的级别（优先级高于defaultExpandedKeys） */
@@ -24,6 +26,8 @@ export interface TreeProps {
   disabled?: boolean;
   /** 禁用字段名 */
   disabledField?: string;
+  /** 展开全部操作的无障碍文案（title/aria-label） */
+  expandAllLabel?: string;
   /** 自定义节点类名 */
   getNodeClass?: (item: FlattenedItem<Recordable<any>>) => string;
   iconField?: string;
@@ -33,8 +37,12 @@ export interface TreeProps {
   multiple?: boolean;
   /** 选择全部时的文字 */
   selectAllLabel?: string;
+  /** 显示全部展开/收起操作 */
+  showExpandAll?: boolean;
   /** 显示由iconField指定的图标 */
   showIcon?: boolean;
+  /** 显示全选/取消全选操作，仅多选时有效 */
+  showSelectAll?: boolean;
   /** 启用展开收缩动画 */
   transition?: boolean;
   /** 树数据 */
@@ -56,7 +64,9 @@ export function treePropsDefaults() {
     iconField: 'icon',
     labelField: 'label',
     multiple: false,
+    showExpandAll: false,
     showIcon: true,
+    showSelectAll: false,
     transition: true,
     valueField: 'value',
     childrenField: 'children',

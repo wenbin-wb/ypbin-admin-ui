@@ -170,6 +170,25 @@ function collapseAll() {
   expanded.value = [];
 }
 
+// 所有可展开节点是否均已展开
+const isAllExpanded = computed(() => {
+  const expandableKeys = flattenData.value
+    .filter((item) => item.hasChildren)
+    .map((item) => get(item.value, props.valueField));
+  return (
+    expandableKeys.length > 0 &&
+    expandableKeys.every((key) => expanded.value.includes(key))
+  );
+});
+
+function toggleExpandAll() {
+  if (isAllExpanded.value) {
+    collapseAll();
+  } else {
+    expandAll();
+  }
+}
+
 function checkAll() {
   if (!props.multiple) return;
   modelValue.value = [
@@ -333,19 +352,29 @@ defineExpose({
       :class="
         cn('my-0.5 flex w-full items-center p-1', bordered ? 'border-b' : '')
       "
-      v-if="treeData.length > 0"
+      v-if="
+        treeData.length > 0 && (showExpandAll || (multiple && showSelectAll))
+      "
     >
-      <div
-        class="flex size-5 flex-1 cursor-pointer items-center"
-        @click="() => (expanded?.length > 0 ? collapseAll() : expandAll())"
-      >
+      <div class="flex size-5 flex-1 items-center gap-1">
         <ChevronRight
-          :class="{ 'rotate-90': expanded?.length > 0 }"
+          v-if="showExpandAll"
+          role="button"
+          tabindex="0"
+          :aria-expanded="isAllExpanded"
+          :aria-label="isAllExpanded ? collapseAllLabel : expandAllLabel"
+          :title="isAllExpanded ? collapseAllLabel : expandAllLabel"
+          :class="{ 'rotate-90': isAllExpanded }"
           class="text-foreground/80 hover:text-foreground size-4 cursor-pointer transition"
+          @click="toggleExpandAll"
+          @keydown.enter.prevent="toggleExpandAll"
+          @keydown.space.prevent="toggleExpandAll"
         />
-        <div class="flex items-center gap-1 item-all-checkbox">
+        <div
+          v-if="multiple && showSelectAll"
+          class="flex items-center gap-1 item-all-checkbox"
+        >
           <Checkbox
-            v-if="multiple"
             :model-value="selectAllStatus"
             :indeterminate="selectAllStatus === 'indeterminate'"
             @click.stop

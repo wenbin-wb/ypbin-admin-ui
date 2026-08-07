@@ -58,6 +58,11 @@
     "copy": "Copy",
     "copied": "Copied"
   },
+  "tree": {
+    "expandAll": "Expand All",
+    "collapseAll": "Collapse All",
+    "selectAll": "Select All"
+  },
   "crop": {
     "title": "Image Cropping",
     "titleTip": "Cropping Ratio {0}",
