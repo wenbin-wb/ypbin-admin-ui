@@ -42,6 +42,8 @@ import type { Sortable } from '@vben/hooks';
 import type { TipTapProps } from '@vben/plugins/tiptap';
 import type { Recordable } from '@vben/types';
 
+import type { AuthApi } from '#/api/core/auth';
+
 import {
   computed,
   defineAsyncComponent,
@@ -625,6 +627,7 @@ export type ComponentType =
   | 'Space'
   | 'Switch'
   | 'Textarea'
+  | 'TianaiCaptcha'
   | 'TimePicker'
   | 'TreeSelect'
   | 'Upload'
@@ -660,6 +663,11 @@ export interface ComponentPropsMap {
   Switch: SwitchProps;
   Textarea: TextAreaProps;
   TimePicker: TimePickerProps;
+  TianaiCaptcha: {
+    modelValue?: boolean;
+    onVerify?: (payload: { id: string; track: AuthApi.CaptchaTrack }) => void;
+    width?: number;
+  };
   TreeSelect: TreeSelectProps;
   Upload: AdapterUploadProps;
 }
@@ -730,6 +738,9 @@ async function initComponentAdapter() {
     Switch,
     Textarea: withDefaultPlaceholder(Textarea, 'input'),
     TimePicker,
+    TianaiCaptcha: defineAsyncComponent(
+      () => import('#/views/_core/authentication/tianai-captcha.vue'),
+    ),
     TreeSelect: withDefaultPlaceholder(TreeSelect, 'select'),
     Upload: withPreviewUpload(),
   };

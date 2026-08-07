@@ -51,6 +51,8 @@
   "sendCode": "Get Security code",
   "sendText": "Resend in {0}s",
   "thirdPartyLogin": "Or continue with",
+  "socialCallbackLoading": "Signing in, please wait...",
+  "socialLoginFailed": "Third-party login failed, please try again",
   "weChat": "WeChat",
   "qq": "QQ",
   "gitHub": "GitHub",

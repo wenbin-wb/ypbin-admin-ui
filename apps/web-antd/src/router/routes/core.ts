@@ -101,6 +101,15 @@ const coreRoutes: RouteRecordRaw[] = [
           title: $t('page.auth.register'),
         },
       },
+      {
+        name: 'SocialCallback',
+        path: 'social-callback',
+        component: () =>
+          import('#/views/_core/authentication/social-callback.vue'),
+        meta: {
+          title: $t('page.auth.socialCallback'),
+        },
+      },
     ],
   },
 ];

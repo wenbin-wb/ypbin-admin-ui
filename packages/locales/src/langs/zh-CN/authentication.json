@@ -51,6 +51,8 @@
   "sendCode": "获取验证码",
   "sendText": "{0}秒后重新获取",
   "thirdPartyLogin": "其他登录方式",
+  "socialCallbackLoading": "正在登录，请稍候...",
+  "socialLoginFailed": "第三方登录失败，请重试",
   "weChat": "微信",
   "qq": "QQ",
   "gitHub": "GitHub",

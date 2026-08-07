@@ -29,7 +29,6 @@ export const useAuthStore = defineStore('auth', () => {
     params: Recordable<any>,
     onSuccess?: () => Promise<void> | void,
   ) {
-    // 异步处理用户登录操作并获取 accessToken
     let userInfo: null | UserInfo = null;
     try {
       loginLoading.value = true;
@@ -37,36 +36,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       // 如果成功获取到 accessToken
       if (accessToken) {
-        accessStore.setAccessToken(accessToken);
-
-        // 获取用户信息并存储到 accessStore 中
-        const [fetchUserInfoResult, accessCodes] = await Promise.all([
-          fetchUserInfo(),
-          getAccessCodesApi(),
-        ]);
-
-        userInfo = fetchUserInfoResult;
-
-        userStore.setUserInfo(userInfo);
-        accessStore.setAccessCodes(accessCodes);
-
-        if (accessStore.loginExpired) {
-          accessStore.setLoginExpired(false);
-        } else {
-          onSuccess
-            ? await onSuccess?.()
-            : await router.push(
-                userInfo.homePath || preferences.app.defaultHomePath,
-              );
-        }
-
-        if (userInfo?.realName) {
-          notification.success({
-            description: `${$t('authentication.loginSuccessDesc')}:${userInfo?.realName}`,
-            duration: 3,
-            message: $t('authentication.loginSuccess'),
-          });
-        }
+        userInfo = await completeLogin(accessToken, onSuccess);
       }
     } finally {
       loginLoading.value = false;
@@ -75,6 +45,55 @@ export const useAuthStore = defineStore('auth', () => {
     return {
       userInfo,
     };
+  }
+
+  /**
+   * 第三方登录：拿到 accessToken 后与账号密码登录走同一收尾流程
+   */
+  async function socialLogin(
+    accessToken: string,
+    onSuccess?: () => Promise<void> | void,
+  ) {
+    return completeLogin(accessToken, onSuccess);
+  }
+
+  /**
+   * 登录成功后的公共收尾：写令牌、拉取用户信息与权限码、跳转首页
+   */
+  async function completeLogin(
+    accessToken: string,
+    onSuccess?: () => Promise<void> | void,
+  ) {
+    accessStore.setAccessToken(accessToken);
+
+    // 获取用户信息并存储到 accessStore 中
+    const [userInfo, accessCodes] = await Promise.all([
+      fetchUserInfo(),
+      getAccessCodesApi(),
+    ]);
+
+    userStore.setUserInfo(userInfo);
+    accessStore.setAccessCodes(accessCodes);
+
+    if (accessStore.loginExpired) {
+      accessStore.setLoginExpired(false);
+    } else {
+      onSuccess
+        ? await onSuccess?.()
+        : await router.push(
+            userInfo.homePath || preferences.app.defaultHomePath,
+          );
+    }
+
+    if (userInfo?.realName) {
+      notification.success({
+        description: `${$t('authentication.loginSuccessDesc')}:${userInfo?.realName}`,
+        duration: 3,
+        message: $t('authentication.loginSuccess'),
+      });
+    }
+
+    return userInfo;
   }
 
   async function logout(redirect: boolean = true) {
@@ -113,5 +132,6 @@ export const useAuthStore = defineStore('auth', () => {
     fetchUserInfo,
     loginLoading,
     logout,
+    socialLogin,
   };
 });
