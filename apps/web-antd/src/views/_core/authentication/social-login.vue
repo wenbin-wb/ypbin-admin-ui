@@ -1,69 +1,40 @@
 <script lang="ts" setup>
-import type { Component } from 'vue';
+import type { SystemConfigApi } from '#/api/system/config';
 
 import { onMounted, ref } from 'vue';
 
-import {
-  IconifyIcon,
-  SvgDingDingIcon,
-  SvgGithubIcon,
-  SvgGoogleIcon,
-  SvgQQChatIcon,
-  SvgWeChatIcon,
-} from '@vben/icons';
+import { IconifyIcon } from '@vben/icons';
 import { $t } from '@vben/locales';
 
 import { getSocialAuthorizeApi, getSocialPlatformsApi } from '#/api';
+import { getSocialPlatformMeta } from '#/utils/social-platform';
 
 defineOptions({ name: 'SocialLogin' });
 
 const SOCIAL_SOURCE_KEY = 'social-login-source';
 
-const platforms = ref<string[]>([]);
+const platforms = ref<SystemConfigApi.SocialSource[]>([]);
 const loadingSource = ref('');
 
-/** 值为 Component 时渲染内置 svg 图标，值为 string 时作为 iconify 图标名渲染 */
-const PLATFORM_ICONS: Record<string, Component | string> = {
-  alipay: 'fa6-brands:alipay',
-  dingtalk: SvgDingDingIcon,
-  gitee: 'fa6-brands:gitee',
-  github: SvgGithubIcon,
-  google: SvgGoogleIcon,
-  qq: SvgQQChatIcon,
-  wechat_open: SvgWeChatIcon,
-};
-
-const PLATFORM_LABELS: Record<string, string> = {
-  alipay: '支付宝',
-  dingtalk: '钉钉',
-  gitee: 'Gitee',
-  github: 'GitHub',
-  google: 'Google',
-  qq: 'QQ',
-  wechat_open: '微信',
-};
-
-async function handleClick(source: string) {
+async function handleClick(source: SystemConfigApi.SocialSource) {
   if (loadingSource.value) return;
   loadingSource.value = source;
   try {
     const url = await getSocialAuthorizeApi(source);
-    if (url) {
-      // 授权跳转会离开当前页，回调页再从 sessionStorage 取回平台标识
-      sessionStorage.setItem(SOCIAL_SOURCE_KEY, source);
-      window.location.href = url;
+    if (!url) {
+      throw new Error(`Social authorize URL is empty: ${source}`);
     }
+    // 授权跳转会离开当前页，回调页再从 sessionStorage 取回平台标识
+    sessionStorage.setItem(SOCIAL_SOURCE_KEY, source);
+    window.location.href = url;
   } finally {
     loadingSource.value = '';
   }
 }
 
 onMounted(async () => {
-  try {
-    platforms.value = (await getSocialPlatformsApi()) ?? [];
-  } catch {
-    platforms.value = [];
-  }
+  platforms.value =
+    (await getSocialPlatformsApi()) as SystemConfigApi.SocialSource[];
 });
 </script>
 
@@ -83,16 +54,16 @@ onMounted(async () => {
         :key="source"
         type="button"
         :disabled="!!loadingSource"
-        :title="PLATFORM_LABELS[source] || source"
+        :title="$t(getSocialPlatformMeta(source).labelKey)"
         class="flex size-9 cursor-pointer items-center justify-center rounded-full border border-border text-foreground/70 transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
         @click="handleClick(source)"
       >
         <IconifyIcon
-          v-if="typeof PLATFORM_ICONS[source] === 'string'"
+          v-if="typeof getSocialPlatformMeta(source).icon === 'string'"
           class="size-5"
-          :icon="PLATFORM_ICONS[source] as string"
+          :icon="getSocialPlatformMeta(source).icon as string"
         />
-        <component :is="PLATFORM_ICONS[source]" v-else />
+        <component :is="getSocialPlatformMeta(source).icon" v-else />
       </button>
     </div>
   </div>

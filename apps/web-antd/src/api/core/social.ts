@@ -14,17 +14,22 @@ export async function getSocialAuthorizeApi(source: string) {
   return requestClient.get<string>(`/auth/social/authorize/${source}`);
 }
 
+export interface SocialCallbackParams {
+  auth_code?: string;
+  code?: string;
+  state?: string;
+}
+
 /**
  * 第三方授权回调，返回登录令牌
  */
 export async function socialLoginApi(
   source: string,
-  code: string,
-  state: string,
+  params: SocialCallbackParams,
 ) {
   return requestClient.post<{ accessToken: string }>(
     `/auth/social/callback/${source}`,
     {},
-    { params: { code, state } },
+    { params },
   );
 }

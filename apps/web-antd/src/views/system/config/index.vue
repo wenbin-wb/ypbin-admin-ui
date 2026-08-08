@@ -1,104 +1,50 @@
 <script lang="ts" setup>
-import type { Recordable } from '@vben/types';
+import { ref } from 'vue';
 
-import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { SystemConfigApi } from '#/api/system/config';
+import { Page } from '@vben/common-ui';
 
-import { Page, useVbenDrawer } from '@vben/common-ui';
-import { Plus } from '@vben/icons';
+import { Tabs } from 'ant-design-vue';
 
-import { Button, message } from 'ant-design-vue';
-
-import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
-import { deleteConfig, getConfigList } from '#/api/system/config';
 import { $t } from '#/locales';
 
-import { useColumns, useGridFormSchema } from './data';
-import Form from './modules/form.vue';
+import CustomConfigList from './CustomConfigList.vue';
+import GroupConfigForm from './GroupConfigForm.vue';
+import SocialConfigCards from './SocialConfigCards.vue';
 
-const [FormDrawer, formDrawerApi] = useVbenDrawer({
-  connectedComponent: Form,
-  destroyOnClose: true,
-});
+const activeKey = ref('site');
 
-const [Grid, gridApi] = useVbenVxeGrid({
-  formOptions: { schema: useGridFormSchema(), submitOnChange: true },
-  gridOptions: {
-    columns: useColumns(),
-    height: 'auto',
-    keepSource: true,
-    proxyConfig: {
-      ajax: {
-        query: async ({ page }, formValues: Recordable<any>) =>
-          await getConfigList({
-            page: page.currentPage,
-            pageSize: page.pageSize,
-            ...formValues,
-          }),
-      },
-    },
-    rowConfig: { keyField: 'id' },
-    toolbarConfig: {
-      custom: true,
-      export: false,
-      refresh: true,
-      search: true,
-      zoom: true,
-    },
-  } as VxeTableGridOptions<SystemConfigApi.ConfigResp>,
-});
-
-function onRefresh() {
-  gridApi.query();
-}
-
-function onEdit(row: SystemConfigApi.ConfigResp) {
-  formDrawerApi.setData(row).open();
-}
-function onCreate() {
-  formDrawerApi.setData(null).open();
-}
-function onDelete(row: SystemConfigApi.ConfigResp) {
-  deleteConfig(row.id)
-    .then(() => {
-      message.success($t('common.success'));
-      onRefresh();
-    })
-    .catch(() => {});
-}
+const builtInGroups = [
+  { key: 'site', tab: $t('system.config.tab.site') },
+  { key: 'login', tab: $t('system.config.tab.login') },
+  { key: 'password', tab: $t('system.config.tab.password') },
+  { key: 'mail', tab: $t('system.config.tab.mail') },
+  { key: 'sms', tab: $t('system.config.tab.sms') },
+  { key: 'social', tab: $t('system.config.tab.social') },
+];
 </script>
 <template>
   <Page auto-content-height>
-    <FormDrawer @success="onRefresh" />
-    <Grid :table-title="$t('system.config.title')">
-      <template #toolbar-tools>
-        <Button type="primary" @click="onCreate">
-          <Plus class="size-5" />
-          {{ $t('ui.actionTitle.create', [$t('system.config.title')]) }}
-        </Button>
-      </template>
-
-      <template #action="{ row }">
-        <VbenTableAction
-          :actions="[
-            {
-              text: $t('common.edit'),
-              icon: 'lucide:edit',
-              onClick: () => onEdit(row),
-            },
-            {
-              text: $t('common.delete'),
-              icon: 'lucide:trash-2',
-              danger: true,
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.configKey]),
-                confirm: () => onDelete(row),
-              },
-            },
-          ]"
-          align="center"
-        />
-      </template>
-    </Grid>
+    <Tabs
+      v-model:active-key="activeKey"
+      tab-position="left"
+      class="config-tabs"
+    >
+      <Tabs.TabPane
+        v-for="group in builtInGroups"
+        :key="group.key"
+        :tab="group.tab"
+      >
+        <SocialConfigCards v-if="group.key === 'social'" />
+        <GroupConfigForm v-else :config-group="group.key" />
+      </Tabs.TabPane>
+      <Tabs.TabPane key="custom" :tab="$t('system.config.tab.custom')">
+        <CustomConfigList />
+      </Tabs.TabPane>
+    </Tabs>
   </Page>
 </template>
+<style scoped>
+.config-tabs :deep(.ant-tabs-content-holder) {
+  overflow: auto;
+}
+</style>

@@ -21,16 +21,21 @@ const SOCIAL_SOURCE_KEY = 'social-login-source';
 async function handleCallback() {
   const source =
     (route.query.source as string) || sessionStorage.getItem(SOCIAL_SOURCE_KEY);
-  const code = route.query.code as string;
-  const state = route.query.state as string;
-  if (!source || !code) {
+  const code = route.query.code as string | undefined;
+  const auth_code = route.query.auth_code as string | undefined;
+  const state = route.query.state as string | undefined;
+  if (!source || (!code && !auth_code)) {
     message.error($t('authentication.socialLoginFailed'));
     await router.replace(LOGIN_PATH);
     return;
   }
   sessionStorage.removeItem(SOCIAL_SOURCE_KEY);
   try {
-    const { accessToken } = await socialLoginApi(source, code, state);
+    const { accessToken } = await socialLoginApi(source, {
+      auth_code,
+      code,
+      state,
+    });
     if (accessToken) {
       await authStore.socialLogin(accessToken);
     } else {

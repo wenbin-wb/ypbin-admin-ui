@@ -731,6 +731,8 @@ async function initComponentAdapter() {
     Rate,
     RichEditor: withDefaultPlaceholder(VbenTiptap, 'input'),
     Select: withDefaultPlaceholder(Select, 'select', {
+      // 触发框默认撑满父容器（与 Input/InputNumber 一致），避免窄列下选项被截断
+      style: { width: '100%' },
       // 下拉面板宽度自适应内容，避免触发框过窄时选项被截断
       popupMatchSelectWidth: false,
     }),

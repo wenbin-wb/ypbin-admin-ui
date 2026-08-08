@@ -147,12 +147,56 @@
   },
   "config": {
     "title": "Parameter Configuration",
+    "customTitle": "Custom Parameters",
     "configGroup": "Parameter Group",
     "name": "Parameter Name",
     "configKey": "Parameter Key",
     "configValue": "Parameter Value",
     "remark": "Remark",
-    "createTime": "Creation Time"
+    "createTime": "Creation Time",
+    "save": "Save",
+    "tab": {
+      "site": "Site",
+      "login": "Login",
+      "password": "Password Policy",
+      "mail": "Mail",
+      "sms": "SMS",
+      "social": "Social Login",
+      "custom": "Custom Parameters"
+    },
+    "smsSupplier": {
+      "alibaba": "Alibaba Cloud",
+      "tencent": "Tencent Cloud",
+      "huawei": "Huawei Cloud",
+      "yunpian": "Yunpian",
+      "emay": "Emay",
+      "cloopen": "Cloopen"
+    },
+    "social": {
+      "enabled": "Enable Login",
+      "clientId": "Client ID",
+      "clientSecret": "Client Secret",
+      "clientSecretPlaceholder": "Leave blank to keep the current secret",
+      "clientSecretHelp": "Saved secrets are never returned. Leave this blank to keep the current secret.",
+      "redirectUri": "Redirect URI",
+      "publicKey": "Alipay Public Key",
+      "statusEnabled": "Enabled",
+      "statusDisabled": "Disabled",
+      "completeness": "Configuration",
+      "complete": "Complete",
+      "incomplete": "Incomplete",
+      "secretConfigured": "Secret Configured",
+      "secretNotConfigured": "Secret Missing",
+      "configure": "Configure Platform",
+      "platform": {
+        "alipay": "Alipay",
+        "dingtalk": "DingTalk",
+        "gitee": "Gitee",
+        "github": "GitHub",
+        "qq": "QQ",
+        "wechatOpen": "WeChat Open Platform"
+      }
+    }
   },
   "log": {
     "title": "Operation Logs",

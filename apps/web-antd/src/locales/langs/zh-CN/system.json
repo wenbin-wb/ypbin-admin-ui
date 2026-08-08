@@ -147,12 +147,56 @@
   },
   "config": {
     "title": "参数配置",
+    "customTitle": "自定义参数",
     "configGroup": "参数分组",
     "name": "参数名称",
     "configKey": "参数键名",
     "configValue": "参数键值",
     "remark": "备注",
-    "createTime": "创建时间"
+    "createTime": "创建时间",
+    "save": "保存",
+    "tab": {
+      "site": "站点配置",
+      "login": "登录设置",
+      "password": "密码策略",
+      "mail": "邮件配置",
+      "sms": "短信配置",
+      "social": "第三方登录",
+      "custom": "自定义参数"
+    },
+    "smsSupplier": {
+      "alibaba": "阿里云",
+      "tencent": "腾讯云",
+      "huawei": "华为云",
+      "yunpian": "云片",
+      "emay": "亿美软通",
+      "cloopen": "容联云"
+    },
+    "social": {
+      "enabled": "启用登录",
+      "clientId": "客户端 ID",
+      "clientSecret": "客户端密钥",
+      "clientSecretPlaceholder": "留空则保留当前密钥",
+      "clientSecretHelp": "为保护密钥安全，已保存的密钥不会回填；留空不会覆盖当前密钥。",
+      "redirectUri": "回调地址",
+      "publicKey": "支付宝公钥",
+      "statusEnabled": "已启用",
+      "statusDisabled": "未启用",
+      "completeness": "配置完整度",
+      "complete": "配置完整",
+      "incomplete": "待完善",
+      "secretConfigured": "密钥已配置",
+      "secretNotConfigured": "密钥未配置",
+      "configure": "配置平台",
+      "platform": {
+        "alipay": "支付宝",
+        "dingtalk": "钉钉",
+        "gitee": "Gitee",
+        "github": "GitHub",
+        "qq": "QQ",
+        "wechatOpen": "微信开放平台"
+      }
+    }
   },
   "log": {
     "title": "操作日志",
