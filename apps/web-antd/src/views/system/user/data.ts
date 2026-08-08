@@ -8,7 +8,7 @@ import { h } from 'vue';
 
 import { Tag } from 'ant-design-vue';
 
-import { getDeptList, getPostList, getRoleAll } from '#/api';
+import { getDeptList, getPostList } from '#/api';
 import { $t } from '#/locales';
 
 export function useFormSchema(): VbenFormSchema[] {
@@ -80,20 +80,6 @@ export function useFormSchema(): VbenFormSchema[] {
       defaultValue: 1,
       fieldName: 'status',
       label: $t('system.user.status'),
-    },
-    {
-      component: 'ApiSelect',
-      componentProps: {
-        api: getRoleAll,
-        labelField: 'name',
-        valueField: 'id',
-        mode: 'multiple',
-        allowClear: true,
-        class: 'w-full',
-        optionLabelProp: 'label',
-      },
-      fieldName: 'roleIds',
-      label: $t('system.user.roles'),
     },
     {
       component: 'ApiSelect',

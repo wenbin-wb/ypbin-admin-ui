@@ -17,6 +17,7 @@ import { useFormSchema } from '../data';
 const emit = defineEmits(['reload']);
 const isUpdate = ref(false);
 const rowId = ref('');
+const cronInputRef = ref<InstanceType<typeof CronInput>>();
 
 const [Form, formApi] = useVbenForm({
   schema: useFormSchema(),
@@ -35,10 +36,10 @@ const [Drawer, drawerApi] = useVbenDrawer<JobFormData>({
     try {
       drawerApi.setState({ confirmLoading: true });
       const { valid } = await formApi.validate();
-      if (!valid) {
+      if (!valid || !(await cronInputRef.value?.validate())) {
         return;
       }
-      const values = await formApi.getValues();
+      const values = (await formApi.getValues()) as SystemJobApi.JobSaveData;
       await (isUpdate.value
         ? updateJob(rowId.value, values)
         : createJob(values));
@@ -77,7 +78,7 @@ defineExpose({ drawerApi });
   <Drawer class="w-[700px]">
     <Form>
       <template #cron="slotProps">
-        <CronInput v-bind="slotProps.componentField" />
+        <CronInput ref="cronInputRef" v-bind="slotProps.componentField" />
       </template>
     </Form>
   </Drawer>

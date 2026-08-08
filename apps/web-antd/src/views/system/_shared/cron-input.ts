@@ -1,26 +1,39 @@
-/**
- * Cron 表达式解析/生成工具（Spring 6 段：秒 分 时 日 月 周）。
- * 每段支持四种模式：every(*) / specify(指定多值,逗号) / range(a-b) / step(a/b)。
- * 周字段用 ? 表示不指定（与日字段互斥，Spring cron 惯例）。
- */
-
 export type CronPart = 'day' | 'hour' | 'minute' | 'month' | 'second' | 'week';
-
 export type CronMode = 'every' | 'range' | 'specify' | 'step';
+export type CronEditorMode = 'advanced' | 'simple';
+export type CronValidationCode =
+  | 'day-week-conflict'
+  | 'empty-values'
+  | 'invalid-step'
+  | 'out-of-range'
+  | 'reversed-range'
+  | 'unsupported-syntax';
+
+export class CronValidationError extends Error {
+  constructor(
+    public readonly code: CronValidationCode,
+    public readonly part?: CronPart,
+  ) {
+    super(code);
+    this.name = 'CronValidationError';
+  }
+}
 
 export interface CronFieldState {
   mode: CronMode;
-  /** specify 模式的多选值 */
-  values: number[];
-  /** range 模式 [起, 止] */
-  rangeStart: number;
   rangeEnd: number;
-  /** step 模式 起始/步长 */
+  rangeStart: number;
   stepStart: number;
   stepValue: number;
+  values: number[];
 }
 
-/** 六段顺序 */
+export type CronState = Record<CronPart, CronFieldState>;
+
+export type CronDecodeResult =
+  | { mode: 'advanced'; reason: string; value: string }
+  | { mode: 'simple'; state: CronState; value: string };
+
 export const CRON_PARTS: CronPart[] = [
   'second',
   'minute',
@@ -30,30 +43,28 @@ export const CRON_PARTS: CronPart[] = [
   'week',
 ];
 
-/** 各段取值范围 */
 export const PART_RANGE: Record<CronPart, { max: number; min: number }> = {
   second: { min: 0, max: 59 },
   minute: { min: 0, max: 59 },
   hour: { min: 0, max: 23 },
   day: { min: 1, max: 31 },
   month: { min: 1, max: 12 },
-  week: { min: 1, max: 7 },
+  week: { min: 0, max: 7 },
 };
 
 function defaultField(part: CronPart): CronFieldState {
   const { min } = PART_RANGE[part];
   return {
     mode: 'every',
-    values: [],
-    rangeStart: min,
     rangeEnd: min + 1,
+    rangeStart: min,
     stepStart: min,
     stepValue: 1,
+    values: [],
   };
 }
 
-/** 生成默认六段状态（每秒都触发不现实，默认给 day/month/week 合理初值） */
-export function defaultCronState(): Record<CronPart, CronFieldState> {
+export function defaultCronState(): CronState {
   return {
     second: defaultField('second'),
     minute: defaultField('minute'),
@@ -64,70 +75,139 @@ export function defaultCronState(): Record<CronPart, CronFieldState> {
   };
 }
 
-/** 单段状态 → cron 片段 */
-export function fieldToExpr(part: CronPart, f: CronFieldState): string {
-  switch (f.mode) {
-    case 'every': {
-      // 日/周互斥：默认周用 ?，日用 *
-      return part === 'week' ? '?' : '*';
-    }
-    case 'range': {
-      return `${f.rangeStart}-${f.rangeEnd}`;
-    }
-    case 'specify': {
-      if (f.values.length > 0) {
-        return [...f.values].toSorted((a, b) => a - b).join(',');
-      }
-      return part === 'week' ? '?' : '*';
-    }
-    case 'step': {
-      return `${f.stepStart}/${f.stepValue}`;
-    }
-    default: {
-      return '*';
-    }
+function assertInRange(part: CronPart, value: number) {
+  const { min, max } = PART_RANGE[part];
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw new CronValidationError('out-of-range', part);
   }
 }
 
-/** 六段状态 → 完整 cron 表达式 */
-export function stateToCron(state: Record<CronPart, CronFieldState>): string {
-  return CRON_PARTS.map((p) => fieldToExpr(p, state[p])).join(' ');
+function fieldToExpression(part: CronPart, field: CronFieldState): string {
+  if (field.mode === 'every') return part === 'week' ? '?' : '*';
+  if (field.mode === 'specify') {
+    if (field.values.length === 0) {
+      throw new CronValidationError('empty-values', part);
+    }
+    field.values.forEach((value) => assertInRange(part, value));
+    return [...new Set(field.values)].toSorted((a, b) => a - b).join(',');
+  }
+  if (field.mode === 'range') {
+    assertInRange(part, field.rangeStart);
+    assertInRange(part, field.rangeEnd);
+    if (field.rangeStart >= field.rangeEnd) {
+      throw new CronValidationError('reversed-range', part);
+    }
+    return `${field.rangeStart}-${field.rangeEnd}`;
+  }
+  assertInRange(part, field.stepStart);
+  if (!Number.isInteger(field.stepValue) || field.stepValue < 1) {
+    throw new CronValidationError('invalid-step', part);
+  }
+  return `${field.stepStart}/${field.stepValue}`;
 }
 
-/** 解析单段 cron 片段 → 状态（尽力解析，无法识别按 every） */
-export function exprToField(part: CronPart, expr: string): CronFieldState {
-  const f = defaultField(part);
-  const s = (expr ?? '').trim();
-  if (s === '' || s === '*' || s === '?') {
-    f.mode = 'every';
-  } else if (s.includes('/')) {
-    const [start, step] = s.split('/');
-    f.mode = 'step';
-    f.stepStart = Number(start === '*' ? PART_RANGE[part].min : start);
-    f.stepValue = Number(step) || 1;
-  } else if (s.includes('-')) {
-    const [a, b] = s.split('-');
-    f.mode = 'range';
-    f.rangeStart = Number(a);
-    f.rangeEnd = Number(b);
-  } else {
-    f.mode = 'specify';
-    f.values = s
+export function stateToCron(state: CronState): string {
+  const parts = CRON_PARTS.map((part) => fieldToExpression(part, state[part]));
+  const dayRestricted = state.day.mode !== 'every';
+  const weekRestricted = state.week.mode !== 'every';
+  if (dayRestricted && weekRestricted) {
+    throw new CronValidationError('day-week-conflict');
+  }
+  if (dayRestricted) parts[5] = '?';
+  if (weekRestricted) parts[3] = '?';
+  return parts.join(' ');
+}
+
+function parseNumber(part: CronPart, raw: string): number {
+  if (!/^\d+$/.test(raw)) {
+    throw new CronValidationError('unsupported-syntax', part);
+  }
+  const value = Number(raw);
+  assertInRange(part, value);
+  return value;
+}
+
+function expressionToField(part: CronPart, expression: string): CronFieldState {
+  const field = defaultField(part);
+  if (expression === '*' || expression === '?') return field;
+  if (/[A-Za-zLW#]/.test(expression)) {
+    throw new CronValidationError('unsupported-syntax', part);
+  }
+  if (expression.includes(',')) {
+    field.mode = 'specify';
+    field.values = expression
       .split(',')
-      .map(Number)
-      .filter((v) => !Number.isNaN(v));
+      .map((value) => parseNumber(part, value));
+    if (field.values.length === 0) {
+      throw new CronValidationError('empty-values', part);
+    }
+    return field;
   }
-  return f;
+  if (expression.includes('/')) {
+    const match = expression.match(/^(\d+)\/(\d+)$/);
+    const stepStart = match?.[1];
+    const stepValue = match?.[2];
+    if (stepStart === undefined || stepValue === undefined) {
+      throw new CronValidationError('unsupported-syntax', part);
+    }
+    field.mode = 'step';
+    field.stepStart = parseNumber(part, stepStart);
+    field.stepValue = Number(stepValue);
+    if (!Number.isInteger(field.stepValue) || field.stepValue < 1) {
+      throw new CronValidationError('invalid-step', part);
+    }
+    return field;
+  }
+  if (expression.includes('-')) {
+    const match = expression.match(/^(\d+)-(\d+)$/);
+    const rangeStart = match?.[1];
+    const rangeEnd = match?.[2];
+    if (rangeStart === undefined || rangeEnd === undefined) {
+      throw new CronValidationError('unsupported-syntax', part);
+    }
+    field.mode = 'range';
+    field.rangeStart = parseNumber(part, rangeStart);
+    field.rangeEnd = parseNumber(part, rangeEnd);
+    if (field.rangeStart >= field.rangeEnd) {
+      throw new CronValidationError('reversed-range', part);
+    }
+    return field;
+  }
+  field.mode = 'specify';
+  field.values = [parseNumber(part, expression)];
+  return field;
 }
 
-/** 完整 cron → 六段状态（用于回显编辑） */
-export function cronToState(cron: string): Record<CronPart, CronFieldState> {
-  const parts = (cron ?? '').trim().split(/\s+/);
-  const state = defaultCronState();
-  if (parts.length >= 6) {
-    CRON_PARTS.forEach((p, i) => {
-      state[p] = exprToField(p, parts[i] ?? '');
-    });
+export function decodeCron(value: string): CronDecodeResult {
+  const original = value.trim();
+  if (original.startsWith('@')) {
+    return { mode: 'advanced', reason: 'macro', value: original };
   }
-  return state;
+  const parts = original.split(/\s+/);
+  if (parts.length !== 6) {
+    return { mode: 'advanced', reason: 'field-count', value: original };
+  }
+  try {
+    const state = defaultCronState();
+    for (const [index, part] of CRON_PARTS.entries()) {
+      const expression = parts[index];
+      if (expression === undefined) {
+        return { mode: 'advanced', reason: 'field-count', value: original };
+      }
+      state[part] = expressionToField(part, expression);
+    }
+    if (state.day.mode !== 'every' && state.week.mode !== 'every') {
+      return { mode: 'advanced', reason: 'day-week-and', value: original };
+    }
+    if (stateToCron(state) !== original) {
+      return { mode: 'advanced', reason: 'non-lossless', value: original };
+    }
+    return { mode: 'simple', state, value: original };
+  } catch (error) {
+    return {
+      mode: 'advanced',
+      reason: error instanceof Error ? error.message : 'unsupported',
+      value: original,
+    };
+  }
 }

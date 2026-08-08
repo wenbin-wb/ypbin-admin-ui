@@ -17,6 +17,8 @@ defineOptions({ name: 'Login' });
 
 const authStore = useAuthStore();
 
+const loginRef = ref<InstanceType<typeof AuthenticationLogin>>();
+
 /** 最近一次拖动生成的行为验证码数据，登录时随表单提交 */
 const captchaPayload = ref<null | {
   id: string;
@@ -112,12 +114,27 @@ async function handleLogin(values: Recordable<any>) {
     params.captchaId = captchaPayload.value.id;
     params.captchaTrack = captchaPayload.value.track;
   }
-  await authStore.authLogin(params);
+  try {
+    await authStore.authLogin(params);
+  } catch (error) {
+    // 登录失败（含验证码校验失败）：验证码已被消费或已过期，换一张避免用旧数据再提交
+    refreshCaptcha();
+    throw error;
+  }
+}
+
+function refreshCaptcha() {
+  captchaPayload.value = null;
+  const captchaComponent = loginRef.value
+    ?.getFormApi()
+    .getFieldComponentRef<{ fetchCaptcha: () => void }>('captcha');
+  captchaComponent?.fetchCaptcha();
 }
 </script>
 
 <template>
   <AuthenticationLogin
+    ref="loginRef"
     :form-schema="formSchema"
     :loading="authStore.loginLoading"
     @submit="handleLogin"

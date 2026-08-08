@@ -121,6 +121,7 @@ export function useFormSchema(): FormSchema[] {
       fieldName: 'cron',
       label: $t('system.job.cron'),
       rules: 'required',
+      defaultValue: '0 0 0 * * ?',
       formItemClass: 'items-start',
     },
     {

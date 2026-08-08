@@ -156,6 +156,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('pointermove', pointerMove);
   window.removeEventListener('pointerup', pointerUp);
 });
+
+defineExpose({ fetchCaptcha });
 </script>
 
 <template>
