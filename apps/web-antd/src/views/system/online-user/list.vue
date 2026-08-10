@@ -47,6 +47,7 @@ function onForceLogout(row: SystemOnlineUserApi.OnlineUserResp) {
             {
               text: $t('system.onlineUser.forceLogout'),
               icon: 'lucide:log-out',
+              auth: 'system:online-user:kickout',
               danger: true,
               popConfirm: {
                 title: $t('system.onlineUser.forceLogout'),

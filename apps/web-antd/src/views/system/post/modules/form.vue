@@ -1,6 +1,8 @@
 ﻿<script lang="ts" setup>
 import type { SystemPostApi } from '#/api/system/post';
 
+import { nextTick } from 'vue';
+
 import { useVbenDrawer } from '@vben/common-ui';
 
 import { message } from 'ant-design-vue';
@@ -63,8 +65,21 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemPostApi.PostResp>({
       if (!valid) {
         return;
       }
-      const values = await formApi.getValues();
-      await (isUpdate ? updatePost(updateId, values) : createPost(values));
+      const values = await formApi.getValues<{
+        code: string;
+        name: string;
+        remark?: string;
+        sort: number;
+        status: 0 | 1;
+      }>();
+      const data: SystemPostApi.PostSaveReq = {
+        code: values.code,
+        name: values.name,
+        remark: values.remark,
+        sort: values.sort,
+        status: values.status,
+      };
+      await (isUpdate ? updatePost(updateId, data) : createPost(data));
       message.success($t('common.success'));
       emit('success');
       drawerApi.close();
@@ -72,21 +87,21 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemPostApi.PostResp>({
       drawerApi.unlock();
     }
   },
-  onOpenChange(isOpen: boolean) {
+  async onOpenChange(isOpen: boolean) {
     if (isOpen) {
       const data = drawerApi.getData();
       isUpdate = !!data?.id;
       updateId = data?.id ?? '';
-      if (data) {
-        formApi.setValues(data);
-      } else {
-        formApi.reset();
-      }
+      formApi.reset();
       drawerApi.setState({
         title: isUpdate
           ? $t('system.post.editTitle')
           : $t('system.post.addTitle'),
       });
+      await nextTick();
+      if (data) {
+        formApi.setValues(data);
+      }
     }
   },
 });

@@ -136,7 +136,7 @@ async function onDownload(row: SystemLicenseApi.SystemLicense) {
   }
 }
 
-/** 查看交付信息：授权码（CODE 模式）+ 签发时按被授权方自动创建的联机应用 AK/SK，各段可复制 */
+/** 查看可重复读取的交付信息：授权码（CODE 模式）与联机应用 Access Key */
 function onViewDelivery(row: SystemLicenseApi.SystemLicense) {
   getLicenseDelivery(row.id).then((delivery) => {
     showLicenseDelivery(delivery, $t('system.license.deliveryTitle'));
@@ -225,21 +225,21 @@ function onGenerateKey() {
           :dropdown-actions="[
             {
               text: $t('system.license.viewAuthCode'),
-              auth: 'system:license:list',
+              auth: 'system:license:delivery',
               ifShow:
                 row.approveStatus === 'ISSUED' && row.deliveryMode === 'CODE',
               onClick: () => onViewDelivery(row),
             },
             {
               text: $t('system.license.download'),
-              auth: 'system:license:list',
+              auth: 'system:license:delivery',
               ifShow:
                 row.approveStatus === 'ISSUED' && row.deliveryMode === 'FILE',
               onClick: () => onDownload(row),
             },
             {
               text: $t('system.license.viewAppInfo'),
-              auth: 'system:license:list',
+              auth: 'system:license:delivery',
               ifShow:
                 row.approveStatus === 'ISSUED' && row.deliveryMode === 'FILE',
               onClick: () => onViewDelivery(row),

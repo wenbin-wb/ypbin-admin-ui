@@ -2,6 +2,7 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { SystemAppApi } from '#/api/system/app';
 
+import { useAccess } from '@vben/access';
 import { Page, useVbenDrawer } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
@@ -17,17 +18,19 @@ import {
 import { $t } from '#/locales';
 
 import { showSecretOnce } from '../_shared/show-secret';
-import { useColumns, useGridFormSchema } from './data';
+import { useColumns } from './data';
 import Form from './modules/form.vue';
+
+const { hasAccessByCodes } = useAccess();
+const canEdit = hasAccessByCodes(['system:app:edit']);
 
 const [FormDrawer, FormDrawerApi] = useVbenDrawer({
   connectedComponent: Form,
 });
 
 const [Grid, gridApi] = useVbenVxeGrid({
-  formOptions: { schema: useGridFormSchema(), submitOnChange: true },
   gridOptions: {
-    columns: useColumns(onStatusChange),
+    columns: useColumns(canEdit ? onStatusChange : undefined),
     height: 'auto',
     keepSource: true,
     pagerConfig: { enabled: false },
@@ -37,14 +40,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
       custom: true,
       export: false,
       refresh: true,
-      search: true,
       zoom: true,
     },
   } as VxeTableGridOptions<SystemAppApi.AppResp>,
 });
 
 function onEdit(row: SystemAppApi.AppResp) {
-  FormDrawerApi.setData({ isUpdate: true, row }).open();
+  FormDrawerApi.setData(row).open();
 }
 function onDelete(row: SystemAppApi.AppResp) {
   deleteApp(row.id).then(() => {
@@ -54,9 +56,9 @@ function onDelete(row: SystemAppApi.AppResp) {
 }
 
 function onResetSecret(row: SystemAppApi.AppResp) {
-  resetAppSecret(row.id).then((secret) => {
+  resetAppSecret(row.id).then((credential) => {
     message.success($t('common.success'));
-    showSecretOnce(secret, $t('system.app.secretKey'));
+    showSecretOnce(credential.secretKey, $t('system.app.secretKey'));
   });
 }
 
@@ -64,9 +66,17 @@ function onSecret(secret: string) {
   showSecretOnce(secret, $t('system.app.secretKey'));
 }
 
-async function onStatusChange(status: number, row: SystemAppApi.AppResp) {
+async function onStatusChange(
+  status: number,
+  row: SystemAppApi.AppResp,
+): Promise<boolean> {
   try {
-    await updateApp(row.id, { ...row, enabled: status });
+    const data: SystemAppApi.AppSaveReq = {
+      appName: row.appName,
+      enabled: status,
+      expireTime: row.expireTime,
+    };
+    await updateApp(row.id, data);
     message.success($t('common.success'));
     return true;
   } catch {
@@ -80,13 +90,9 @@ async function onStatusChange(status: number, row: SystemAppApi.AppResp) {
     <Grid>
       <template #toolbar-tools>
         <Button
+          v-access:code="['system:app:add']"
           type="primary"
-          @click="
-            () => {
-              FormDrawerApi.setData({ isUpdate: false });
-              FormDrawerApi.open();
-            }
-          "
+          @click="FormDrawerApi.setData(null).open()"
         >
           <template #icon><Plus /></template>
           {{ $t('ui.actionTitle.create', [$t('system.app.title')]) }}
@@ -99,11 +105,13 @@ async function onStatusChange(status: number, row: SystemAppApi.AppResp) {
             {
               text: $t('common.edit'),
               icon: 'lucide:edit',
+              auth: 'system:app:edit',
               onClick: () => onEdit(row),
             },
             {
               text: $t('system.common.resetSecret'),
               icon: 'lucide:key-round',
+              auth: 'system:app:reset-secret',
               popConfirm: {
                 title: $t('system.common.resetSecretConfirm'),
                 confirm: () => onResetSecret(row),
@@ -112,6 +120,7 @@ async function onStatusChange(status: number, row: SystemAppApi.AppResp) {
             {
               text: $t('common.delete'),
               icon: 'lucide:trash-2',
+              auth: 'system:app:delete',
               danger: true,
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [

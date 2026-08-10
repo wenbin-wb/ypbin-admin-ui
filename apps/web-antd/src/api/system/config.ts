@@ -1,6 +1,23 @@
+import type { SystemCommonApi } from './common';
+
 import { requestClient } from '#/api/request';
 
 export namespace SystemConfigApi {
+  export interface ConfigQuery extends SystemCommonApi.PageQuery {
+    builtIn?: 0 | 1;
+    configGroup?: string;
+    configKey?: string;
+    name?: string;
+  }
+
+  export interface ConfigSaveReq {
+    configGroup: string;
+    configKey: string;
+    configValue: string;
+    name?: string;
+    remark?: string;
+  }
+
   export interface ConfigResp {
     id: string;
     configGroup: string;
@@ -9,8 +26,9 @@ export namespace SystemConfigApi {
     configValue: string;
     builtIn?: number;
     remark?: string;
-    createTime: string;
+    createUser?: string;
     createUserName?: string;
+    updateTime: string;
   }
 
   export interface ConfigUpdateBatchReq {
@@ -43,11 +61,10 @@ export namespace SystemConfigApi {
   }
 }
 
-export function getConfigList(params?: any) {
-  return requestClient.get<SystemConfigApi.ConfigResp[]>(
-    '/system/config/list',
-    { params },
-  );
+export function getConfigList(params: SystemConfigApi.ConfigQuery) {
+  return requestClient.get<
+    SystemCommonApi.PageResult<SystemConfigApi.ConfigResp>
+  >('/system/config/list', { params });
 }
 
 export function getConfigGroup(configGroup: string) {
@@ -56,11 +73,11 @@ export function getConfigGroup(configGroup: string) {
   );
 }
 
-export function createConfig(data: any) {
+export function createConfig(data: SystemConfigApi.ConfigSaveReq) {
   return requestClient.post('/system/config', data);
 }
 
-export function updateConfig(id: string, data: any) {
+export function updateConfig(id: string, data: SystemConfigApi.ConfigSaveReq) {
   return requestClient.put(`/system/config/${id}`, data);
 }
 

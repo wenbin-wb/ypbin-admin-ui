@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { SystemDictItemApi } from '#/api/system/dictItem';
 
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 
 import { useVbenDrawer } from '@vben/common-ui';
 
@@ -41,11 +41,23 @@ const [Drawer, drawerApi] = useVbenDrawer<DictItemFormData>({
       if (!valid) {
         return;
       }
-      const values = await formApi.getValues();
+      const values = await formApi.getValues<{
+        color?: string;
+        label: string;
+        remark?: string;
+        sort: number;
+        status: 0 | 1;
+        value: string;
+      }>();
 
-      const submitData = {
-        ...values,
+      const submitData: SystemDictItemApi.DictItemSaveReq = {
+        color: values.color,
         dictId: parentDictId.value,
+        label: values.label,
+        remark: values.remark,
+        sort: values.sort,
+        status: values.status,
+        value: values.value,
       };
 
       await (isUpdate.value
@@ -59,11 +71,13 @@ const [Drawer, drawerApi] = useVbenDrawer<DictItemFormData>({
       drawerApi.setState({ confirmLoading: false });
     }
   },
-  onOpenChange(isOpen: boolean) {
+  async onOpenChange(isOpen: boolean) {
     if (isOpen) {
       const data = drawerApi.getData();
       isUpdate.value = !!data?.isUpdate;
       parentDictId.value = data?.dictId ?? '';
+      rowId.value = data?.isUpdate ? data.row.id : '';
+      formApi.reset();
 
       drawerApi.setState({
         title: isUpdate.value
@@ -71,12 +85,9 @@ const [Drawer, drawerApi] = useVbenDrawer<DictItemFormData>({
           : $t('ui.actionTitle.create', [$t('system.dictItem.title')]),
       });
 
+      await nextTick();
       if (data?.isUpdate) {
-        rowId.value = data.row.id;
         formApi.setValues(data.row);
-      } else {
-        rowId.value = '';
-        formApi.reset();
       }
     }
   },

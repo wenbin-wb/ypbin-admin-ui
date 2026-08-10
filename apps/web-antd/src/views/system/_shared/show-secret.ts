@@ -33,7 +33,7 @@ export function showSecretOnce(secret: string, title?: string) {
   });
 }
 
-/** 授权交付信息（授权码 + 签发时自动创建/复用的联机应用密钥） */
+/** 授权交付信息；Secret Key 仅审批签发或密钥重置时可能返回 */
 export interface LicenseDelivery {
   /** 授权串（Base64，CODE 交付展示） */
   authCode?: string;
@@ -46,8 +46,8 @@ export interface LicenseDelivery {
 }
 
 /**
- * 弹窗展示授权交付信息（授权码 + 联机应用 AK/SK），各段可复制。
- * 联机应用在审批通过时按被授权方自动创建/复用，交付给消费端配置 online.access-key / secret-key。
+ * 弹窗展示授权交付信息，各段可复制。
+ * 可重复读取的交付信息不包含 Secret Key；一次性签发结果可能携带新建应用的 Secret Key。
  *
  * @param delivery 交付信息
  * @param title    弹窗标题

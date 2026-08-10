@@ -51,9 +51,14 @@ function getNodeClass(node: Recordable<any>) {
   return classes.join(' ');
 }
 
-type AuthTemplateFormData =
-  | { id: string; isUpdate: true; row: SystemAuthTemplateApi.AuthTemplateResp }
-  | { isUpdate: false };
+interface AuthTemplateFormValues {
+  code: string;
+  menuIds?: string[];
+  name: string;
+  remark?: string;
+}
+
+type AuthTemplateFormData = null | SystemAuthTemplateApi.AuthTemplateResp;
 
 const [Drawer, drawerApi] = useVbenDrawer<AuthTemplateFormData>({
   onCancel() {
@@ -66,11 +71,17 @@ const [Drawer, drawerApi] = useVbenDrawer<AuthTemplateFormData>({
       if (!valid) {
         return;
       }
-      const values = await formApi.getValues();
+      const values = await formApi.getValues<AuthTemplateFormValues>();
+      const request: SystemAuthTemplateApi.AuthTemplateSaveReq = {
+        code: values.code,
+        menuIds: values.menuIds,
+        name: values.name,
+        remark: values.remark,
+      };
       const data = drawerApi.getData();
-      await (data?.isUpdate
-        ? updateAuthTemplate(data.id, values)
-        : createAuthTemplate(values));
+      await (data?.id
+        ? updateAuthTemplate(data.id, request)
+        : createAuthTemplate(request));
       message.success($t('common.success'));
       drawerApi.close();
       emit('reload');
@@ -83,14 +94,14 @@ const [Drawer, drawerApi] = useVbenDrawer<AuthTemplateFormData>({
       const data = drawerApi.getData();
       formApi.reset();
       drawerApi.setState({
-        title: data?.isUpdate
+        title: data?.id
           ? $t('ui.actionTitle.edit', [$t('system.authTemplate.title')])
           : $t('ui.actionTitle.create', [$t('system.authTemplate.title')]),
       });
       await loadPermissions();
       await nextTick();
-      if (data?.isUpdate) {
-        formApi.setValues(data.row);
+      if (data) {
+        formApi.setValues(data);
       }
     }
   },
@@ -114,12 +125,12 @@ defineExpose({ drawerApi });
             :get-node-class="getNodeClass"
             v-bind="slotProps.componentProps"
             value-field="id"
-            label-field="meta.title"
-            icon-field="meta.icon"
+            label-field="title"
+            icon-field="icon"
           >
             <template #node="{ value }">
-              <IconifyIcon v-if="value.meta?.icon" :icon="value.meta.icon" />
-              {{ $t(value.meta?.title) }}
+              <IconifyIcon v-if="value.icon" :icon="value.icon" />
+              {{ $t(value.title) }}
             </template>
           </Tree>
         </Spin>

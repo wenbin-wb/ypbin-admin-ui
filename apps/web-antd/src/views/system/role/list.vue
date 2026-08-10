@@ -6,13 +6,14 @@ import type { Recordable } from '@vben/types';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { SystemRoleApi } from '#/api';
 
+import { useAccess } from '@vben/access';
 import { Page, useVbenDrawer } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
 import { Button, message, Modal } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
-import { deleteRole, getRoleList, updateRole } from '#/api';
+import { deleteRole, getRoleList, updateRoleStatus } from '#/api';
 import { $t } from '#/locales';
 import { createDateRangeCodec } from '#/utils/date-range-codec';
 
@@ -31,6 +32,9 @@ const roleSearchCodec = createDateRangeCodec<RoleSearchFormValues>()({
 
 type RoleSearchSubmitValues = ReturnType<typeof roleSearchCodec.encode>;
 
+const { hasAccessByCodes } = useAccess();
+const canEdit = hasAccessByCodes(['system:role:edit']);
+
 const [FormDrawer, formDrawerApi] = useVbenDrawer({
   connectedComponent: Form,
   destroyOnClose: false,
@@ -43,7 +47,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     submitOnChange: true,
   },
   gridOptions: {
-    columns: useColumns(onStatusChange),
+    columns: useColumns(canEdit ? onStatusChange : undefined),
     height: 'auto',
     keepSource: true,
     proxyConfig: {
@@ -98,9 +102,9 @@ function confirm(content: string, title: string) {
  * @returns 返回false则中止改变，返回其他值（undefined、true）则允许改变
  */
 async function onStatusChange(
-  newStatus: number,
+  newStatus: 0 | 1,
   row: SystemRoleApi.SystemRole,
-) {
+): Promise<boolean> {
   const status: Recordable<string> = {
     0: $t('common.disabled'),
     1: $t('common.enabled'),
@@ -113,7 +117,7 @@ async function onStatusChange(
       ]),
       $t('system.role.statusChangeTitle'),
     );
-    await updateRole(row.id, { status: newStatus });
+    await updateRoleStatus(row.id, { status: newStatus });
     return true;
   } catch {
     return false;
@@ -156,7 +160,11 @@ function onCreate() {
     <FormDrawer @success="onRefresh" />
     <Grid :table-title="$t('system.role.list')">
       <template #toolbar-tools>
-        <Button type="primary" @click="onCreate">
+        <Button
+          v-access:code="['system:role:add']"
+          type="primary"
+          @click="onCreate"
+        >
           <Plus class="size-5" />
           {{ $t('ui.actionTitle.create', [$t('system.role.name')]) }}
         </Button>
@@ -168,11 +176,13 @@ function onCreate() {
             {
               text: $t('common.edit'),
               icon: 'lucide:edit',
+              auth: 'system:role:edit',
               onClick: () => onEdit(row),
             },
             {
               text: $t('common.delete'),
               icon: 'lucide:trash-2',
+              auth: 'system:role:delete',
               danger: true,
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.name || '']),

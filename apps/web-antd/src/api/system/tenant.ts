@@ -1,5 +1,3 @@
-import type { Recordable } from '@vben/types';
-
 import { requestClient } from '#/api/request';
 
 export namespace SystemTenantApi {
@@ -13,6 +11,7 @@ export namespace SystemTenantApi {
     contactPhone?: string;
     expireDate?: string;
     remark?: string;
+    status?: number;
     createUser?: string;
     createUserName?: string;
     createTime?: string;
@@ -33,24 +32,21 @@ export namespace SystemTenantApi {
 /**
  * 获取租户列表
  */
-async function getTenantList(params?: Recordable<any>) {
-  return requestClient.get<SystemTenantApi.TenantResp[]>(
-    '/system/tenant/list',
-    { params },
-  );
+async function getTenantList() {
+  return requestClient.get<SystemTenantApi.TenantResp[]>('/system/tenant/list');
 }
 
 /**
  * 新增租户
  */
-async function createTenant(data: Recordable<any>) {
+async function createTenant(data: SystemTenantApi.TenantSaveReq) {
   return requestClient.post('/system/tenant', data);
 }
 
 /**
  * 编辑租户
  */
-async function updateTenant(id: string, data: Recordable<any>) {
+async function updateTenant(id: string, data: SystemTenantApi.TenantSaveReq) {
   return requestClient.put(`/system/tenant/${id}`, data);
 }
 

@@ -52,10 +52,10 @@ function onRefresh() {
 }
 
 function onEdit(row: SystemNoticeApi.NoticeResp) {
-  formModalApi.setData({ isUpdate: true, row }).open();
+  formModalApi.setData(row).open();
 }
 function onCreate() {
-  formModalApi.setData({ isUpdate: false }).open();
+  formModalApi.setData(null).open();
 }
 function onPreview(row: SystemNoticeApi.NoticeResp) {
   previewModalApi.setData(row).open();
@@ -87,7 +87,11 @@ function onPublish(row: SystemNoticeApi.NoticeResp) {
     <PreviewModal />
     <Grid :table-title="$t('system.notice.title')">
       <template #toolbar-tools>
-        <Button type="primary" @click="onCreate">
+        <Button
+          v-access:code="['system:notice:add']"
+          type="primary"
+          @click="onCreate"
+        >
           <Plus class="size-5" />
           {{ $t('ui.actionTitle.create', [$t('system.notice.title')]) }}
         </Button>
@@ -99,16 +103,19 @@ function onPublish(row: SystemNoticeApi.NoticeResp) {
             {
               text: $t('system.notice.preview'),
               icon: 'lucide:eye',
+              auth: 'system:notice:list',
               onClick: () => onPreview(row),
             },
             {
               text: $t('common.edit'),
               icon: 'lucide:edit',
+              auth: 'system:notice:edit',
               onClick: () => onEdit(row),
             },
             {
               text: $t('system.notice.publish'),
               icon: 'lucide:send',
+              auth: 'system:notice:edit',
               ifShow: row.publishStatus !== 2,
               popConfirm: {
                 title: $t('system.notice.publishConfirm'),
@@ -118,6 +125,7 @@ function onPublish(row: SystemNoticeApi.NoticeResp) {
             {
               text: $t('system.notice.revoke'),
               icon: 'lucide:undo-2',
+              auth: 'system:notice:edit',
               ifShow: row.publishStatus === 2,
               popConfirm: {
                 title: $t('system.notice.revokeConfirm'),
@@ -127,6 +135,7 @@ function onPublish(row: SystemNoticeApi.NoticeResp) {
             {
               text: $t('common.delete'),
               icon: 'lucide:trash-2',
+              auth: 'system:notice:delete',
               danger: true,
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.title || '']),

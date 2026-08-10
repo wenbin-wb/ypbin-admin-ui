@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import type { SystemTenantApi } from '#/api/system/tenant';
 
+import { nextTick } from 'vue';
+
 import { useVbenDrawer } from '@vben/common-ui';
 
 import { message } from 'ant-design-vue';
@@ -13,9 +15,17 @@ import { useFormSchema } from '../data';
 
 const emit = defineEmits(['reload']);
 
-type TenantFormData =
-  | { id: string; isUpdate: true; row: SystemTenantApi.TenantResp }
-  | { isUpdate: false };
+interface TenantFormValues {
+  code: string;
+  contactName?: string;
+  contactPhone?: string;
+  expireDate?: string;
+  name: string;
+  remark?: string;
+  templateId?: string;
+}
+
+type TenantFormData = null | SystemTenantApi.TenantResp;
 
 const [Form, formApi] = useVbenForm({
   schema: useFormSchema(),
@@ -33,11 +43,18 @@ const [Drawer, drawerApi] = useVbenDrawer<TenantFormData>({
       if (!valid) {
         return;
       }
-      const values = await formApi.getValues();
+      const values = await formApi.getValues<TenantFormValues>();
+      const request: SystemTenantApi.TenantSaveReq = {
+        code: values.code,
+        contactName: values.contactName,
+        contactPhone: values.contactPhone,
+        expireDate: values.expireDate,
+        name: values.name,
+        remark: values.remark,
+        templateId: values.templateId,
+      };
       const data = drawerApi.getData();
-      await (data?.isUpdate
-        ? updateTenant(data.id, values)
-        : createTenant(values));
+      await (data?.id ? updateTenant(data.id, request) : createTenant(request));
       message.success($t('common.success'));
       drawerApi.close();
       emit('reload');
@@ -45,18 +62,18 @@ const [Drawer, drawerApi] = useVbenDrawer<TenantFormData>({
       drawerApi.setState({ confirmLoading: false });
     }
   },
-  onOpenChange(isOpen: boolean) {
+  async onOpenChange(isOpen: boolean) {
     if (isOpen) {
       const data = drawerApi.getData();
+      formApi.reset();
       drawerApi.setState({
-        title: data?.isUpdate
+        title: data?.id
           ? $t('ui.actionTitle.edit', [$t('system.tenant.title')])
           : $t('ui.actionTitle.create', [$t('system.tenant.title')]),
       });
-      if (data?.isUpdate) {
-        formApi.setValues(data.row);
-      } else {
-        formApi.reset();
+      await nextTick();
+      if (data) {
+        formApi.setValues(data);
       }
     }
   },

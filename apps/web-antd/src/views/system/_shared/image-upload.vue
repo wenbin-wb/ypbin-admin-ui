@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { SystemCommonApi } from '#/api/system/common';
+
 import { ref } from 'vue';
 
 import { useVbenModal, VCropper } from '@vben/common-ui';
@@ -26,8 +28,17 @@ const props = withDefaults(
     shape?: 'circle' | 'square';
     /** 预览框尺寸（px） */
     size?: number;
+    /** 上传函数：默认走平台文件上传，个人头像等场景传入各自的上传接口 */
+    upload?: (file: File, module: string) => Promise<SystemCommonApi.FileInfo>;
   }>(),
-  { module: 'default', maxSize: 5, aspectRatio: '', shape: 'square', size: 96 },
+  {
+    module: 'default',
+    maxSize: 5,
+    aspectRatio: '',
+    shape: 'square',
+    size: 96,
+    upload: uploadFile,
+  },
 );
 
 const modelValue = defineModel<string>();
@@ -48,7 +59,11 @@ const [CropModal, cropModalApi] = useVbenModal({
       const file = new File([blob], `cover-${Date.now()}.png`, {
         type: 'image/png',
       });
-      const info = await uploadFile(file, props.module);
+      const info = await props.upload(file, props.module);
+      if (!info.url) {
+        message.error($t('system.common.fileUrlUnavailable'));
+        return;
+      }
       modelValue.value = info.url;
       message.success($t('common.success'));
       cropModalApi.close();

@@ -158,7 +158,7 @@ export function useDescriptionItems(
     { label: $t('system.user.nickname'), content: row?.nickname },
     {
       label: $t('system.user.dept'),
-      content: row?.deptIdName || row?.deptIdText,
+      content: row?.deptIdName,
     },
     { label: $t('system.user.phone'), content: row?.phone },
     { label: $t('system.user.email'), content: row?.email },
@@ -182,7 +182,7 @@ export function useDescriptionItems(
 }
 
 export function useColumns<T = SystemUserApi.SystemUser>(
-  onStatusChange?: (newStatus: any, row: T) => PromiseLike<boolean | undefined>,
+  onStatusChange?: (newStatus: 0 | 1, row: T) => Promise<boolean>,
 ): VxeTableGridColumns {
   return [
     { field: 'username', title: $t('system.user.userName'), minWidth: 120 },

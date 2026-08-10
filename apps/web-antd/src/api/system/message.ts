@@ -1,3 +1,5 @@
+import type { SystemCommonApi } from './common';
+
 import { requestClient } from '#/api/request';
 
 export namespace SystemMessageApi {
@@ -10,25 +12,17 @@ export namespace SystemMessageApi {
     createTime: string;
   }
 
-  export interface PageResult {
-    items: MessageItem[];
-    total: number;
-    page: number;
-    pageSize: number;
-    pages: number;
+  export interface MessageQuery extends SystemCommonApi.PageQuery {
+    messageType?: number;
+    readStatus?: number;
   }
 }
 
 /** 分页查询当前用户站内信 */
-export function getMessageList(params: {
-  messageType?: number;
-  page?: number;
-  pageSize?: number;
-  readStatus?: number;
-}) {
-  return requestClient.get<SystemMessageApi.PageResult>('/user/messages', {
-    params,
-  });
+export function getMessageList(params: SystemMessageApi.MessageQuery) {
+  return requestClient.get<
+    SystemCommonApi.PageResult<SystemMessageApi.MessageItem>
+  >('/user/messages', { params });
 }
 
 /** 未读消息数 */

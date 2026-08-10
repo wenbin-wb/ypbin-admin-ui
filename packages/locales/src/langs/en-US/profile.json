@@ -1,6 +1,27 @@
 {
   "updatePassword": "Update Password",
   "updateBasicProfile": "Update Basic Profile",
+  "oldPasswordPlaceholder": "Enter current password",
+  "newPassword": "New Password",
+  "newPasswordPlaceholder": "Enter new password",
+  "confirmPassword": "Confirm Password",
+  "confirmPasswordPlaceholder": "Enter the new password again",
+  "passwordMismatch": "Passwords do not match",
+  "title": "Profile",
+  "tabs": {
+    "basic": "Basic Settings",
+    "security": "Security Settings",
+    "password": "Change Password",
+    "notification": "Message Notifications"
+  },
+  "notification": {
+    "accountPassword": "Account Password",
+    "accountPasswordDescription": "Messages from other users are delivered as in-site messages",
+    "systemMessage": "System Messages",
+    "systemMessageDescription": "System messages are delivered as in-site messages",
+    "todoTask": "To-do Tasks",
+    "todoTaskDescription": "To-do task notifications are delivered as in-site messages"
+  },
   "security": {
     "accountPassword": "Account Password",
     "lastChanged": "Last changed: {0}",

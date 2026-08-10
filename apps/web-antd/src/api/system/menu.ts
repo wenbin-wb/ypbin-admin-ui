@@ -19,38 +19,39 @@ export namespace SystemMenuApi {
     'link',
     'button',
   ] as const;
-  /** 系统菜单 */
-  export interface SystemMenu {
-    [key: string]: any;
+  export interface MenuSaveReq {
+    activeIcon?: string;
+    activePath?: string;
+    affixTab?: boolean;
+    authCode?: string;
+    badge?: string;
+    badgeType?: (typeof BadgeTypes)[number];
+    badgeVariants?: (typeof BadgeVariants)[number];
+    component?: string;
+    hideChildrenInMenu?: boolean;
+    hideInBreadcrumb?: boolean;
+    hideInMenu?: boolean;
+    hideInTab?: boolean;
+    icon?: string;
+    iframeSrc?: string;
+    keepAlive?: boolean;
+    link?: string;
+    name: string;
+    path?: string;
+    pid?: string;
+    platformOnly?: boolean;
+    redirect?: string;
+    sort?: number;
+    status: 0 | 1;
+    title?: string;
+    type: (typeof MenuTypes)[number];
+  }
+
+  /** 菜单管理响应，字段与保存请求保持同名。 */
+  export interface SystemMenu extends MenuSaveReq {
+    children?: SystemMenu[];
     id: string;
     pid: string;
-    name: string;
-    type: (typeof MenuTypes)[number];
-    path?: string;
-    component?: string;
-    authCode?: string;
-    redirect?: string;
-    status: 0 | 1;
-    children?: SystemMenu[];
-    meta?: {
-      [key: string]: any;
-      activeIcon?: string;
-      activePath?: string;
-      affixTab?: boolean;
-      badge?: string;
-      badgeType?: (typeof BadgeTypes)[number];
-      badgeVariants?: (typeof BadgeVariants)[number];
-      hideChildrenInMenu?: boolean;
-      hideInBreadcrumb?: boolean;
-      hideInMenu?: boolean;
-      hideInTab?: boolean;
-      icon?: string;
-      iframeSrc?: string;
-      keepAlive?: boolean;
-      link?: string;
-      order?: number;
-      title?: string;
-    };
   }
 }
 
@@ -85,9 +86,7 @@ async function isMenuPathExists(
  * 创建菜单
  * @param data 菜单数据
  */
-async function createMenu(
-  data: Omit<SystemMenuApi.SystemMenu, 'children' | 'id'>,
-) {
+async function createMenu(data: SystemMenuApi.MenuSaveReq) {
   return requestClient.post('/system/menu', data);
 }
 
@@ -97,10 +96,7 @@ async function createMenu(
  * @param id 菜单 ID
  * @param data 菜单数据
  */
-async function updateMenu(
-  id: string,
-  data: Omit<SystemMenuApi.SystemMenu, 'children' | 'id'>,
-) {
+async function updateMenu(id: string, data: SystemMenuApi.MenuSaveReq) {
   return requestClient.put(`/system/menu/${id}`, data);
 }
 

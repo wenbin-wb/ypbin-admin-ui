@@ -71,9 +71,9 @@ function onDelete(row: SystemClientApi.ClientResp) {
 }
 
 function onResetSecret(row: SystemClientApi.ClientResp) {
-  resetClientSecret(row.id).then((secret) => {
+  resetClientSecret(row.id).then((credential) => {
     message.success($t('common.success'));
-    showSecretOnce(secret, $t('system.client.clientSecret'));
+    showSecretOnce(credential.clientSecret, $t('system.client.clientSecret'));
   });
 }
 
@@ -86,7 +86,11 @@ function onSecret(secret: string) {
     <FormDrawer @secret="onSecret" @success="onRefresh" />
     <Grid :table-title="$t('system.client.title')">
       <template #toolbar-tools>
-        <Button type="primary" @click="onCreate">
+        <Button
+          v-access:code="['system:client:add']"
+          type="primary"
+          @click="onCreate"
+        >
           <Plus class="size-5" />
           {{ $t('ui.actionTitle.create', [$t('system.client.title')]) }}
         </Button>
@@ -98,11 +102,13 @@ function onSecret(secret: string) {
             {
               text: $t('common.edit'),
               icon: 'lucide:edit',
+              auth: 'system:client:edit',
               onClick: () => onEdit(row),
             },
             {
               text: $t('system.common.resetSecret'),
               icon: 'lucide:key-round',
+              auth: 'system:client:reset-secret',
               popConfirm: {
                 title: $t('system.common.resetSecretConfirm'),
                 confirm: () => onResetSecret(row),
@@ -111,6 +117,7 @@ function onSecret(secret: string) {
             {
               text: $t('common.delete'),
               icon: 'lucide:trash-2',
+              auth: 'system:client:delete',
               danger: true,
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.clientId]),

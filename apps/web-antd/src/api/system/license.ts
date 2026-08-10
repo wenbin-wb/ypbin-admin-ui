@@ -1,4 +1,4 @@
-import type { Recordable } from '@vben/types';
+import type { SystemCommonApi } from './common';
 
 import { requestClient } from '#/api/request';
 
@@ -14,8 +14,27 @@ export namespace SystemLicenseApi {
   /** 交付模式：内联授权码 / 授权文件 */
   export type DeliveryMode = 'CODE' | 'FILE';
 
+  export interface LicenseQuery extends SystemCommonApi.PageQuery {
+    approveStatus?: ApproveStatus;
+    subject?: string;
+    tenantId?: string;
+  }
+
+  export interface LicenseSaveReq {
+    attributes?: Record<string, string>;
+    deliveryMode: DeliveryMode;
+    effectiveAt?: string;
+    expireAt?: string;
+    fingerprints?: string[];
+    graceDays?: number;
+    modules?: string[];
+    quotas?: Record<string, number>;
+    remark?: string;
+    subject: string;
+    tenantId?: string;
+  }
+
   export interface SystemLicense {
-    [key: string]: any;
     id: string;
     /** 授权编号（签发时生成） */
     licenseId?: string;
@@ -77,7 +96,7 @@ export namespace SystemLicenseApi {
     sm4Key: string;
   }
 
-  /** 授权交付信息：授权码 + 签发时按被授权方自动创建/复用的联机应用密钥 */
+  /** 可重复读取的授权交付信息，不包含 Secret Key */
   export interface LicenseDelivery {
     /** 授权串（Base64） */
     authCode?: string;
@@ -87,7 +106,11 @@ export namespace SystemLicenseApi {
     appName?: string;
     /** 联机应用 Access Key */
     accessKey?: string;
-    /** 联机应用 Secret Key */
+  }
+
+  /** 审批通过时返回的一次性签发信息 */
+  export interface LicenseIssueResp extends LicenseDelivery {
+    /** 仅首次创建联机应用时返回 */
     secretKey?: string;
   }
 }
@@ -95,8 +118,10 @@ export namespace SystemLicenseApi {
 /**
  * 获取授权列表数据
  */
-async function getLicenseList(params: Recordable<any>) {
-  return requestClient.get('/system/license/list', { params });
+async function getLicenseList(params: SystemLicenseApi.LicenseQuery) {
+  return requestClient.get<
+    SystemCommonApi.PageResult<SystemLicenseApi.SystemLicense>
+  >('/system/license/list', { params });
 }
 
 /**
@@ -113,7 +138,7 @@ async function getLicenseDetail(id: string) {
  * 新增授权草稿
  * @param data 授权数据
  */
-async function createLicense(data: Omit<SystemLicenseApi.SystemLicense, 'id'>) {
+async function createLicense(data: SystemLicenseApi.LicenseSaveReq) {
   return requestClient.post('/system/license', data);
 }
 
@@ -124,7 +149,7 @@ async function createLicense(data: Omit<SystemLicenseApi.SystemLicense, 'id'>) {
  */
 async function updateLicense(
   id: string,
-  data: Omit<SystemLicenseApi.SystemLicense, 'id'>,
+  data: SystemLicenseApi.LicenseSaveReq,
 ) {
   return requestClient.put(`/system/license/${id}`, data);
 }
@@ -146,7 +171,10 @@ async function approveLicense(
   id: string,
   data: SystemLicenseApi.ApproveParams,
 ) {
-  return requestClient.put(`/system/license/${id}/approve`, data);
+  return requestClient.put<null | SystemLicenseApi.LicenseIssueResp>(
+    `/system/license/${id}/approve`,
+    data,
+  );
 }
 
 /**
@@ -189,7 +217,7 @@ async function downloadLicenseFile(id: string) {
 }
 
 /**
- * 获取授权交付信息（授权码 + 联机应用 AK/SK）
+ * 获取可重复读取的授权交付信息（授权码 + 联机应用 AK，不包含 Secret）
  * @param id 授权 ID
  */
 async function getLicenseDelivery(id: string) {

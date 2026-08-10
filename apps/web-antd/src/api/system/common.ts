@@ -1,14 +1,34 @@
 import { requestClient } from '#/api/request';
 
 export namespace SystemCommonApi {
+  export interface PageQuery {
+    page: number;
+    pageSize: number;
+  }
+
+  export interface PageResult<T> extends PageQuery {
+    items: T[];
+    total: number;
+  }
+
+  export interface StatusReq {
+    status: 0 | 1;
+  }
+
   /** 文件上传返回信息 */
   export interface FileInfo {
-    url: string;
-    originalName?: string;
-    fileName?: string;
-    size?: number;
+    bucket: string;
     contentType?: string;
+    createTime: string;
     extension?: string;
+    fileName: string;
+    hash?: string;
+    originalName: string;
+    path: string;
+    platform: string;
+    size: number;
+    thumbnailUrl?: null | string;
+    url?: null | string;
   }
 }
 

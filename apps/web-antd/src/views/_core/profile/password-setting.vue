@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { VbenFormSchema } from '#/adapter/form';
 
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 import { ProfilePasswordSetting, z } from '@vben/common-ui';
 
@@ -10,41 +10,44 @@ import { message } from 'ant-design-vue';
 import { changePassword } from '#/api/system/profile';
 import { $t } from '#/locales';
 
+const passwordSettingRef = ref<InstanceType<typeof ProfilePasswordSetting>>();
+const submitting = ref(false);
+
 const formSchema = computed((): VbenFormSchema[] => {
   return [
     {
       fieldName: 'oldPassword',
-      label: '旧密码',
+      label: $t('system.user.password'),
       component: 'VbenInputPassword',
       componentProps: {
-        placeholder: '请输入旧密码',
+        placeholder: $t('profile.oldPasswordPlaceholder'),
       },
     },
     {
       fieldName: 'newPassword',
-      label: '新密码',
+      label: $t('profile.newPassword'),
       component: 'VbenInputPassword',
       componentProps: {
         passwordStrength: true,
-        placeholder: '请输入新密码',
+        placeholder: $t('profile.newPasswordPlaceholder'),
       },
     },
     {
       fieldName: 'confirmPassword',
-      label: '确认密码',
+      label: $t('profile.confirmPassword'),
       component: 'VbenInputPassword',
       componentProps: {
         passwordStrength: true,
-        placeholder: '请再次输入新密码',
+        placeholder: $t('profile.confirmPasswordPlaceholder'),
       },
       dependencies: {
         rules(values) {
           const { newPassword } = values;
           return z
-            .string({ error: '请再次输入新密码' })
-            .min(1, { message: '请再次输入新密码' })
+            .string({ error: $t('profile.confirmPasswordPlaceholder') })
+            .min(1, { message: $t('profile.confirmPasswordPlaceholder') })
             .refine((value) => value === newPassword, {
-              message: '两次输入的密码不一致',
+              message: $t('profile.passwordMismatch'),
             });
         },
         triggerFields: ['newPassword'],
@@ -53,18 +56,30 @@ const formSchema = computed((): VbenFormSchema[] => {
   ];
 });
 
-async function handleSubmit(values: Record<string, any>) {
-  await changePassword({
-    oldPassword: values.oldPassword,
-    newPassword: values.newPassword,
-  });
-  message.success($t('common.success'));
+async function handleSubmit(values: Record<string, string | undefined>) {
+  if (submitting.value || !values.oldPassword || !values.newPassword) {
+    return;
+  }
+
+  submitting.value = true;
+  try {
+    await changePassword({
+      oldPassword: values.oldPassword,
+      newPassword: values.newPassword,
+    });
+    await passwordSettingRef.value?.reset();
+    message.success($t('common.success'));
+  } finally {
+    submitting.value = false;
+  }
 }
 </script>
 <template>
   <ProfilePasswordSetting
+    ref="passwordSettingRef"
     class="w-1/3"
     :form-schema="formSchema"
+    :submitting="submitting"
     @submit="handleSubmit"
   />
 </template>

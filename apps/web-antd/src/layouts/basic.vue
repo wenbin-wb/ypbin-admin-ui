@@ -1,7 +1,9 @@
 <script lang="ts" setup>
 import type { NotificationItem } from '@vben/layouts';
 
-import { computed, onMounted, ref, watch } from 'vue';
+import type { SystemMessageApi } from '#/api/system/message';
+
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
@@ -17,23 +19,17 @@ import { preferences, usePreferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 import { openWindow } from '@vben/utils';
 
-import { deleteMessage } from '#/api/system/message';
+import { storeToRefs } from 'pinia';
+
 import { getProfile } from '#/api/system/profile';
-import { useMessages } from '#/hooks/use-messages';
 import { $t } from '#/locales';
-import { useAuthStore } from '#/store';
+import { useAuthStore, useMessageStore } from '#/store';
 import LoginForm from '#/views/_core/authentication/login.vue';
 import MessagePreview from '#/views/system/_shared/message-preview.vue';
 
-const {
-  notifications,
-  recentMessages,
-  unreadCount,
-  refresh: refreshMessages,
-  markRead: markMessageRead,
-  markAllRead: markAllMessagesRead,
-  connectSse,
-} = useMessages();
+const messageStore = useMessageStore();
+const { notifications, recentMessages, unreadCount } =
+  storeToRefs(messageStore);
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -43,22 +39,34 @@ const { destroyWatermark, updateWatermark } = useWatermark();
 const { isDark } = usePreferences();
 const showDot = computed(() => unreadCount.value > 0);
 
-// 当前用户邮箱（/user/profile 获取，供头像下拉展示）
-const userEmail = ref('');
+// 当前用户邮箱来自共享用户信息，资料保存后会立即同步头像下拉
+const userEmail = computed(() => userStore.userInfo?.email ?? '');
 // 当前用户角色名（取 /user/info roles 首个）
 const userRoleName = computed(
   () => userStore.userInfo?.roles?.[0] ?? userStore.userInfo?.realName ?? '',
 );
 
-// 登录后拉取站内信、个人信息并建立 SSE 实时推送
-onMounted(async () => {
-  if (userStore.userInfo?.userId) {
-    await refreshMessages();
-    await connectSse();
-    const profile = await getProfile();
-    userEmail.value = profile.email ?? '';
+// 登录后并行拉取站内信、个人信息并建立 SSE 实时推送；任一失败不阻塞其余项
+onMounted(() => {
+  if (!userStore.userInfo?.userId) {
+    return;
   }
+
+  void messageStore.refresh().catch((error) => {
+    console.error('Failed to initialize messages:', error);
+  });
+  void messageStore.startSse();
+  void getProfile()
+    .then(async (profile) => {
+      const userInfo = await authStore.fetchUserInfo();
+      userStore.setUserInfo({ ...userInfo, email: profile.email ?? '' });
+    })
+    .catch((error) => {
+      console.error('Failed to load profile:', error);
+    });
 });
+
+onUnmounted(messageStore.closeSse);
 
 // 项目外链（占位 URL，ypbin-admin 仓库就绪后替换）
 const YPBIN_GITHUB_URL = 'https://github.com/wenbin-wb/ypbin-admin-ui';
@@ -106,24 +114,20 @@ const avatar = computed(() => {
 });
 
 async function handleLogout() {
+  messageStore.$reset();
   await authStore.logout(false);
 }
 
-function handleNoticeClear() {
-  markAllMessagesRead();
+function markRead(id: string) {
+  void messageStore.markRead(id);
 }
 
-function markRead(id: number | string) {
-  markMessageRead(id);
-}
-
-function remove(id: number | string) {
-  // 站内信为服务端数据：真删并刷新铃铛列表，不做掩盖问题的假删除
-  deleteMessage(String(id)).then(() => refreshMessages());
+function remove(id: string) {
+  void messageStore.remove(id);
 }
 
 function handleMakeAll() {
-  markAllMessagesRead();
+  void messageStore.markAllRead();
 }
 
 // 查看全部：跳转站内信中心
@@ -132,23 +136,26 @@ const viewAll = () => {
 };
 
 // 铃铛条目点击：标记已读并弹出详情（复用通用富文本预览组件）
+type MessagePreviewData = Pick<
+  SystemMessageApi.MessageItem,
+  'content' | 'createTime' | 'title'
+>;
+
 const previewVisible = ref(false);
-const previewData = ref<Record<string, any>>({});
+const previewData = ref<MessagePreviewData>();
 function handleClick(item: NotificationItem) {
-  if (item.id) {
-    markMessageRead(String(item.id));
-    // 从完整数据里取该条（id 统一转字符串比较，避免 number/string 不匹配），复用预览组件展示富文本正文
-    const full = recentMessages.value.find(
-      (m) => String(m.id) === String(item.id),
-    );
-    // 兜底：完整数据未命中时用列表项自身展示
-    previewData.value = full ?? {
-      title: item.title,
-      content: item.message,
-      createTime: item.date,
-    };
-    previewVisible.value = true;
+  if (item.id === undefined) {
+    return;
   }
+  const id = String(item.id);
+  markRead(id);
+  const full = recentMessages.value.find((message) => message.id === id);
+  previewData.value = full ?? {
+    content: item.message,
+    createTime: item.date,
+    title: item.title,
+  };
+  previewVisible.value = true;
 }
 
 watch(
@@ -156,8 +163,10 @@ watch(
     enable: preferences.app.watermark,
     content: preferences.app.watermarkContent,
     isDark: isDark.value,
+    realName: userStore.userInfo?.realName,
+    username: userStore.userInfo?.username,
   }),
-  async ({ enable, content, isDark: isDarkValue }) => {
+  async ({ enable, content, isDark: isDarkValue, realName, username }) => {
     if (enable) {
       const watermarkColor = isDarkValue
         ? 'rgba(255, 255, 255, 0.12)'
@@ -177,9 +186,7 @@ watch(
           ],
           type: 'linear',
         },
-        content:
-          content ||
-          `${userStore.userInfo?.username} - ${userStore.userInfo?.realName}`,
+        content: content || `${username} - ${realName}`,
       });
     } else {
       destroyWatermark();
@@ -213,9 +220,8 @@ watch(
       <Notification
         :dot="showDot"
         :notifications="notifications"
-        @clear="handleNoticeClear"
-        @read="(item) => item.id && markRead(item.id)"
-        @remove="(item) => item.id && remove(item.id)"
+        @read="(item) => item.id !== undefined && markRead(String(item.id))"
+        @remove="(item) => item.id !== undefined && remove(String(item.id))"
         @make-all="handleMakeAll"
         @on-click="handleClick"
         @view-all="viewAll"

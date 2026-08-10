@@ -17,7 +17,7 @@ import {
 } from '#/api/system/job';
 import { $t } from '#/locales';
 
-import { useColumns, useGridFormSchema } from './data';
+import { useColumns } from './data';
 import Form from './modules/form.vue';
 import Log from './modules/log.vue';
 
@@ -30,7 +30,6 @@ const [LogDrawer, logDrawerApi] = useVbenDrawer({
 });
 
 const [Grid, gridApi] = useVbenVxeGrid({
-  formOptions: { schema: useGridFormSchema(), submitOnChange: true },
   gridOptions: {
     columns: useColumns(),
     height: 'auto',
@@ -42,7 +41,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
       custom: true,
       export: false,
       refresh: true,
-      search: true,
       zoom: true,
     },
   } as VxeTableGridOptions<SystemJobApi.JobResp>,
@@ -53,10 +51,10 @@ function onRefresh() {
 }
 
 function onEdit(row: SystemJobApi.JobResp) {
-  formDrawerApi.setData({ isUpdate: true, row }).open();
+  formDrawerApi.setData(row).open();
 }
 function onCreate() {
-  formDrawerApi.setData({ isUpdate: false }).open();
+  formDrawerApi.setData(null).open();
 }
 function onDelete(row: SystemJobApi.JobResp) {
   deleteJob(row.id)
@@ -99,10 +97,22 @@ function onViewLog(row: SystemJobApi.JobResp) {
     <LogDrawer />
     <Grid :table-title="$t('system.job.title')">
       <template #toolbar-tools>
-        <Button type="primary" @click="onCreate">
+        <Button
+          v-access:code="['system:job:add']"
+          type="primary"
+          @click="onCreate"
+        >
           <Plus class="size-5" />
           {{ $t('ui.actionTitle.create', [$t('system.job.title')]) }}
         </Button>
+      </template>
+
+      <template #scheduleRule="{ row }">
+        {{
+          row.fixedRateSeconds != null
+            ? $t('system.job.fixedRateDisplay', [row.fixedRateSeconds])
+            : row.cron
+        }}
       </template>
 
       <template #action="{ row }">
@@ -111,11 +121,13 @@ function onViewLog(row: SystemJobApi.JobResp) {
             {
               text: $t('common.edit'),
               icon: 'lucide:edit',
+              auth: 'system:job:edit',
               onClick: () => onEdit(row),
             },
             {
               text: $t('system.jobLog.title'),
               icon: 'lucide:scroll-text',
+              auth: 'system:job:list',
               onClick: () => onViewLog(row),
             },
           ]"
@@ -123,6 +135,7 @@ function onViewLog(row: SystemJobApi.JobResp) {
             {
               text: $t('system.job.start'),
               icon: 'lucide:play',
+              auth: 'system:job:edit',
               popConfirm: {
                 title: $t('system.job.start'),
                 confirm: () => onStart(row),
@@ -131,6 +144,7 @@ function onViewLog(row: SystemJobApi.JobResp) {
             {
               text: $t('system.job.stop'),
               icon: 'lucide:square',
+              auth: 'system:job:edit',
               popConfirm: {
                 title: $t('system.job.stop'),
                 confirm: () => onStop(row),
@@ -139,6 +153,7 @@ function onViewLog(row: SystemJobApi.JobResp) {
             {
               text: $t('system.job.run'),
               icon: 'lucide:rotate-cw',
+              auth: 'system:job:edit',
               popConfirm: {
                 title: $t('system.job.runOnce'),
                 confirm: () => onRun(row),
@@ -147,6 +162,7 @@ function onViewLog(row: SystemJobApi.JobResp) {
             {
               text: $t('common.delete'),
               icon: 'lucide:trash-2',
+              auth: 'system:job:delete',
               danger: true,
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.name || '']),

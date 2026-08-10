@@ -16,13 +16,14 @@ import { preferences } from '@vben/preferences';
 import { useUserStore } from '@vben/stores';
 import { openWindow } from '@vben/utils';
 
+import { Button, Empty, Result, Spin } from 'ant-design-vue';
+
 import { getLatestLogs } from '#/api';
 import { $t } from '#/locales';
 
 const userStore = useUserStore();
 const router = useRouter();
 
-// 快捷导航指向真实系统菜单
 const quickNavItems: WorkbenchQuickNavItem[] = [
   {
     color: '#1fdaca',
@@ -62,8 +63,10 @@ const quickNavItems: WorkbenchQuickNavItem[] = [
   },
 ];
 
-// 最新动态来自真实操作日志
+const trendError = ref(false);
 const trendItems = ref<WorkbenchTrendItem[]>([]);
+const trendLoading = ref(true);
+const trendsLoaded = ref(false);
 
 const avatars = [
   'svg:avatar-1',
@@ -73,16 +76,29 @@ const avatars = [
 ];
 
 async function loadTrends() {
-  const logs = await getLatestLogs(9);
-  trendItems.value = logs.map((log, index) => ({
-    avatar: avatars[index % avatars.length] as string,
-    content: `${log.module ? `[${log.module}] ` : ''}${log.description ?? ''}`,
-    date: log.operateTime,
-    title: log.operateUserIdName || log.operateUserId,
-  }));
+  trendError.value = false;
+  trendLoading.value = true;
+  try {
+    const logs = await getLatestLogs(9);
+    trendItems.value = logs.map((log, index) => ({
+      avatar: avatars[index % avatars.length] as string,
+      content: `${log.module ? `[${log.module}] ` : ''}${log.description ?? ''}`,
+      date: log.operateTime,
+      title: log.operateUserIdName || log.operateUserId,
+    }));
+    trendsLoaded.value = true;
+  } catch (error) {
+    console.error('Failed to load dashboard latest logs:', error);
+    trendError.value = true;
+    trendsLoaded.value = false;
+  } finally {
+    trendLoading.value = false;
+  }
 }
 
-onMounted(loadTrends);
+onMounted(() => {
+  void loadTrends();
+});
 
 const welcomeTitle = computed(
   () =>
@@ -107,17 +123,33 @@ function navTo(nav: WorkbenchQuickNavItem) {
     <WorkbenchHeader
       :avatar="userStore.userInfo?.avatar || preferences.app.defaultAvatar"
     >
-      <template #title>
-        {{ welcomeTitle }}
-      </template>
+      <template #title>{{ welcomeTitle }}</template>
     </WorkbenchHeader>
 
     <div class="mt-5 flex flex-col lg:flex-row">
       <div class="mr-4 w-full lg:w-3/5">
-        <WorkbenchTrends
-          :items="trendItems"
-          :title="$t('page.dashboard.latestActivity')"
-        />
+        <Spin :spinning="trendLoading">
+          <WorkbenchTrends
+            v-if="trendsLoaded && trendItems.length > 0"
+            :items="trendItems"
+            :title="$t('page.dashboard.latestActivity')"
+          />
+          <Result
+            v-else-if="trendError"
+            status="error"
+            :title="$t('page.dashboard.loadFailed')"
+          >
+            <template #extra>
+              <Button type="primary" @click="loadTrends">
+                {{ $t('page.dashboard.retry') }}
+              </Button>
+            </template>
+          </Result>
+          <Empty
+            v-else-if="trendsLoaded"
+            :description="$t('page.dashboard.noData')"
+          />
+        </Spin>
       </div>
       <div class="w-full lg:w-2/5">
         <WorkbenchQuickNav

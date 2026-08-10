@@ -11,12 +11,6 @@ export function useColumns(): VxeTableGridColumns {
       title: $t('system.client.clientType'),
       minWidth: 120,
     },
-    {
-      field: 'clientSecret',
-      title: $t('system.client.clientSecret'),
-      minWidth: 120,
-      formatter: () => '******',
-    },
     { field: 'timeout', title: $t('system.client.timeout'), width: 100 },
     { field: 'remark', title: $t('system.client.remark'), minWidth: 120 },
     { field: 'createTime', title: $t('system.client.createTime'), width: 160 },

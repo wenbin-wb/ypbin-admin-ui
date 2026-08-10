@@ -4,6 +4,8 @@ import { ref } from 'vue';
 import { Profile } from '@vben/common-ui';
 import { useUserStore } from '@vben/stores';
 
+import { $t } from '#/locales';
+
 import ProfileBase from './base-setting.vue';
 import ProfileNotificationSetting from './notification-setting.vue';
 import ProfilePasswordSetting from './password-setting.vue';
@@ -15,19 +17,19 @@ const tabsValue = ref<string>('basic');
 
 const tabs = ref([
   {
-    label: '基本设置',
+    label: $t('profile.tabs.basic'),
     value: 'basic',
   },
   {
-    label: '安全设置',
+    label: $t('profile.tabs.security'),
     value: 'security',
   },
   {
-    label: '修改密码',
+    label: $t('profile.tabs.password'),
     value: 'password',
   },
   {
-    label: '新消息提醒',
+    label: $t('profile.tabs.notification'),
     value: 'notice',
   },
 ]);
@@ -35,9 +37,9 @@ const tabs = ref([
 <template>
   <Profile
     v-model:model-value="tabsValue"
-    title="个人中心"
     :user-info="userStore.userInfo"
     :tabs="tabs"
+    :title="$t('profile.title')"
   >
     <template #content>
       <ProfileBase v-if="tabsValue === 'basic'" />

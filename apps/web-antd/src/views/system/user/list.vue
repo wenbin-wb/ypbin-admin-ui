@@ -8,13 +8,14 @@ import type { SystemDeptApi, SystemUserApi } from '#/api';
 
 import { onMounted, ref, watch } from 'vue';
 
+import { useAccess } from '@vben/access';
 import { Page, Tree, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
 import { Button, Card, InputSearch, message, Modal } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
-import { deleteUser, getDeptList, getUserList, updateUser } from '#/api';
+import { deleteUser, getDeptList, getUserList, updateUserStatus } from '#/api';
 import { $t } from '#/locales';
 import { createDateRangeCodec } from '#/utils/date-range-codec';
 
@@ -39,6 +40,10 @@ type UserSearchSubmitValues = ReturnType<typeof userSearchCodec.encode>;
 const deptList = ref<SystemDeptApi.SystemDept[]>([]);
 const inputSearchValue = ref('');
 const selectedDeptId = ref<string>('');
+
+const { hasAccessByCodes } = useAccess();
+const canEdit = hasAccessByCodes(['system:user:edit']);
+const canAssignRoles = canEdit && hasAccessByCodes(['system:role:list']);
 
 const [FormDrawer, formDrawerApi] = useVbenDrawer({
   connectedComponent: Form,
@@ -67,7 +72,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     submitOnChange: true,
   },
   gridOptions: {
-    columns: useColumns(onStatusChange),
+    columns: useColumns(canEdit ? onStatusChange : undefined),
     height: 'auto',
     keepSource: true,
     proxyConfig: {
@@ -123,9 +128,9 @@ function confirm(content: string, title: string) {
  * @returns 返回false则中止改变，返回其他值（undefined、true）则允许改变
  */
 async function onStatusChange(
-  newStatus: number,
+  newStatus: 0 | 1,
   row: SystemUserApi.SystemUser,
-) {
+): Promise<boolean> {
   const status: Recordable<string> = {
     0: $t('common.disabled'),
     1: $t('common.enabled'),
@@ -138,7 +143,7 @@ async function onStatusChange(
       ]),
       $t('system.user.statusChangeTitle'),
     );
-    await updateUser(row.id, { status: newStatus });
+    await updateUserStatus(row.id, { status: newStatus });
     return true;
   } catch {
     return false;
@@ -251,7 +256,11 @@ watch(inputSearchValue, (value) => {
       <div class="w-5/6 ml-4">
         <Grid :table-title="$t('system.user.list')">
           <template #toolbar-tools>
-            <Button type="primary" @click="onCreate">
+            <Button
+              v-access:code="['system:user:add']"
+              type="primary"
+              @click="onCreate"
+            >
               <Plus class="size-5" />
               {{ $t('ui.actionTitle.create', [$t('system.user.name')]) }}
             </Button>
@@ -262,33 +271,38 @@ watch(inputSearchValue, (value) => {
                 {
                   text: $t('common.edit'),
                   icon: 'lucide:edit',
+                  auth: 'system:user:edit',
                   onClick: () => onEdit(row),
                 },
                 {
                   text: $t('common.delete'),
                   icon: 'lucide:trash-2',
+                  auth: 'system:user:delete',
                   danger: true,
                   popConfirm: {
                     title: $t('ui.actionMessage.deleteConfirm', [row.realName]),
                     confirm: () => onDelete(row),
                   },
-                  auth: ['AC_100100'],
                 },
               ]"
               :dropdown-actions="[
                 {
                   text: $t('common.detail'),
                   icon: 'lucide:eye',
+                  auth: 'system:user:list',
                   onClick: () => onDetail(row),
                 },
                 {
                   text: $t('system.user.assignRoles'),
                   icon: 'lucide:users',
+                  auth: 'system:user:edit',
+                  ifShow: canAssignRoles,
                   onClick: () => onAssignRoles(row),
                 },
                 {
                   text: $t('system.user.resetPassword'),
                   icon: 'lucide:key-round',
+                  auth: 'system:user:edit',
                   onClick: () => onResetPassword(row),
                 },
               ]"

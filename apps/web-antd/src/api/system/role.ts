@@ -1,14 +1,31 @@
-import type { Recordable } from '@vben/types';
+import type { SystemCommonApi } from './common';
 
 import { requestClient } from '#/api/request';
 
 export namespace SystemRoleApi {
+  export interface RoleQuery extends SystemCommonApi.PageQuery {
+    code?: string;
+    name?: string;
+    status?: 0 | 1;
+  }
+
+  export interface RoleSaveReq {
+    code: string;
+    dataScope?: number;
+    deptIds?: string[];
+    name: string;
+    permissions?: string[];
+    remark?: string;
+    sort?: number;
+    status: 0 | 1;
+  }
+
   export interface SystemRole {
-    [key: string]: any;
     id: string;
     name: string;
     code: string;
     dataScope?: number;
+    deptIds?: string[];
     sort?: number;
     permissions?: string[];
     remark?: string;
@@ -22,18 +39,17 @@ export namespace SystemRoleApi {
 /**
  * 获取角色列表数据
  */
-async function getRoleList(params: Recordable<any>) {
-  return requestClient.get<Array<SystemRoleApi.SystemRole>>(
-    '/system/role/list',
-    { params },
-  );
+async function getRoleList(params: SystemRoleApi.RoleQuery) {
+  return requestClient.get<
+    SystemCommonApi.PageResult<SystemRoleApi.SystemRole>
+  >('/system/role/list', { params });
 }
 
 /**
  * 创建角色
  * @param data 角色数据
  */
-async function createRole(data: Omit<SystemRoleApi.SystemRole, 'id'>) {
+async function createRole(data: SystemRoleApi.RoleSaveReq) {
   return requestClient.post('/system/role', data);
 }
 
@@ -43,11 +59,17 @@ async function createRole(data: Omit<SystemRoleApi.SystemRole, 'id'>) {
  * @param id 角色 ID
  * @param data 角色数据
  */
-async function updateRole(
-  id: string,
-  data: Omit<SystemRoleApi.SystemRole, 'id'>,
-) {
+async function updateRole(id: string, data: SystemRoleApi.RoleSaveReq) {
   return requestClient.put(`/system/role/${id}`, data);
+}
+
+/**
+ * 更新角色状态
+ * @param id 角色 ID
+ * @param data 状态数据
+ */
+async function updateRoleStatus(id: string, data: SystemCommonApi.StatusReq) {
+  return requestClient.put(`/system/role/${id}/status`, data);
 }
 
 /**
@@ -62,7 +84,14 @@ async function deleteRole(id: string) {
  * 获取所有角色（下拉用）
  */
 async function getRoleAll() {
-  return requestClient.get<Array<SystemRoleApi.SystemRole>>('/system/role/all');
+  return requestClient.get<SystemRoleApi.SystemRole[]>('/system/role/all');
 }
 
-export { createRole, deleteRole, getRoleAll, getRoleList, updateRole };
+export {
+  createRole,
+  deleteRole,
+  getRoleAll,
+  getRoleList,
+  updateRole,
+  updateRoleStatus,
+};

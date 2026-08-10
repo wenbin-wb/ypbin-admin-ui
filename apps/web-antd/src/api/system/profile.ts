@@ -1,3 +1,5 @@
+import type { SystemCommonApi } from './common';
+
 import { requestClient } from '#/api/request';
 
 export namespace ProfileApi {
@@ -43,6 +45,19 @@ export function getProfile() {
 /** 更新个人信息 */
 export function updateProfile(data: ProfileApi.ProfileUpdateReq) {
   return requestClient.put('/user/profile', data);
+}
+
+/** 上传当前用户头像 */
+export function uploadProfileAvatar(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return requestClient.post<SystemCommonApi.FileInfo>(
+    '/user/profile/avatar',
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    },
+  );
 }
 
 /** 修改密码 */

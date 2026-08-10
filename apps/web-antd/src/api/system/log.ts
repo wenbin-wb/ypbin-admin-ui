@@ -1,6 +1,17 @@
+import type { SystemCommonApi } from './common';
+
 import { requestClient } from '#/api/request';
 
 export namespace SystemLogApi {
+  export interface LogQuery extends SystemCommonApi.PageQuery {
+    description?: string;
+    endTime?: string;
+    module?: string;
+    operateUserId?: string;
+    startTime?: string;
+    success?: number;
+  }
+
   export interface LogResp {
     id: string;
     description?: string;
@@ -20,8 +31,9 @@ export namespace SystemLogApi {
   }
 }
 
-export function getLogList(params?: any) {
-  return requestClient.get<SystemLogApi.LogResp[]>('/system/log/list', {
-    params,
-  });
+export function getLogList(params: SystemLogApi.LogQuery) {
+  return requestClient.get<SystemCommonApi.PageResult<SystemLogApi.LogResp>>(
+    '/system/log/list',
+    { params },
+  );
 }

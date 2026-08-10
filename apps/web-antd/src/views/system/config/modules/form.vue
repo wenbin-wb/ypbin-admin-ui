@@ -1,6 +1,8 @@
 ﻿<script lang="ts" setup>
 import type { SystemConfigApi } from '#/api/system/config';
 
+import { nextTick } from 'vue';
+
 import { useVbenDrawer } from '@vben/common-ui';
 
 import { message } from 'ant-design-vue';
@@ -61,8 +63,21 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemConfigApi.ConfigResp>({
       if (!valid) {
         return;
       }
-      const values = await formApi.getValues();
-      await (isUpdate ? updateConfig(updateId, values) : createConfig(values));
+      const values = await formApi.getValues<{
+        configGroup: string;
+        configKey: string;
+        configValue: string;
+        name?: string;
+        remark?: string;
+      }>();
+      const data: SystemConfigApi.ConfigSaveReq = {
+        configGroup: values.configGroup,
+        configKey: values.configKey,
+        configValue: values.configValue,
+        name: values.name,
+        remark: values.remark,
+      };
+      await (isUpdate ? updateConfig(updateId, data) : createConfig(data));
       message.success($t('common.success'));
       emit('success');
       drawerApi.close();
@@ -70,21 +85,21 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemConfigApi.ConfigResp>({
       drawerApi.unlock();
     }
   },
-  onOpenChange(isOpen: boolean) {
+  async onOpenChange(isOpen: boolean) {
     if (isOpen) {
       const data = drawerApi.getData();
       isUpdate = !!data?.id;
       updateId = data?.id ?? '';
-      if (data) {
-        formApi.setValues(data);
-      } else {
-        formApi.reset();
-      }
+      formApi.reset();
       drawerApi.setState({
         title: isUpdate
           ? $t('ui.actionTitle.edit', [$t('system.config.title')])
           : $t('ui.actionTitle.create', [$t('system.config.title')]),
       });
+      await nextTick();
+      if (data) {
+        formApi.setValues(data);
+      }
     }
   },
 });

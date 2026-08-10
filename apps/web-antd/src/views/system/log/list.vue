@@ -59,6 +59,7 @@ function onDetail(row: SystemLogApi.LogResp) {
             {
               text: $t('common.detail'),
               icon: 'lucide:eye',
+              auth: 'system:log:list',
               onClick: () => onDetail(row),
             },
           ]"

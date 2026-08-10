@@ -1,29 +1,45 @@
+import type { SystemCommonApi } from './common';
+
 import { requestClient } from '#/api/request';
 
 export namespace SystemJobApi {
+  export interface JobSaveReq {
+    args?: string;
+    concurrentGuard: number;
+    cron?: string;
+    executor: string;
+    fixedRateSeconds?: string;
+    name: string;
+    timeoutSeconds?: string;
+  }
+
   export interface JobResp {
     id: string;
     name: string;
     executor: string;
-    cron: string;
-    fixedRateSeconds?: number;
+    cron?: null | string;
+    fixedRateSeconds?: null | string;
     args?: string;
-    timeoutSeconds: number;
+    timeoutSeconds?: null | string;
     concurrentGuard: number;
     status: number;
     createTime: string;
   }
 
-  export type JobSaveData = Pick<
-    JobResp,
-    | 'args'
-    | 'concurrentGuard'
-    | 'cron'
-    | 'executor'
-    | 'fixedRateSeconds'
-    | 'name'
-    | 'timeoutSeconds'
-  >;
+  export type JobSaveData = JobSaveReq;
+
+  export type JobLogQuery = SystemCommonApi.PageQuery;
+
+  export interface JobLogResp {
+    durationMs?: null | string;
+    errorMsg?: string;
+    id: string;
+    jobId: string;
+    jobName: string;
+    manual: number;
+    outcome: number;
+    triggerTime: string;
+  }
 
   export interface CronPreviewResp {
     valid: boolean;
@@ -33,23 +49,29 @@ export namespace SystemJobApi {
   }
 }
 
-export function getJobList(params?: any) {
-  return requestClient.get('/system/job/list', { params });
+export function getJobList() {
+  return requestClient.get<SystemJobApi.JobResp[]>('/system/job/list');
 }
 
-export function getJobLogList(jobId: string, params?: any) {
-  return requestClient.get(`/system/job/log/${jobId}`, { params });
+export function getJobLogList(jobId: string, params: SystemJobApi.JobLogQuery) {
+  return requestClient.get<SystemCommonApi.PageResult<SystemJobApi.JobLogResp>>(
+    `/system/job/log/${jobId}`,
+    { params },
+  );
 }
 
-export function getAllJobLogList(params?: any) {
-  return requestClient.get('/system/job/log', { params });
+export function getAllJobLogList(params: SystemJobApi.JobLogQuery) {
+  return requestClient.get<SystemCommonApi.PageResult<SystemJobApi.JobLogResp>>(
+    '/system/job/log',
+    { params },
+  );
 }
 
-export function createJob(data: SystemJobApi.JobSaveData) {
+export function createJob(data: SystemJobApi.JobSaveReq) {
   return requestClient.post('/system/job', data);
 }
 
-export function updateJob(id: string, data: SystemJobApi.JobSaveData) {
+export function updateJob(id: string, data: SystemJobApi.JobSaveReq) {
   return requestClient.put(`/system/job/${id}`, data);
 }
 

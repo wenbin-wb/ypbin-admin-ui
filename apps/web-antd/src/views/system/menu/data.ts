@@ -25,7 +25,7 @@ export function useColumns(): VxeTableGridColumns<SystemMenuApi.SystemMenu> {
   return [
     {
       align: 'left',
-      field: 'meta.title',
+      field: 'title',
       fixed: 'left',
       slots: { default: 'title' },
       title: $t('system.menu.menuTitle'),
@@ -61,10 +61,10 @@ export function useColumns(): VxeTableGridColumns<SystemMenuApi.SystemMenu> {
             return row.component ?? '';
           }
           case 'embedded': {
-            return row.meta?.iframeSrc ?? '';
+            return row.iframeSrc ?? '';
           }
           case 'link': {
-            return row.meta?.link ?? '';
+            return row.link ?? '';
           }
         }
         return '';

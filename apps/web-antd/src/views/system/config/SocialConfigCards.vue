@@ -116,7 +116,11 @@ onMounted(load);
               </Tag>
             </div>
 
-            <Button block @click="onEdit(config.source)">
+            <Button
+              v-access:code="['system:config:edit']"
+              block
+              @click="onEdit(config.source)"
+            >
               {{ $t('system.config.social.configure') }}
             </Button>
           </div>

@@ -87,7 +87,11 @@ function onDelete(row: SystemMenuApi.SystemMenu) {
     <FormDrawer @success="onRefresh" />
     <Grid>
       <template #toolbar-tools>
-        <Button type="primary" @click="onCreate">
+        <Button
+          v-access:code="['system:menu:add']"
+          type="primary"
+          @click="onCreate"
+        >
           <Plus class="size-5" />
           {{ $t('ui.actionTitle.create', [$t('system.menu.name')]) }}
         </Button>
@@ -101,12 +105,12 @@ function onDelete(row: SystemMenuApi.SystemMenu) {
               class="size-full"
             />
             <IconifyIcon
-              v-else-if="row.meta?.icon"
-              :icon="row.meta?.icon || 'carbon:circle-dash'"
+              v-else-if="row.icon"
+              :icon="row.icon"
               class="size-full"
             />
           </div>
-          <span class="flex-auto">{{ $t(row.meta?.title) }}</span>
+          <span class="flex-auto">{{ $t(row.title) }}</span>
           <div class="items-center justify-end"></div>
         </div>
       </template>
@@ -117,20 +121,23 @@ function onDelete(row: SystemMenuApi.SystemMenu) {
             {
               text: $t('common.add'),
               icon: 'lucide:plus',
+              auth: 'system:menu:add',
               onClick: () => onAppend(row),
             },
             {
               text: $t('common.edit'),
               icon: 'lucide:edit',
+              auth: 'system:menu:edit',
               onClick: () => onEdit(row),
             },
             {
               text: $t('common.delete'),
               icon: 'lucide:trash-2',
+              auth: 'system:menu:delete',
               danger: true,
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [
-                  row.meta?.title || row.name || '',
+                  row.title || row.name || '',
                 ]),
                 confirm: () => onDelete(row),
               },

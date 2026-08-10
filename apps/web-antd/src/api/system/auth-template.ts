@@ -1,5 +1,3 @@
-import type { Recordable } from '@vben/types';
-
 import { requestClient } from '#/api/request';
 
 export namespace SystemAuthTemplateApi {
@@ -25,24 +23,28 @@ export namespace SystemAuthTemplateApi {
 /**
  * 获取权限模板列表
  */
-async function getAuthTemplateList(params?: Recordable<any>) {
+async function getAuthTemplateList() {
   return requestClient.get<SystemAuthTemplateApi.AuthTemplateResp[]>(
     '/system/auth-template/list',
-    { params },
   );
 }
 
 /**
  * 新增权限模板
  */
-async function createAuthTemplate(data: Recordable<any>) {
+async function createAuthTemplate(
+  data: SystemAuthTemplateApi.AuthTemplateSaveReq,
+) {
   return requestClient.post('/system/auth-template', data);
 }
 
 /**
  * 编辑权限模板
  */
-async function updateAuthTemplate(id: string, data: Recordable<any>) {
+async function updateAuthTemplate(
+  id: string,
+  data: SystemAuthTemplateApi.AuthTemplateSaveReq,
+) {
   return requestClient.put(`/system/auth-template/${id}`, data);
 }
 

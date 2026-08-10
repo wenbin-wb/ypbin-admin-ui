@@ -50,6 +50,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               text: $t('common.delete'),
               icon: 'lucide:trash-2',
               danger: true,
+              auth: 'system:file:delete',
               popConfirm: {
                 title: $t('common.confirmDelete'),
                 confirm: async () => {

@@ -1,6 +1,21 @@
 import { requestClient } from '#/api/request';
 
 export namespace SystemDictItemApi {
+  export interface DictItemQuery {
+    dictId: string;
+    label?: string;
+  }
+
+  export interface DictItemSaveReq {
+    color?: string;
+    dictId: string;
+    label: string;
+    remark?: string;
+    sort: number;
+    status: 0 | 1;
+    value: string;
+  }
+
   export interface DictItemResp {
     id: string;
     dictId: string;
@@ -14,20 +29,21 @@ export namespace SystemDictItemApi {
   }
 }
 
-export function getDictItemList(params?: any) {
+export function getDictItemList(params: SystemDictItemApi.DictItemQuery) {
   return requestClient.get<SystemDictItemApi.DictItemResp[]>(
     '/system/dict-item/list',
-    {
-      params,
-    },
+    { params },
   );
 }
 
-export function createDictItem(data: any) {
+export function createDictItem(data: SystemDictItemApi.DictItemSaveReq) {
   return requestClient.post('/system/dict-item', data);
 }
 
-export function updateDictItem(id: string, data: any) {
+export function updateDictItem(
+  id: string,
+  data: SystemDictItemApi.DictItemSaveReq,
+) {
   return requestClient.put(`/system/dict-item/${id}`, data);
 }
 

@@ -98,7 +98,11 @@ function refreshGrid() {
     <FormDrawer @success="refreshGrid" />
     <Grid :table-title="$t('system.dept.title')">
       <template #toolbar-tools>
-        <Button type="primary" @click="onCreate">
+        <Button
+          v-access:code="['system:dept:add']"
+          type="primary"
+          @click="onCreate"
+        >
           <Plus class="size-5" />
           {{ $t('ui.actionTitle.create', [$t('system.dept.name')]) }}
         </Button>
@@ -110,16 +114,19 @@ function refreshGrid() {
             {
               text: $t('common.edit'),
               icon: 'lucide:edit',
+              auth: 'system:dept:edit',
               onClick: () => onEdit(row),
             },
             {
               text: $t('common.create'),
               icon: 'lucide:plus',
+              auth: 'system:dept:add',
               onClick: () => onAppend(row),
             },
             {
               text: $t('common.delete'),
               icon: 'lucide:trash-2',
+              auth: 'system:dept:delete',
               danger: true,
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.name]),

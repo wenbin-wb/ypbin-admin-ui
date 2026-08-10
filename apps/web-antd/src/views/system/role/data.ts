@@ -2,27 +2,28 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridColumns } from '#/adapter/vxe-table';
 import type { SystemRoleApi } from '#/api';
 
+import { getDeptList } from '#/api/system/dept';
 import { $t } from '#/locales';
 
 export function getDataScopeOptions() {
   return [
     { label: $t('system.role.dataScopeList.all'), value: 1, color: 'success' },
     {
-      label: $t('system.role.dataScopeList.custom'),
+      label: $t('system.role.dataScopeList.deptAndChild'),
       value: 2,
-      color: 'warning',
+      color: 'default',
     },
     {
       label: $t('system.role.dataScopeList.dept'),
       value: 3,
       color: 'processing',
     },
+    { label: $t('system.role.dataScopeList.self'), value: 4, color: 'error' },
     {
-      label: $t('system.role.dataScopeList.deptAndChild'),
-      value: 4,
-      color: 'default',
+      label: $t('system.role.dataScopeList.custom'),
+      value: 5,
+      color: 'warning',
     },
-    { label: $t('system.role.dataScopeList.self'), value: 5, color: 'error' },
   ];
 }
 
@@ -48,6 +49,27 @@ export function useFormSchema(): VbenFormSchema[] {
         options: getDataScopeOptions(),
       },
       defaultValue: 1,
+    },
+    {
+      component: 'ApiTreeSelect',
+      componentProps: {
+        api: getDeptList,
+        childrenField: 'children',
+        class: 'w-full',
+        labelField: 'name',
+        multiple: true,
+        treeCheckable: true,
+        valueField: 'id',
+      },
+      dependencies: {
+        resolve: ({ values }) => ({
+          required: values.dataScope === 5,
+          show: values.dataScope === 5,
+        }),
+        triggerFields: ['dataScope'],
+      },
+      fieldName: 'deptIds',
+      label: $t('system.role.deptIds'),
     },
     {
       component: 'InputNumber',
@@ -122,7 +144,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 }
 
 export function useColumns<T = SystemRoleApi.SystemRole>(
-  onStatusChange?: (newStatus: any, row: T) => PromiseLike<boolean | undefined>,
+  onStatusChange?: (newStatus: 0 | 1, row: T) => Promise<boolean>,
 ): VxeTableGridColumns {
   return [
     {

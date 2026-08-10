@@ -108,7 +108,12 @@ watch(() => props.configGroup, load, { immediate: true });
       <Form />
     </Spin>
     <div class="pt-4">
-      <Button type="primary" :loading="saving" @click="onSave">
+      <Button
+        v-access:code="['system:config:edit']"
+        type="primary"
+        :loading="saving"
+        @click="onSave"
+      >
         {{ $t('system.config.save') }}
       </Button>
     </div>

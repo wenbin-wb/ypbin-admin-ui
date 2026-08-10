@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { SystemJobApi } from '#/api/system/job';
 
 import { nextTick, ref } from 'vue';
@@ -14,19 +14,38 @@ import { $t } from '#/locales';
 import CronInput from '../../_shared/cron-input.vue';
 import { useFormSchema } from '../data';
 
+type JobFormData = null | SystemJobApi.JobResp;
+type ScheduleMode = 'cron' | 'fixedRate';
+
+interface JobFormValues extends Record<string, unknown> {
+  args?: string;
+  concurrentGuard: number;
+  cron?: string;
+  executor: string;
+  fixedRateSeconds?: number;
+  name: string;
+  scheduleMode: ScheduleMode;
+  timeoutSeconds: number;
+}
+
 const emit = defineEmits(['reload']);
-const isUpdate = ref(false);
 const rowId = ref('');
 const cronInputRef = ref<InstanceType<typeof CronInput>>();
 
 const [Form, formApi] = useVbenForm({
+  handleValuesChange(values, fieldsChanged) {
+    if (!fieldsChanged.includes('scheduleMode')) {
+      return;
+    }
+    if (values.scheduleMode === 'cron') {
+      formApi.setFieldValue('fixedRateSeconds', undefined);
+    } else {
+      formApi.setFieldValue('cron', undefined);
+    }
+  },
   schema: useFormSchema(),
   showDefaultActions: false,
 });
-
-type JobFormData =
-  | { isUpdate: false }
-  | { isUpdate: true; row: SystemJobApi.JobResp };
 
 const [Drawer, drawerApi] = useVbenDrawer<JobFormData>({
   onCancel() {
@@ -36,13 +55,39 @@ const [Drawer, drawerApi] = useVbenDrawer<JobFormData>({
     try {
       drawerApi.setState({ confirmLoading: true });
       const { valid } = await formApi.validate();
-      if (!valid || !(await cronInputRef.value?.validate())) {
+      if (!valid) {
         return;
       }
-      const values = (await formApi.getValues()) as SystemJobApi.JobSaveData;
-      await (isUpdate.value
-        ? updateJob(rowId.value, values)
-        : createJob(values));
+      const values = (await formApi.getValues()) as JobFormValues;
+      const hasCron = Boolean(values.cron?.trim());
+      const hasFixedRate = (values.fixedRateSeconds ?? null) !== null;
+      if (hasCron === hasFixedRate) {
+        message.error($t('system.job.scheduleRuleXor'));
+        return;
+      }
+      if (values.scheduleMode === 'cron') {
+        const cronValid = await cronInputRef.value?.validate();
+        if (!cronValid) {
+          return;
+        }
+      }
+      const data: SystemJobApi.JobSaveReq = {
+        args: values.args,
+        concurrentGuard: values.concurrentGuard,
+        cron: values.scheduleMode === 'cron' ? values.cron?.trim() : undefined,
+        executor: values.executor,
+        fixedRateSeconds:
+          values.scheduleMode === 'fixedRate' &&
+          (values.fixedRateSeconds ?? null) !== null
+            ? String(values.fixedRateSeconds)
+            : undefined,
+        name: values.name,
+        timeoutSeconds:
+          (values.timeoutSeconds ?? null) === null
+            ? undefined
+            : String(values.timeoutSeconds),
+      };
+      await (rowId.value ? updateJob(rowId.value, data) : createJob(data));
       message.success($t('common.success'));
       drawerApi.close();
       emit('reload');
@@ -51,24 +96,41 @@ const [Drawer, drawerApi] = useVbenDrawer<JobFormData>({
     }
   },
   async onOpenChange(isOpen: boolean) {
-    if (isOpen) {
-      const data = drawerApi.getData();
-      isUpdate.value = !!data?.isUpdate;
-      drawerApi.setState({
-        title: isUpdate.value
-          ? $t('ui.actionTitle.edit', [$t('system.job.title')])
-          : $t('ui.actionTitle.create', [$t('system.job.title')]),
-      });
-      // 等表单挂载就绪再回填/重置，避免重开时 setValues 早于表单初始化
-      await nextTick();
-      if (data?.isUpdate) {
-        rowId.value = data.row.id;
-        formApi.setValues(data.row);
-      } else {
-        rowId.value = '';
-        formApi.reset();
-      }
+    if (!isOpen) {
+      return;
     }
+    const data = drawerApi.getData();
+    rowId.value = data?.id ?? '';
+    drawerApi.setState({
+      title: rowId.value
+        ? $t('ui.actionTitle.edit', [$t('system.job.title')])
+        : $t('ui.actionTitle.create', [$t('system.job.title')]),
+    });
+    formApi.reset();
+    await nextTick();
+    const scheduleMode: ScheduleMode =
+      (data?.fixedRateSeconds ?? null) === null ? 'cron' : 'fixedRate';
+    await formApi.setValues(
+      data
+        ? {
+            ...data,
+            fixedRateSeconds:
+              (data.fixedRateSeconds ?? null) === null
+                ? undefined
+                : Number(data.fixedRateSeconds),
+            scheduleMode,
+            timeoutSeconds:
+              (data.timeoutSeconds ?? null) === null
+                ? undefined
+                : Number(data.timeoutSeconds),
+          }
+        : {
+            concurrentGuard: 1,
+            cron: '0 0 0 * * ?',
+            scheduleMode,
+            timeoutSeconds: 0,
+          },
+    );
   },
 });
 

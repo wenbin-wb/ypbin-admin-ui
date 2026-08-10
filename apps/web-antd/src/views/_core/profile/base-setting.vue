@@ -4,14 +4,22 @@ import type { VbenFormSchema } from '#/adapter/form';
 import { computed, onMounted, ref } from 'vue';
 
 import { ProfileBaseSetting } from '@vben/common-ui';
+import { useUserStore } from '@vben/stores';
 
 import { message } from 'ant-design-vue';
 
-import { getProfile, updateProfile } from '#/api/system/profile';
+import {
+  getProfile,
+  updateProfile,
+  uploadProfileAvatar,
+} from '#/api/system/profile';
 import { $t } from '#/locales';
+import { useAuthStore } from '#/store';
 
 import ImageUpload from '../../system/_shared/image-upload.vue';
 
+const authStore = useAuthStore();
+const userStore = useUserStore();
 const profileBaseSettingRef = ref();
 const avatar = ref<string>('');
 
@@ -66,6 +74,8 @@ onMounted(async () => {
 
 async function handleSubmit(values: Record<string, any>) {
   await updateProfile({ ...values, avatar: avatar.value });
+  const userInfo = await authStore.fetchUserInfo();
+  userStore.setUserInfo({ ...userInfo, email: values.email ?? '' });
   message.success($t('common.success'));
 }
 </script>
@@ -74,6 +84,7 @@ async function handleSubmit(values: Record<string, any>) {
     <div class="mb-4 flex flex-col items-center gap-2">
       <ImageUpload
         v-model="avatar"
+        :upload="uploadProfileAvatar"
         module="avatar"
         aspect-ratio="1:1"
         shape="circle"

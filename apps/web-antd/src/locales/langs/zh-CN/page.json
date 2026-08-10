@@ -16,6 +16,9 @@
     "latestActivity": "最新动态",
     "quickNav": "快捷导航",
     "logTrend": "操作日志趋势",
-    "total": "总数"
+    "total": "总数",
+    "loadFailed": "数据加载失败",
+    "noData": "暂无数据",
+    "retry": "重试"
   }
 }

@@ -1,6 +1,22 @@
 import { requestClient } from '#/api/request';
 
 export namespace SystemNoticeApi {
+  export interface NoticeSaveReq {
+    content: string;
+    cover?: string;
+    effectiveTime?: string;
+    expireTime?: string;
+    isTop?: number;
+    noticeScope?: number;
+    noticeType: number;
+    notifyMethods: string;
+    publishStatus?: number;
+    publishType?: number;
+    scheduledTime?: string;
+    scopeTargetIds?: string;
+    title: string;
+  }
+
   export interface NoticeResp {
     id: string;
     title: string;
@@ -13,6 +29,7 @@ export namespace SystemNoticeApi {
     isTop?: number;
     publishType?: number;
     publishStatus?: number;
+    publishVersion?: string;
     scheduledTime?: string;
     publishTime?: string;
     effectiveTime?: string;
@@ -22,15 +39,15 @@ export namespace SystemNoticeApi {
   }
 }
 
-export function getNoticeList(params?: any) {
-  return requestClient.get('/system/notice/list', { params });
+export function getNoticeList() {
+  return requestClient.get<SystemNoticeApi.NoticeResp[]>('/system/notice/list');
 }
 
-export function createNotice(data: any) {
+export function createNotice(data: SystemNoticeApi.NoticeSaveReq) {
   return requestClient.post('/system/notice', data);
 }
 
-export function updateNotice(id: string, data: any) {
+export function updateNotice(id: string, data: SystemNoticeApi.NoticeSaveReq) {
   return requestClient.put(`/system/notice/${id}`, data);
 }
 

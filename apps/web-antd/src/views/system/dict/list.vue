@@ -85,7 +85,11 @@ function onDelete(row: SystemDictApi.DictResp) {
     <ItemDrawer />
     <Grid :table-title="$t('system.dict.title')">
       <template #toolbar-tools>
-        <Button type="primary" @click="onCreate">
+        <Button
+          v-access:code="['system:dict:add']"
+          type="primary"
+          @click="onCreate"
+        >
           <Plus class="size-5" />
           {{ $t('ui.actionTitle.create', [$t('system.dict.title')]) }}
         </Button>
@@ -97,16 +101,19 @@ function onDelete(row: SystemDictApi.DictResp) {
             {
               text: $t('system.dictItem.title'),
               icon: 'lucide:list',
+              auth: 'system:dict:list',
               onClick: () => onItems(row),
             },
             {
               text: $t('common.edit'),
               icon: 'lucide:edit',
+              auth: 'system:dict:edit',
               onClick: () => onEdit(row),
             },
             {
               text: $t('common.delete'),
               icon: 'lucide:trash-2',
+              auth: 'system:dict:delete',
               danger: true,
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.name || '']),

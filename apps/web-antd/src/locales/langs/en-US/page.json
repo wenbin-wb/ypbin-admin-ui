@@ -16,6 +16,9 @@
     "latestActivity": "Latest Activity",
     "quickNav": "Quick Nav",
     "logTrend": "Operation Log Trend",
-    "total": "Total"
+    "total": "Total",
+    "loadFailed": "Failed to load data",
+    "noData": "No data",
+    "retry": "Retry"
   }
 }

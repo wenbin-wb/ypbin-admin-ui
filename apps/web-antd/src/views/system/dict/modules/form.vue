@@ -1,6 +1,8 @@
 ﻿<script lang="ts" setup>
 import type { SystemDictApi } from '#/api/system/dict';
 
+import { nextTick } from 'vue';
+
 import { useVbenDrawer } from '@vben/common-ui';
 
 import { message } from 'ant-design-vue';
@@ -61,8 +63,19 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemDictApi.DictResp>({
       if (!valid) {
         return;
       }
-      const values = await formApi.getValues();
-      await (isUpdate ? updateDict(updateId, values) : createDict(values));
+      const values = await formApi.getValues<{
+        code: string;
+        name: string;
+        remark?: string;
+        status?: 0 | 1;
+      }>();
+      const data: SystemDictApi.DictSaveReq = {
+        code: values.code,
+        name: values.name,
+        remark: values.remark,
+        status: values.status,
+      };
+      await (isUpdate ? updateDict(updateId, data) : createDict(data));
       message.success($t('common.success'));
       emit('success');
       drawerApi.close();
@@ -70,21 +83,21 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemDictApi.DictResp>({
       drawerApi.unlock();
     }
   },
-  onOpenChange(isOpen: boolean) {
+  async onOpenChange(isOpen: boolean) {
     if (isOpen) {
       const data = drawerApi.getData();
       isUpdate = !!data?.id;
       updateId = data?.id ?? '';
-      if (data) {
-        formApi.setValues(data);
-      } else {
-        formApi.reset();
-      }
+      formApi.reset();
       drawerApi.setState({
         title: isUpdate
           ? $t('ui.actionTitle.edit', [$t('system.dict.title')])
           : $t('ui.actionTitle.create', [$t('system.dict.title')]),
       });
+      await nextTick();
+      if (data) {
+        formApi.setValues(data);
+      }
     }
   },
 });

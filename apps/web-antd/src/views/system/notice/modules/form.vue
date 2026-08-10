@@ -1,8 +1,9 @@
 <script lang="ts" setup>
 import type { SystemNoticeApi } from '#/api/system/notice';
 
-import { nextTick, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 
+import { useAccess } from '@vben/access';
 import { useVbenModal } from '@vben/common-ui';
 
 import { Button, message } from 'ant-design-vue';
@@ -15,7 +16,15 @@ import ImageUpload from '../../_shared/image-upload.vue';
 import { useFormSchema } from '../data';
 
 const emit = defineEmits(['reload']);
+const { hasAccessByCodes } = useAccess();
 const isUpdate = ref(false);
+const canUploadCover = computed(
+  () =>
+    hasAccessByCodes(['system:file:upload']) &&
+    hasAccessByCodes([
+      isUpdate.value ? 'system:notice:edit' : 'system:notice:add',
+    ]),
+);
 const rowId = ref('');
 
 const [Form, formApi] = useVbenForm({
@@ -29,19 +38,40 @@ async function submit(draft: boolean) {
   if (!valid) {
     return;
   }
-  const values = await formApi.getValues();
-  // notifyMethods 表单为数组，后端存逗号分隔字符串
-  if (Array.isArray(values.notifyMethods)) {
-    values.notifyMethods = values.notifyMethods.join(',');
-  }
-  if (draft) {
-    values.publishStatus = 0;
-  }
+  const values = await formApi.getValues<{
+    content: string;
+    cover?: string;
+    effectiveTime?: string;
+    expireTime?: string;
+    isTop?: number;
+    noticeScope?: number;
+    noticeType: number;
+    notifyMethods: string[];
+    publishType?: number;
+    scheduledTime?: string;
+    scopeTargetIds?: string;
+    title: string;
+  }>();
+  const data: SystemNoticeApi.NoticeSaveReq = {
+    content: values.content,
+    cover: values.cover,
+    effectiveTime: values.effectiveTime,
+    expireTime: values.expireTime,
+    isTop: values.isTop,
+    noticeScope: values.noticeScope,
+    noticeType: values.noticeType,
+    notifyMethods: values.notifyMethods.join(','),
+    publishStatus: draft ? 0 : undefined,
+    publishType: values.publishType,
+    scheduledTime: values.scheduledTime,
+    scopeTargetIds: values.scopeTargetIds,
+    title: values.title,
+  };
   try {
     modalApi.setState({ confirmLoading: true });
     await (isUpdate.value
-      ? updateNotice(rowId.value, values)
-      : createNotice(values));
+      ? updateNotice(rowId.value, data)
+      : createNotice(data));
     message.success($t('common.success'));
     modalApi.close();
     emit('reload');
@@ -50,9 +80,7 @@ async function submit(draft: boolean) {
   }
 }
 
-type NoticeFormData =
-  | { isUpdate: false }
-  | { isUpdate: true; row: SystemNoticeApi.NoticeResp };
+type NoticeFormData = null | SystemNoticeApi.NoticeResp;
 
 const [Modal, modalApi] = useVbenModal<NoticeFormData>({
   onCancel() {
@@ -64,26 +92,22 @@ const [Modal, modalApi] = useVbenModal<NoticeFormData>({
   async onOpenChange(isOpen: boolean) {
     if (isOpen) {
       const data = modalApi.getData();
-      isUpdate.value = !!data?.isUpdate;
+      isUpdate.value = !!data?.id;
+      rowId.value = data?.id ?? '';
+      formApi.reset();
       modalApi.setState({
         title: isUpdate.value
           ? $t('ui.actionTitle.edit', [$t('system.notice.title')])
           : $t('ui.actionTitle.create', [$t('system.notice.title')]),
       });
-      // 等表单实例挂载就绪再回填/重置，否则重开时 setValues 早于表单初始化会失效
       await nextTick();
-      if (data?.isUpdate) {
-        rowId.value = data.row.id;
-        // 逗号分隔字符串还原为数组供多选组件使用
+      if (data) {
         formApi.setValues({
-          ...data.row,
-          notifyMethods: data.row.notifyMethods
-            ? data.row.notifyMethods.split(',')
+          ...data,
+          notifyMethods: data.notifyMethods
+            ? data.notifyMethods.split(',')
             : [],
         });
-      } else {
-        rowId.value = '';
-        formApi.reset();
       }
     }
   },
@@ -96,6 +120,7 @@ defineExpose({ modalApi });
     <Form class="mx-4">
       <template #cover="slotProps">
         <ImageUpload
+          v-if="canUploadCover"
           v-bind="slotProps.componentField"
           module="notice"
           aspect-ratio="16:9"

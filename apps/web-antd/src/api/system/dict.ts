@@ -1,6 +1,20 @@
+import type { SystemCommonApi } from './common';
+
 import { requestClient } from '#/api/request';
 
 export namespace SystemDictApi {
+  export interface DictQuery extends SystemCommonApi.PageQuery {
+    code?: string;
+    name?: string;
+  }
+
+  export interface DictSaveReq {
+    code: string;
+    name: string;
+    remark?: string;
+    status?: 0 | 1;
+  }
+
   export interface DictResp {
     id: string;
     name: string;
@@ -12,17 +26,18 @@ export namespace SystemDictApi {
   }
 }
 
-export function getDictList(params?: any) {
-  return requestClient.get<SystemDictApi.DictResp[]>('/system/dict/list', {
-    params,
-  });
+export function getDictList(params: SystemDictApi.DictQuery) {
+  return requestClient.get<SystemCommonApi.PageResult<SystemDictApi.DictResp>>(
+    '/system/dict/list',
+    { params },
+  );
 }
 
-export function createDict(data: any) {
+export function createDict(data: SystemDictApi.DictSaveReq) {
   return requestClient.post('/system/dict', data);
 }
 
-export function updateDict(id: string, data: any) {
+export function updateDict(id: string, data: SystemDictApi.DictSaveReq) {
   return requestClient.put(`/system/dict/${id}`, data);
 }
 

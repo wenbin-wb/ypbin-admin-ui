@@ -9,6 +9,8 @@ import { useVbenForm } from '#/adapter/form';
 import { approveLicense } from '#/api/system/license';
 import { $t } from '#/locales';
 
+import { showLicenseDelivery } from '../../_shared/show-secret';
+
 const emits = defineEmits(['success']);
 
 const id = ref<string>();
@@ -56,7 +58,10 @@ const [Modal, modalApi] = useVbenModal<SystemLicenseApi.SystemLicense>({
     if (!id.value) return;
     modalApi.lock();
     approveLicense(id.value, values as SystemLicenseApi.ApproveParams)
-      .then(() => {
+      .then((issue) => {
+        if (issue) {
+          showLicenseDelivery(issue, $t('system.license.deliveryTitle'));
+        }
         emits('success');
         modalApi.close();
       })

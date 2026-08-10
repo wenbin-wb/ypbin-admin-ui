@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+import type { SystemMessageApi } from '#/api/system/message';
 
 import { h, ref } from 'vue';
 
@@ -8,25 +9,22 @@ import { Page } from '@vben/common-ui';
 import { Button, message, Tabs, Tag } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
-import {
-  deleteMessage,
-  getMessageList,
-  markAllMessagesRead,
-  markMessageRead,
-} from '#/api/system/message';
 import { $t } from '#/locales';
+import { useMessageStore } from '#/store';
 import MessagePreview from '#/views/system/_shared/message-preview.vue';
+
+const messageStore = useMessageStore();
 
 // 类型 tab：空=全部、1=系统通知、2=用户消息
 const activeType = ref<string>('');
 
 // 消息详情（复用通用富文本预览组件）
 const previewVisible = ref(false);
-const previewData = ref<Record<string, any>>({});
+const previewData = ref<SystemMessageApi.MessageItem>();
 
-function showDetail(row: any) {
+function showDetail(row: SystemMessageApi.MessageItem) {
   if (row.readStatus === 0) {
-    markMessageRead(row.id).then(() => gridApi.query());
+    void messageStore.markRead(row.id).then(() => gridApi.query());
   }
   previewData.value = row;
   previewVisible.value = true;
@@ -97,7 +95,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     proxyConfig: {
       ajax: {
         query: async ({ page }, formValues) => {
-          return await getMessageList({
+          return await messageStore.queryMessages({
             page: page.currentPage,
             pageSize: page.pageSize,
             messageType: activeType.value
@@ -110,14 +108,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
     rowConfig: { keyField: 'id' },
     toolbarConfig: { custom: true, refresh: true, search: true, zoom: true },
-  } as VxeTableGridOptions,
+  } as VxeTableGridOptions<SystemMessageApi.MessageItem>,
   gridEvents: {
     cellClick: ({
       column,
       row,
     }: {
       column: { field?: string };
-      row: Record<string, any>;
+      row: SystemMessageApi.MessageItem;
     }) => {
       // 点击非操作列的行单元格查看详情
       if (column.field !== 'action') {
@@ -127,22 +125,22 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
 });
 
-function onRead(row: any) {
-  markMessageRead(row.id).then(() => {
+function onRead(row: SystemMessageApi.MessageItem) {
+  void messageStore.markRead(row.id).then(() => {
     message.success($t('common.success'));
     gridApi.query();
   });
 }
 
 function onReadAll() {
-  markAllMessagesRead().then(() => {
+  void messageStore.markAllRead().then(() => {
     message.success($t('common.success'));
     gridApi.query();
   });
 }
 
-function onDelete(row: any) {
-  deleteMessage(row.id).then(() => {
+function onDelete(row: SystemMessageApi.MessageItem) {
+  void messageStore.remove(row.id).then(() => {
     message.success($t('common.success'));
     gridApi.query();
   });

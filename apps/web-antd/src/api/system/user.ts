@@ -1,10 +1,34 @@
-import type { Recordable } from '@vben/types';
+import type { SystemCommonApi } from './common';
+import type { SystemPostApi } from './post';
 
 import { requestClient } from '#/api/request';
 
 export namespace SystemUserApi {
+  export interface UserQuery extends SystemCommonApi.PageQuery {
+    deptId?: string;
+    phone?: string;
+    realName?: string;
+    status?: 0 | 1;
+    username?: string;
+  }
+
+  export interface UserSaveReq {
+    avatar?: string;
+    deptId?: string;
+    email?: string;
+    gender?: 0 | 1 | 2;
+    nickname?: string;
+    password?: string;
+    phone?: string;
+    postIds?: string[];
+    realName: string;
+    remark?: string;
+    roleIds?: string[];
+    status: 0 | 1;
+    username: string;
+  }
+
   export interface SystemUser {
-    [key: string]: any;
     id: string;
     username: string;
     password?: string;
@@ -12,7 +36,6 @@ export namespace SystemUserApi {
     nickname?: string;
     deptId?: string;
     deptIdName?: string;
-    deptIdText?: string;
     avatar?: string;
     phone?: string;
     email?: string;
@@ -33,18 +56,17 @@ export namespace SystemUserApi {
 /**
  * 获取用户列表数据
  */
-async function getUserList(params: Recordable<any>) {
-  return requestClient.get<Array<SystemUserApi.SystemUser>>(
-    '/system/user/list',
-    { params },
-  );
+async function getUserList(params: SystemUserApi.UserQuery) {
+  return requestClient.get<
+    SystemCommonApi.PageResult<SystemUserApi.SystemUser>
+  >('/system/user/list', { params });
 }
 
 /**
  * 创建用户
  * @param data 用户数据
  */
-async function createUser(data: Omit<SystemUserApi.SystemUser, 'id'>) {
+async function createUser(data: SystemUserApi.UserSaveReq) {
   return requestClient.post('/system/user', data);
 }
 
@@ -54,11 +76,17 @@ async function createUser(data: Omit<SystemUserApi.SystemUser, 'id'>) {
  * @param id 用户 ID
  * @param data 用户数据
  */
-async function updateUser(
-  id: string,
-  data: Omit<SystemUserApi.SystemUser, 'id'>,
-) {
+async function updateUser(id: string, data: SystemUserApi.UserSaveReq) {
   return requestClient.put(`/system/user/${id}`, data);
+}
+
+/**
+ * 更新用户状态
+ * @param id 用户 ID
+ * @param data 状态数据
+ */
+async function updateUserStatus(id: string, data: SystemCommonApi.StatusReq) {
+  return requestClient.put(`/system/user/${id}/status`, data);
 }
 
 /**
@@ -73,7 +101,7 @@ async function deleteUser(id: string) {
  * 获取所有岗位（下拉用）
  */
 async function getPostList() {
-  return requestClient.get<Array<any>>('/system/post/list');
+  return requestClient.get<SystemPostApi.PostResp[]>('/system/post/list');
 }
 
 /**
@@ -102,4 +130,5 @@ export {
   getUserList,
   resetUserPassword,
   updateUser,
+  updateUserStatus,
 };

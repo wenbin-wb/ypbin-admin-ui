@@ -72,7 +72,11 @@ function onDelete(row: SystemConfigApi.ConfigResp) {
   <FormDrawer @success="onRefresh" />
   <Grid :table-title="$t('system.config.customTitle')">
     <template #toolbar-tools>
-      <Button type="primary" @click="onCreate">
+      <Button
+        v-access:code="['system:config:add']"
+        type="primary"
+        @click="onCreate"
+      >
         <Plus class="size-5" />
         {{ $t('ui.actionTitle.create', [$t('system.config.customTitle')]) }}
       </Button>
@@ -84,11 +88,13 @@ function onDelete(row: SystemConfigApi.ConfigResp) {
           {
             text: $t('common.edit'),
             icon: 'lucide:edit',
+            auth: 'system:config:edit',
             onClick: () => onEdit(row),
           },
           {
             text: $t('common.delete'),
             icon: 'lucide:trash-2',
+            auth: 'system:config:delete',
             danger: true,
             popConfirm: {
               title: $t('ui.actionMessage.deleteConfirm', [row.configKey]),

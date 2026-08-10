@@ -1,13 +1,19 @@
 import type { VbenFormSchema as FormSchema } from '#/adapter/form';
 import type { VxeTableGridColumns } from '#/adapter/vxe-table';
 
+import { z } from '#/adapter/form';
 import { $t } from '#/locales';
 
 export function useColumns(): VxeTableGridColumns {
   return [
     { field: 'name', title: $t('system.job.name'), minWidth: 150 },
     { field: 'executor', title: $t('system.job.executor'), minWidth: 150 },
-    { field: 'cron', title: $t('system.job.cron'), width: 120 },
+    {
+      field: 'cron',
+      title: $t('system.job.scheduleRule'),
+      minWidth: 180,
+      slots: { default: 'scheduleRule' },
+    },
     {
       field: 'concurrentGuard',
       title: $t('system.job.concurrentGuard'),
@@ -27,17 +33,6 @@ export function useColumns(): VxeTableGridColumns {
       width: 240,
       align: 'center',
       slots: { default: 'action' },
-    },
-  ];
-}
-
-export function useGridFormSchema(): FormSchema[] {
-  return [
-    {
-      component: 'Input',
-      fieldName: 'name',
-      label: $t('system.job.name'),
-      componentProps: { allowClear: true },
     },
   ];
 }
@@ -117,12 +112,45 @@ export function useFormSchema(): FormSchema[] {
       rules: 'required',
     },
     {
+      component: 'RadioGroup',
+      fieldName: 'scheduleMode',
+      label: $t('system.job.scheduleMode'),
+      componentProps: {
+        options: [
+          { label: $t('system.job.scheduleModeCron'), value: 'cron' },
+          {
+            label: $t('system.job.scheduleModeFixedRate'),
+            value: 'fixedRate',
+          },
+        ],
+      },
+      defaultValue: 'cron',
+    },
+    {
       component: 'Input',
+      dependencies: {
+        show: (values) => values.scheduleMode === 'cron',
+        triggerFields: ['scheduleMode'],
+      },
       fieldName: 'cron',
       label: $t('system.job.cron'),
-      rules: 'required',
       defaultValue: '0 0 0 * * ?',
       formItemClass: 'items-start',
+    },
+    {
+      component: 'InputNumber',
+      componentProps: { min: 1, precision: 0 },
+      dependencies: {
+        show: (values) => values.scheduleMode === 'fixedRate',
+        triggerFields: ['scheduleMode'],
+      },
+      fieldName: 'fixedRateSeconds',
+      label: $t('system.job.fixedRateSeconds'),
+      rules: z
+        .number({ error: $t('system.job.fixedRatePositive') })
+        .int($t('system.job.fixedRatePositive'))
+        .positive($t('system.job.fixedRatePositive'))
+        .optional(),
     },
     {
       component: 'InputNumber',

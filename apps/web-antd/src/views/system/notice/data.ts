@@ -164,6 +164,7 @@ export function useFormSchema(): FormSchema[] {
           { label: $t('system.notice.methodSms'), value: 'sms' },
         ],
       },
+      rules: 'required',
     },
     {
       component: 'RadioGroup',

@@ -61,3 +61,8 @@ skills-lock.json
 .atomcode
 datalog
 .playwright-mcp
+
+# 本地调试验证码素材（tianai 临时资源，不入库）
+captcha-bg.b64.json
+captcha-bg.jpg
+captcha-tpl.png

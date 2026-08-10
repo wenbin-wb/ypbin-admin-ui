@@ -1,6 +1,8 @@
 ﻿<script lang="ts" setup>
 import type { SystemClientApi } from '#/api/system/client';
 
+import { nextTick } from 'vue';
+
 import { useVbenDrawer } from '@vben/common-ui';
 
 import { message } from 'ant-design-vue';
@@ -62,13 +64,23 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemClientApi.ClientResp>({
       if (!valid) {
         return;
       }
-      const values = await formApi.getValues();
+      const values = await formApi.getValues<{
+        clientId: string;
+        clientType: string;
+        remark?: string;
+        timeout?: number;
+      }>();
+      const data: SystemClientApi.ClientSaveReq = {
+        clientId: values.clientId,
+        clientType: values.clientType,
+        remark: values.remark,
+        timeout: values.timeout,
+      };
       if (isUpdate) {
-        await updateClient(updateId, values);
+        await updateClient(updateId, data);
       } else {
-        const secret = await createClient(values);
-        // 新建成功后把后端生成的密钥抛给列表页展示一次
-        emit('secret', secret);
+        const credential = await createClient(data);
+        emit('secret', credential.clientSecret);
       }
       message.success($t('common.success'));
       emit('success');
@@ -77,21 +89,21 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemClientApi.ClientResp>({
       drawerApi.unlock();
     }
   },
-  onOpenChange(isOpen: boolean) {
+  async onOpenChange(isOpen: boolean) {
     if (isOpen) {
       const data = drawerApi.getData();
       isUpdate = !!data?.id;
       updateId = data?.id ?? '';
-      if (data) {
-        formApi.setValues(data);
-      } else {
-        formApi.reset();
-      }
+      formApi.reset();
       drawerApi.setState({
         title: isUpdate
           ? $t('ui.actionTitle.edit', [$t('system.client.title')])
           : $t('ui.actionTitle.create', [$t('system.client.title')]),
       });
+      await nextTick();
+      if (data) {
+        formApi.setValues(data);
+      }
     }
   },
 });

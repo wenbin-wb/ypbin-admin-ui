@@ -54,7 +54,8 @@
     "secretTip": "The secret is shown only once. Copy and store it now; it cannot be viewed again after closing.",
     "resetSecret": "Reset Secret",
     "resetSecretConfirm": "Reset the secret? The old secret becomes invalid immediately.",
-    "imageOnly": "Only image files are allowed"
+    "imageOnly": "Only image files are allowed",
+    "fileUrlUnavailable": "The file was saved, but the storage backend did not provide an accessible URL for image display"
   },
   "menu": {
     "list": "Menu List",
@@ -87,6 +88,7 @@
     "operation": "Operation",
     "parent": "Parent Menu",
     "path": "Route Path",
+    "platformOnly": "Platform Users Only",
     "status": "Status",
     "statusChangeTitle": "Change Status",
     "statusChangeConfirm": "Are you sure you want to change the status?",
@@ -107,6 +109,7 @@
     "roleName": "Role Name",
     "roleCode": "Role Code",
     "dataScope": "Data Scope",
+    "deptIds": "Custom Departments",
     "dataScopeList": {
       "all": "All Data",
       "custom": "Custom Data",
@@ -231,7 +234,7 @@
     "title": "File Management",
     "originalName": "Original File Name",
     "fileName": "Stored File Name",
-    "fileSize": "File Size",
+    "size": "File Size",
     "extension": "Extension"
   },
   "notice": {
@@ -342,7 +345,15 @@
     "title": "Scheduled Jobs",
     "name": "Job Name",
     "executor": "Executor",
+    "scheduleRule": "Schedule Rule",
+    "scheduleMode": "Schedule Mode",
+    "scheduleModeCron": "Cron Expression",
+    "scheduleModeFixedRate": "Fixed Rate",
     "cron": "Cron Expression",
+    "fixedRateSeconds": "Fixed Rate (seconds)",
+    "fixedRateDisplay": "Every {0} seconds",
+    "fixedRatePositive": "Fixed rate must be a positive integer",
+    "scheduleRuleXor": "Enter exactly one of Cron expression or fixed rate",
     "timeoutSeconds": "Timeout",
     "concurrentGuard": "Concurrency Control",
     "status": "Status",
@@ -472,7 +483,7 @@
     "authCodeTip": "Deliver the auth code below to the licensee and configure it into their ypbin.license.auth-code.",
     "viewAuthCode": "View Auth Code",
     "deliveryTitle": "Delivery Info",
-    "deliveryTip": "Deliver the license and the online-app keys below to the licensee; the online app is created automatically at issue time by licensee (reused for the same licensee), configure it into their ypbin.license.online.access-key / secret-key.",
+    "deliveryTip": "Deliver the license information below securely. The Secret Key is shown only when the online app is first created and cannot be viewed again.",
     "appName": "Online App",
     "viewAppInfo": "Online App Info",
     "detailTitle": "License Detail"

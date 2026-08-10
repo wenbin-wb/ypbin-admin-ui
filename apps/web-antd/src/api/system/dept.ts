@@ -1,8 +1,18 @@
 import { requestClient } from '#/api/request';
 
 export namespace SystemDeptApi {
+  export interface DeptSaveReq {
+    email?: string;
+    leader?: string;
+    name: string;
+    phone?: string;
+    pid?: string;
+    remark?: string;
+    sort?: number;
+    status: 0 | 1;
+  }
+
   export interface SystemDept {
-    [key: string]: any;
     children?: SystemDept[];
     id: string;
     pid?: string;
@@ -32,9 +42,7 @@ async function getDeptList() {
  * 创建部门
  * @param data 部门数据
  */
-async function createDept(
-  data: Omit<SystemDeptApi.SystemDept, 'children' | 'id'>,
-) {
+async function createDept(data: SystemDeptApi.DeptSaveReq) {
   return requestClient.post('/system/dept', data);
 }
 
@@ -44,10 +52,7 @@ async function createDept(
  * @param id 部门 ID
  * @param data 部门数据
  */
-async function updateDept(
-  id: string,
-  data: Omit<SystemDeptApi.SystemDept, 'children' | 'id'>,
-) {
+async function updateDept(id: string, data: SystemDeptApi.DeptSaveReq) {
   return requestClient.put(`/system/dept/${id}`, data);
 }
 

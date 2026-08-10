@@ -34,9 +34,28 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemRoleApi.SystemRole>({
   async onConfirm() {
     const { valid } = await formApi.validate();
     if (!valid) return;
-    const values = await formApi.getValues();
+    const values = await formApi.getValues<{
+      code: string;
+      dataScope?: number;
+      deptIds?: string[];
+      name: string;
+      permissions?: string[];
+      remark?: string;
+      sort?: number;
+      status: 0 | 1;
+    }>();
+    const data: SystemRoleApi.RoleSaveReq = {
+      code: values.code,
+      dataScope: values.dataScope,
+      deptIds: values.dataScope === 5 ? values.deptIds : undefined,
+      name: values.name,
+      permissions: values.permissions,
+      remark: values.remark,
+      sort: values.sort,
+      status: values.status,
+    };
     drawerApi.lock();
-    (id.value ? updateRole(id.value, values) : createRole(values))
+    (id.value ? updateRole(id.value, data) : createRole(data))
       .then(() => {
         emits('success');
         drawerApi.close();
@@ -114,12 +133,12 @@ defineExpose({ drawerApi });
             :get-node-class="getNodeClass"
             v-bind="slotProps.componentProps"
             value-field="id"
-            label-field="meta.title"
-            icon-field="meta.icon"
+            label-field="title"
+            icon-field="icon"
           >
             <template #node="{ value }">
-              <IconifyIcon v-if="value.meta.icon" :icon="value.meta.icon" />
-              {{ $t(value.meta.title) }}
+              <IconifyIcon v-if="value.icon" :icon="value.icon" />
+              {{ $t(value.title) }}
             </template>
           </Tree>
         </Spin>

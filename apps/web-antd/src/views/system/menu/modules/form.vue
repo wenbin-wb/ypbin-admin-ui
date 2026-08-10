@@ -1,12 +1,9 @@
 <script lang="ts" setup>
-import type { Recordable } from '@vben/types';
-
 import type { VbenFormSchema } from '#/adapter/form';
 
-import { computed, h, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 
 import { useVbenDrawer } from '@vben/common-ui';
-import { IconifyIcon } from '@vben/icons';
 import { $te } from '@vben/locales';
 import { getPopupContainer } from '@vben/utils';
 
@@ -30,57 +27,18 @@ const emit = defineEmits<{
   success: [];
 }>();
 type MenuFormData = null | Partial<SystemMenuApi.SystemMenu>;
+type MenuType = (typeof SystemMenuApi.MenuTypes)[number];
+type MenuFormValues = SystemMenuApi.MenuSaveReq;
+
+function isMenuType(
+  type: MenuType | undefined,
+  applicableTypes: readonly MenuType[],
+) {
+  return type !== undefined && applicableTypes.includes(type);
+}
 
 const formData = ref<Partial<SystemMenuApi.SystemMenu>>();
 const titleSuffix = ref<string>();
-
-type MenuSubmitValues = Omit<SystemMenuApi.SystemMenu, 'children' | 'id'>;
-type MenuFormValues = MenuSubmitValues & { linkSrc?: string };
-
-function encodeMenuFormValues(
-  values: Readonly<MenuFormValues>,
-): MenuSubmitValues {
-  const { linkSrc, meta, ...formValues } = values;
-
-  const submitData: any = { ...formValues };
-
-  if (meta) {
-    submitData.title = meta.title;
-    submitData.icon = meta.icon;
-    submitData.activeIcon = meta.activeIcon;
-    submitData.sort = meta.order || 0;
-    submitData.keepAlive = !!meta.keepAlive;
-    submitData.hideInMenu = !!meta.hideInMenu;
-    submitData.activePath = meta.activePath;
-    submitData.affixTab = !!meta.affixTab;
-    submitData.badge = meta.badge;
-    submitData.badgeType = meta.badgeType;
-    submitData.badgeVariants = meta.badgeVariants;
-    submitData.hideChildrenInMenu = !!meta.hideChildrenInMenu;
-    submitData.hideInBreadcrumb = !!meta.hideInBreadcrumb;
-    submitData.hideInTab = !!meta.hideInTab;
-
-    if (values.type === 'link') {
-      submitData.link = linkSrc;
-    } else if (values.type === 'embedded') {
-      submitData.iframeSrc = linkSrc;
-    }
-  }
-
-  return submitData as MenuSubmitValues;
-}
-
-function decodeMenuFormValues(
-  values: Readonly<MenuSubmitValues>,
-): MenuFormValues {
-  let linkSrc: string | undefined;
-  if (values.type === 'link') {
-    linkSrc = values.meta?.link;
-  } else if (values.type === 'embedded') {
-    linkSrc = values.meta?.iframeSrc;
-  }
-  return { ...values, linkSrc };
-}
 
 const schema: VbenFormSchema<MenuFormValues>[] = [
   {
@@ -121,16 +79,8 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     componentProps: {
       api: getMenuList,
       class: 'w-full',
-      filterTreeNode(input: string, node: Recordable<any>) {
-        if (!input || input.length === 0) {
-          return true;
-        }
-        const title: string = node.meta?.title ?? '';
-        if (!title) return false;
-        return title.includes(input) || $t(title).includes(input);
-      },
       getPopupContainer,
-      labelField: 'meta.title',
+      labelField: 'title',
       showSearch: true,
       treeDefaultExpandAll: true,
       valueField: 'id',
@@ -138,25 +88,6 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     },
     fieldName: 'pid',
     label: $t('system.menu.parent'),
-    renderComponentContent() {
-      return {
-        treeTitleRender({
-          label,
-          meta,
-        }: {
-          label: string;
-          meta: Recordable<any>;
-        }) {
-          const coms = [];
-          if (!label) return '';
-          if (meta?.icon) {
-            coms.push(h(IconifyIcon, { class: 'size-4', icon: meta.icon }));
-          }
-          coms.push(h('span', { class: '' }, $t(label || '')));
-          return h('div', { class: 'flex items-center gap-1' }, coms);
-        },
-      };
-    },
   },
   {
     component: 'Input',
@@ -169,7 +100,7 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
         },
       };
     },
-    fieldName: 'meta.title',
+    fieldName: 'title',
     label: $t('system.menu.menuTitle'),
     rules: 'required',
   },
@@ -177,7 +108,7 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     component: 'Input',
     dependencies: {
       show: (values) => {
-        return ['catalog', 'embedded', 'menu'].includes(values.type);
+        return isMenuType(values.type, ['catalog', 'embedded', 'menu']);
       },
       triggerFields: ['type'],
     },
@@ -204,11 +135,11 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     component: 'Input',
     dependencies: {
       show: (values) => {
-        return ['embedded', 'menu'].includes(values.type);
+        return isMenuType(values.type, ['embedded', 'menu']);
       },
       triggerFields: ['type'],
     },
-    fieldName: 'meta.activePath',
+    fieldName: 'activePath',
     help: $t('system.menu.activePathHelp'),
     label: $t('system.menu.activePath'),
   },
@@ -219,11 +150,11 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     },
     dependencies: {
       show: (values) => {
-        return ['catalog', 'embedded', 'link', 'menu'].includes(values.type);
+        return isMenuType(values.type, ['catalog', 'embedded', 'link', 'menu']);
       },
       triggerFields: ['type'],
     },
-    fieldName: 'meta.icon',
+    fieldName: 'icon',
     label: $t('system.menu.icon'),
   },
   {
@@ -233,11 +164,11 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     },
     dependencies: {
       show: (values) => {
-        return ['catalog', 'embedded', 'menu'].includes(values.type);
+        return isMenuType(values.type, ['catalog', 'embedded', 'menu']);
       },
       triggerFields: ['type'],
     },
-    fieldName: 'meta.activeIcon',
+    fieldName: 'activeIcon',
     label: $t('system.menu.activeIcon'),
   },
   {
@@ -266,7 +197,7 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     component: 'Input',
     dependencies: {
       show: (values) => {
-        return ['catalog', 'menu'].includes(values.type);
+        return isMenuType(values.type, ['catalog', 'menu']);
       },
       triggerFields: ['type'],
     },
@@ -275,22 +206,29 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
   },
   {
     component: 'InputNumber',
-    fieldName: 'meta.order',
+    fieldName: 'sort',
     label: $t('system.menu.order'),
     defaultValue: 0,
   },
   {
     component: 'Input',
     dependencies: {
-      rules: (values) => {
-        return ['embedded', 'link'].includes(values.type) ? 'required' : null;
-      },
-      show: (values) => {
-        return ['embedded', 'link'].includes(values.type);
-      },
+      rules: (values) => (values.type === 'embedded' ? 'required' : null),
+      show: (values) => values.type === 'embedded',
       triggerFields: ['type'],
     },
-    fieldName: 'linkSrc',
+    fieldName: 'iframeSrc',
+    label: $t('system.menu.linkSrc'),
+    // 支持相对路径（如 /swagger-ui/index.html），故不用 z.url 强校验绝对 URL
+  },
+  {
+    component: 'Input',
+    dependencies: {
+      rules: (values) => (values.type === 'link' ? 'required' : null),
+      show: (values) => values.type === 'link',
+      triggerFields: ['type'],
+    },
+    fieldName: 'link',
     label: $t('system.menu.linkSrc'),
     // 支持相对路径（如 /swagger-ui/index.html），故不用 z.url 强校验绝对 URL
   },
@@ -301,7 +239,12 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
         return values.type === 'button' ? 'required' : null;
       },
       show: (values) => {
-        return ['button', 'catalog', 'embedded', 'menu'].includes(values.type);
+        return isMenuType(values.type, [
+          'button',
+          'catalog',
+          'embedded',
+          'menu',
+        ]);
       },
       triggerFields: ['type'],
     },
@@ -323,6 +266,12 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     label: $t('system.menu.status'),
   },
   {
+    component: 'Checkbox',
+    defaultValue: false,
+    fieldName: 'platformOnly',
+    label: $t('system.menu.platformOnly'),
+  },
+  {
     component: 'Select',
     componentProps: {
       allowClear: true,
@@ -338,7 +287,7 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
       },
       triggerFields: ['type'],
     },
-    fieldName: 'meta.badgeType',
+    fieldName: 'badgeType',
     label: $t('system.menu.badgeType.title'),
   },
   {
@@ -349,14 +298,14 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
           componentProps: {
             allowClear: true,
             class: 'w-full',
-            disabled: values.meta?.badgeType !== 'normal',
+            disabled: values.badgeType !== 'normal',
           },
           show: values.type !== 'button',
         };
       },
-      triggerFields: ['meta.badgeType', 'type'],
+      triggerFields: ['badgeType', 'type'],
     },
-    fieldName: 'meta.badge',
+    fieldName: 'badge',
     label: $t('system.menu.badge'),
   },
   {
@@ -375,14 +324,14 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
       },
       triggerFields: ['type'],
     },
-    fieldName: 'meta.badgeVariants',
+    fieldName: 'badgeVariants',
     label: $t('system.menu.badgeVariants'),
   },
   {
     component: 'Divider',
     dependencies: {
       show: (values) => {
-        return !['button', 'link'].includes(values.type);
+        return !isMenuType(values.type, ['button', 'link']);
       },
       triggerFields: ['type'],
     },
@@ -399,11 +348,11 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     component: 'Checkbox',
     dependencies: {
       show: (values) => {
-        return ['menu'].includes(values.type);
+        return values.type === 'menu';
       },
       triggerFields: ['type'],
     },
-    fieldName: 'meta.keepAlive',
+    fieldName: 'keepAlive',
     renderComponentContent() {
       return {
         default: () => $t('system.menu.keepAlive'),
@@ -414,11 +363,11 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     component: 'Checkbox',
     dependencies: {
       show: (values) => {
-        return !['button'].includes(values.type);
+        return values.type !== 'button';
       },
       triggerFields: ['type'],
     },
-    fieldName: 'meta.hideInMenu',
+    fieldName: 'hideInMenu',
     renderComponentContent() {
       return {
         default: () => $t('system.menu.hideInMenu'),
@@ -429,11 +378,11 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     component: 'Checkbox',
     dependencies: {
       show: (values) => {
-        return ['embedded', 'menu'].includes(values.type);
+        return isMenuType(values.type, ['embedded', 'menu']);
       },
       triggerFields: ['type'],
     },
-    fieldName: 'meta.affixTab',
+    fieldName: 'affixTab',
     renderComponentContent() {
       return {
         default: () => $t('system.menu.affixTab'),
@@ -444,11 +393,11 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     component: 'Checkbox',
     dependencies: {
       show: (values) => {
-        return ['catalog', 'menu'].includes(values.type);
+        return isMenuType(values.type, ['catalog', 'menu']);
       },
       triggerFields: ['type'],
     },
-    fieldName: 'meta.hideChildrenInMenu',
+    fieldName: 'hideChildrenInMenu',
     renderComponentContent() {
       return {
         default: () => $t('system.menu.hideChildrenInMenu'),
@@ -459,11 +408,11 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     component: 'Checkbox',
     dependencies: {
       show: (values) => {
-        return !['button', 'link'].includes(values.type);
+        return !isMenuType(values.type, ['button', 'link']);
       },
       triggerFields: ['type'],
     },
-    fieldName: 'meta.hideInBreadcrumb',
+    fieldName: 'hideInBreadcrumb',
     renderComponentContent() {
       return {
         default: () => $t('system.menu.hideInBreadcrumb'),
@@ -474,11 +423,11 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
     component: 'Checkbox',
     dependencies: {
       show: (values) => {
-        return !['button', 'link'].includes(values.type);
+        return !isMenuType(values.type, ['button', 'link']);
       },
       triggerFields: ['type'],
     },
-    fieldName: 'meta.hideInTab',
+    fieldName: 'hideInTab',
     renderComponentContent() {
       return {
         default: () => $t('system.menu.hideInTab'),
@@ -490,11 +439,7 @@ const schema: VbenFormSchema<MenuFormValues>[] = [
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isHorizontal = computed(() => breakpoints.greaterOrEqual('md').value);
 
-const [Form, formApi] = useVbenForm({
-  codec: {
-    decode: decodeMenuFormValues,
-    encode: encodeMenuFormValues,
-  },
+const [Form, formApi] = useVbenForm<MenuFormValues>({
   commonConfig: {
     colon: true,
     formItemClass: 'col-span-2 md:col-span-1',
@@ -508,15 +453,14 @@ const [Drawer, drawerApi] = useVbenDrawer<MenuFormData>({
   async onOpenChange(isOpen) {
     if (isOpen) {
       const data = drawerApi.getData();
-      if (data) {
-        formData.value = data;
-        await formApi.setSubmitValues(data);
-        titleSuffix.value = formData.value.meta?.title
-          ? $t(formData.value.meta.title)
-          : '';
-      } else {
-        formApi.reset();
-        titleSuffix.value = '';
+      formData.value = data ?? undefined;
+      formApi.reset();
+      titleSuffix.value = data?.title ? $t(data.title) : '';
+      await nextTick();
+      if (data?.id) {
+        formApi.setValues(data);
+      } else if (data?.pid) {
+        formApi.setFieldValue('pid', data.pid);
       }
     }
   },
@@ -524,18 +468,44 @@ const [Drawer, drawerApi] = useVbenDrawer<MenuFormData>({
 
 async function onSubmit() {
   const { valid } = await formApi.validate();
-  if (valid) {
-    drawerApi.lock();
-    const data = await formApi.getValues();
-    try {
-      await (formData.value?.id
-        ? updateMenu(formData.value.id, data)
-        : createMenu(data));
-      drawerApi.close();
-      emit('success');
-    } finally {
-      drawerApi.unlock();
-    }
+  if (!valid) return;
+  const values = await formApi.getValues();
+  const data: SystemMenuApi.MenuSaveReq = {
+    activeIcon: values.activeIcon,
+    activePath: values.activePath,
+    affixTab: values.affixTab,
+    authCode: values.authCode,
+    badge: values.badge,
+    badgeType: values.badgeType,
+    badgeVariants: values.badgeVariants,
+    component: values.component,
+    hideChildrenInMenu: values.hideChildrenInMenu,
+    hideInBreadcrumb: values.hideInBreadcrumb,
+    hideInMenu: values.hideInMenu,
+    hideInTab: values.hideInTab,
+    icon: values.icon,
+    iframeSrc: values.iframeSrc,
+    keepAlive: values.keepAlive,
+    link: values.link,
+    name: values.name,
+    path: values.path,
+    pid: values.pid,
+    platformOnly: values.platformOnly,
+    redirect: values.redirect,
+    sort: values.sort,
+    status: values.status,
+    title: values.title,
+    type: values.type,
+  };
+  drawerApi.lock();
+  try {
+    await (formData.value?.id
+      ? updateMenu(formData.value.id, data)
+      : createMenu(data));
+    drawerApi.close();
+    emit('success');
+  } finally {
+    drawerApi.unlock();
   }
 }
 const getDrawerTitle = computed(() =>

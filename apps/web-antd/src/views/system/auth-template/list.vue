@@ -44,10 +44,10 @@ function onRefresh() {
 }
 
 function onEdit(row: SystemAuthTemplateApi.AuthTemplateResp) {
-  formDrawerApi.setData({ isUpdate: true, id: row.id, row }).open();
+  formDrawerApi.setData(row).open();
 }
 function onCreate() {
-  formDrawerApi.setData({ isUpdate: false }).open();
+  formDrawerApi.setData(null).open();
 }
 function onDelete(row: SystemAuthTemplateApi.AuthTemplateResp) {
   deleteAuthTemplate(row.id)
@@ -63,7 +63,11 @@ function onDelete(row: SystemAuthTemplateApi.AuthTemplateResp) {
     <FormDrawer @reload="onRefresh" />
     <Grid :table-title="$t('system.authTemplate.title')">
       <template #toolbar-tools>
-        <Button type="primary" @click="onCreate">
+        <Button
+          v-access:code="['system:auth-template:add']"
+          type="primary"
+          @click="onCreate"
+        >
           <Plus class="size-5" />
           {{ $t('ui.actionTitle.create', [$t('system.authTemplate.title')]) }}
         </Button>
@@ -75,11 +79,13 @@ function onDelete(row: SystemAuthTemplateApi.AuthTemplateResp) {
             {
               text: $t('common.edit'),
               icon: 'lucide:edit',
+              auth: 'system:auth-template:edit',
               onClick: () => onEdit(row),
             },
             {
               text: $t('common.delete'),
               icon: 'lucide:trash-2',
+              auth: 'system:auth-template:delete',
               danger: true,
               popConfirm: {
                 title: $t('ui.actionMessage.deleteConfirm', [row.name || '']),

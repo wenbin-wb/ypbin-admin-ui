@@ -11,7 +11,7 @@ export function useColumns(): VxeGridProps['columns'] {
       minWidth: 150,
     },
     { field: 'fileName', title: $t('system.file.fileName'), minWidth: 150 },
-    { field: 'fileSize', title: $t('system.file.fileSize'), width: 100 },
+    { field: 'size', title: $t('system.file.size'), width: 100 },
     { field: 'extension', title: $t('system.file.extension'), width: 100 },
     { field: 'module', title: $t('system.log.module'), width: 120 },
     { field: 'createTime', title: $t('system.role.createTime'), width: 160 },

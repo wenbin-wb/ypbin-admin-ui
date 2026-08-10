@@ -5,22 +5,35 @@ export namespace SystemAppApi {
     id: string;
     appName: string;
     accessKey: string;
-    secretKey: string;
-    expireTime: string;
+    expireTime?: string;
     enabled: number;
     createTime: string;
   }
+
+  export interface AppCredentialResp {
+    accessKey: string;
+    secretKey: string;
+  }
+
+  export interface AppSaveReq {
+    appName: string;
+    enabled: number;
+    expireTime?: string;
+  }
 }
 
-export function getAppList(params?: any) {
-  return requestClient.get('/system/app/list', { params });
+export function getAppList() {
+  return requestClient.get<SystemAppApi.AppResp[]>('/system/app/list');
 }
 
-export function createApp(data: any) {
-  return requestClient.post<string>('/system/app', data);
+export function createApp(data: SystemAppApi.AppSaveReq) {
+  return requestClient.post<SystemAppApi.AppCredentialResp>(
+    '/system/app',
+    data,
+  );
 }
 
-export function updateApp(id: string, data: any) {
+export function updateApp(id: string, data: SystemAppApi.AppSaveReq) {
   return requestClient.put(`/system/app/${id}`, data);
 }
 
@@ -29,5 +42,7 @@ export function deleteApp(id: string) {
 }
 
 export function resetAppSecret(id: string) {
-  return requestClient.put<string>(`/system/app/${id}/reset-secret`);
+  return requestClient.put<SystemAppApi.AppCredentialResp>(
+    `/system/app/${id}/reset-secret`,
+  );
 }

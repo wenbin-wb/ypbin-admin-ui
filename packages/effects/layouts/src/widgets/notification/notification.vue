@@ -29,7 +29,6 @@ withDefaults(
 );
 
 const emit = defineEmits<{
-  clear: [];
   makeAll: [];
   onClick: [NotificationItem];
   read: [NotificationItem];
@@ -50,10 +49,6 @@ function handleViewAll() {
 
 function handleMakeAll() {
   emit('makeAll');
-}
-
-function handleClear() {
-  emit('clear');
 }
 
 defineExpose({ toggle });
@@ -154,17 +149,7 @@ defineExpose({ toggle });
         </div>
       </template>
 
-      <div
-        class="flex items-center justify-between border-t border-border px-4 py-3"
-      >
-        <VbenButton
-          :disabled="notifications.length <= 0"
-          size="sm"
-          variant="ghost"
-          @click="handleClear"
-        >
-          {{ $t('ui.widgets.clearNotifications') }}
-        </VbenButton>
+      <div class="flex justify-end border-t border-border px-4 py-3">
         <VbenButton size="sm" @click="handleViewAll">
           {{ $t('ui.widgets.viewAll') }}
         </VbenButton>
