@@ -14,6 +14,8 @@
 
 Ypbin Admin is the frontend of the [ypbin-admin](https://github.com/wenbin-wb/ypbin-admin) enterprise management system, built on top of the open source project [vue-vben-admin](https://github.com/vbenjs/vue-vben-admin) (MIT License) with the `ant-design-vue` variant (`web-antd`). It delivers an out-of-the-box, enterprise-ready admin UI with backend-driven menus and real-time messaging.
 
+> Full documentation: [ypbin.cn](https://ypbin.cn/guide/admin-ui/) · [Development guide](https://ypbin.cn/guide/admin-ui/development)
+
 ## Features
 
 - **Backend-driven Menus & Permissions** — menus are loaded from the ypbin-admin backend (`/menu/all`) with button-level permission codes
