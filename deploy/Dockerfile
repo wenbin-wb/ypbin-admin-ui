@@ -3,6 +3,8 @@ WORKDIR /build
 COPY . .
 ARG VITE_GLOB_API_URL=/api
 ENV VITE_GLOB_API_URL=${VITE_GLOB_API_URL}
+ENV COREPACK_NPM_REGISTRY=https://registry.npmmirror.com \
+    npm_config_registry=https://registry.npmmirror.com
 RUN corepack enable \
     && corepack prepare pnpm@11.16.0 --activate \
     && pnpm install --frozen-lockfile \
