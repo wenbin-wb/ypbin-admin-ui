@@ -68,9 +68,8 @@ onMounted(() => {
 
 onUnmounted(messageStore.closeSse);
 
-// 项目外链（占位 URL，ypbin-admin 仓库就绪后替换）
 const YPBIN_GITHUB_URL = 'https://github.com/wenbin-wb/ypbin-admin-ui';
-const YPBIN_DOC_URL = 'https://github.com/wenbin-wb/ypbin-admin-ui#readme';
+const YPBIN_DOC_URL = 'https://ypbin.cn';
 
 const menus = computed(() => [
   {

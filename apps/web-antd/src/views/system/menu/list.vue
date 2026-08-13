@@ -83,7 +83,7 @@ function onDelete(row: SystemMenuApi.SystemMenu) {
 }
 </script>
 <template>
-  <Page auto-content-height>
+  <Page auto-content-height data-testid="page-system-menu">
     <FormDrawer @success="onRefresh" />
     <Grid>
       <template #toolbar-tools>

@@ -20,9 +20,9 @@ withDefaults(defineProps<Props>(), {
   title: '关于项目',
 });
 
-// ypbin-admin 项目自有信息（外链指向项目仓库，占位 URL 待仓库就绪后替换）
+// ypbin-admin 项目自有信息
 const YPBIN_GITHUB_URL = 'https://github.com/wenbin-wb/ypbin-admin-ui';
-const YPBIN_DOC_URL = 'https://github.com/wenbin-wb/ypbin-admin-ui#readme';
+const YPBIN_DOC_URL = 'https://ypbin.cn';
 
 declare global {
   const __VBEN_ADMIN_METADATA__: {

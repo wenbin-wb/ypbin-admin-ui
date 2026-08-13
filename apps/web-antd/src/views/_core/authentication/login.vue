@@ -59,6 +59,7 @@ const formSchema = computed((): VbenFormSchema[] => {
     {
       component: 'VbenInput',
       componentProps: {
+        'data-testid': 'login-username',
         placeholder: $t('authentication.usernameTip'),
       },
       dependencies: {
@@ -69,7 +70,7 @@ const formSchema = computed((): VbenFormSchema[] => {
             );
             if (findUser) {
               form.setValues({
-                password: '123456',
+                password: 'admin123',
                 username: findUser.value,
               });
             }
@@ -84,6 +85,7 @@ const formSchema = computed((): VbenFormSchema[] => {
     {
       component: 'VbenInputPassword',
       componentProps: {
+        'data-testid': 'login-password',
         placeholder: $t('authentication.password'),
       },
       fieldName: 'password',
@@ -139,6 +141,19 @@ function refreshCaptcha() {
     :loading="authStore.loginLoading"
     @submit="handleLogin"
   >
+    <template #title>
+      <div class="mb-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="flex items-center justify-center gap-2.5">
+          <img src="/ypbin-logo.svg" alt="ypbin" class="h-9 w-9 shrink-0" />
+          <h2 class="text-2xl font-bold tracking-tight text-foreground">
+            ypbin 管理平台
+          </h2>
+        </div>
+        <p class="mt-2 text-center text-sm text-muted-foreground">
+          Spring Boot 3 · Vue 3 · Sa-Token
+        </p>
+      </div>
+    </template>
     <template #third-party-login>
       <SocialLogin />
     </template>

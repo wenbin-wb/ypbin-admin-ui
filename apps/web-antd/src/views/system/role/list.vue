@@ -156,7 +156,7 @@ function onCreate() {
 }
 </script>
 <template>
-  <Page auto-content-height>
+  <Page auto-content-height data-testid="page-system-role">
     <FormDrawer @success="onRefresh" />
     <Grid :table-title="$t('system.role.list')">
       <template #toolbar-tools>

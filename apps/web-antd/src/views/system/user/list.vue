@@ -233,7 +233,7 @@ watch(inputSearchValue, (value) => {
 });
 </script>
 <template>
-  <Page auto-content-height>
+  <Page auto-content-height data-testid="page-system-user">
     <FormDrawer @success="onRefresh" />
     <DetailDrawer @success="onRefresh" />
     <AssignRolesModal @success="onRefresh" />

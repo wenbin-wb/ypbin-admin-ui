@@ -1,5 +1,4 @@
 import {
-  appCopyrightPreferences,
   defineOverridesPreferences,
   definePreferencesExtension,
 } from '@vben/preferences';
@@ -26,7 +25,19 @@ export const overridesPreferences = defineOverridesPreferences({
     // Sa-Token 为续期机制、无 refresh token，关闭前端刷新逻辑
     enableRefreshToken: false,
   },
-  copyright: appCopyrightPreferences,
+  copyright: {
+    companyName: 'Ypbin Admin',
+    companySiteLink: 'https://github.com/wenbin-wb/ypbin-admin-ui',
+    date: '2026',
+    enable: true,
+    icp: '',
+    icpLink: '',
+    settingShow: true,
+  },
+  logo: {
+    source: '/ypbin-logo.svg',
+    sourceDark: '/ypbin-logo.svg',
+  },
 });
 
 export const preferencesExtension =
