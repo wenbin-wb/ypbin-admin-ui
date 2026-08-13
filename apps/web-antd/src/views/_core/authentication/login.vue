@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { VbenFormSchema } from '@vben/common-ui';
-import type { BasicOption, Recordable } from '@vben/types';
+import type { Recordable } from '@vben/types';
 
 import type { AuthApi } from '#/api/core/auth';
 
@@ -25,60 +25,20 @@ const captchaPayload = ref<null | {
   track: AuthApi.CaptchaTrack;
 }>(null);
 
-const MOCK_USER_OPTIONS: BasicOption[] = [
-  {
-    label: 'Super',
-    value: 'admin',
-  },
-  {
-    label: 'Admin',
-    value: 'lilei',
-  },
-  {
-    label: 'User',
-    value: 'wangfang',
-  },
-];
+// 演示账号：登录页预填给访客直接体验，部署后可按需修改或停用
+const DEMO_USERNAME = 'demo';
+const DEMO_PASSWORD = 'Ypbin@2026';
 
 const formSchema = computed((): VbenFormSchema[] => {
   return [
-    {
-      component: 'VbenSelect',
-      componentProps: {
-        options: MOCK_USER_OPTIONS,
-        placeholder: $t('authentication.selectAccount'),
-      },
-      fieldName: 'selectAccount',
-      label: $t('authentication.selectAccount'),
-      rules: z
-        .string()
-        .min(1, { message: $t('authentication.selectAccount') })
-        .optional()
-        .default('admin'),
-    },
     {
       component: 'VbenInput',
       componentProps: {
         'data-testid': 'login-username',
         placeholder: $t('authentication.usernameTip'),
       },
-      dependencies: {
-        trigger(values, form) {
-          if (values.selectAccount) {
-            const findUser = MOCK_USER_OPTIONS.find(
-              (item) => item.value === values.selectAccount,
-            );
-            if (findUser) {
-              form.setValues({
-                password: 'admin123',
-                username: findUser.value,
-              });
-            }
-          }
-        },
-        triggerFields: ['selectAccount'],
-      },
       fieldName: 'username',
+      defaultValue: DEMO_USERNAME,
       label: $t('authentication.username'),
       rules: z.string().min(1, { message: $t('authentication.usernameTip') }),
     },
@@ -89,6 +49,7 @@ const formSchema = computed((): VbenFormSchema[] => {
         placeholder: $t('authentication.password'),
       },
       fieldName: 'password',
+      defaultValue: DEMO_PASSWORD,
       label: $t('authentication.password'),
       rules: z.string().min(1, { message: $t('authentication.passwordTip') }),
     },
@@ -152,6 +113,13 @@ function refreshCaptcha() {
         <p class="mt-2 text-center text-sm text-muted-foreground">
           Spring Boot 3 · Vue 3 · Sa-Token
         </p>
+        <div
+          class="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs text-muted-foreground"
+        >
+          演示账号 <code class="font-semibold text-foreground">demo</code> /
+          <code class="font-semibold text-foreground">Ypbin@2026</code>
+          已自动填入，直接点击登录即可查看
+        </div>
       </div>
     </template>
     <template #third-party-login>
