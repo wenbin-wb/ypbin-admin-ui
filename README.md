@@ -8,70 +8,70 @@
 
 </div>
 
-**English** | [中文](./README.zh-CN.md)
+**中文** | [English](./README.en-US.md)
 
-## Online Demo
-
-<p align="center">
-  <a href="https://admin.ypbin.cn/"><strong>https://admin.ypbin.cn</strong></a> — try it directly
-</p>
-
-## Preview
+## 在线演示
 
 <p align="center">
-  <img src="https://ypbin.cn/screenshots/admin-ui/dashboard.png" alt="Dashboard" width="75%" />
+  <a href="https://admin.ypbin.cn/"><strong>https://admin.ypbin.cn</strong></a> —— 免配置直接访问，体验完整后台
+</p>
+
+## 界面预览
+
+<p align="center">
+  <img src="https://ypbin.cn/screenshots/admin-ui/dashboard.png" alt="运行概览" width="75%" />
 </p>
 <p align="center">
-  <img src="https://ypbin.cn/screenshots/admin-ui/login.png" alt="Login" width="55%" />
+  <img src="https://ypbin.cn/screenshots/admin-ui/login.png" alt="登录页" width="55%" />
 </p>
 
-## Introduction
+## 简介
 
-Ypbin Admin is the frontend of the [ypbin-admin](https://github.com/wenbin-wb/ypbin-admin) enterprise management system, built on top of the open source project [vue-vben-admin](https://github.com/vbenjs/vue-vben-admin) (MIT License) with the `ant-design-vue` variant (`web-antd`). It delivers an out-of-the-box, enterprise-ready admin UI with backend-driven menus and real-time messaging.
+Ypbin Admin 是 [ypbin-admin](https://github.com/wenbin-wb/ypbin-admin) 企业管理系统的前端，基于开源项目 [vue-vben-admin](https://github.com/vbenjs/vue-vben-admin)（MIT License）的 `ant-design-vue` 变体（`web-antd`）改造而来，提供开箱即用的企业级中后台界面，菜单与权限由后端驱动，内置站内信实时推送。
 
-> Full documentation: [ypbin.cn](https://ypbin.cn/guide/admin-ui/) · [Development guide](https://ypbin.cn/guide/admin-ui/development)
+> 完整文档见 [ypbin.cn](https://ypbin.cn/guide/admin-ui/) · [开发指南](https://ypbin.cn/guide/admin-ui/development)
 
-## Features
+## 特性
 
-- **Backend-driven Menus & Permissions** — menus are loaded from the ypbin-admin backend (`/menu/all`) with button-level permission codes
-- **System Management** — users, roles, departments, posts, menus, dictionaries, configs, tenants, permission templates
-- **Messaging Center** — in-site messages with real-time push via SSE, notification/announcement publishing with rich text
-- **Scheduled Tasks** — Cron-based task management with execution logs
-- **Multi-tenant Isolation** — tenant-scoped data and permission templates
-- **Enterprise Baseline** — i18n (zh-CN / en-US), theming, dark mode, custom preferences
+- **后端驱动菜单与权限**：菜单从 ypbin-admin 后端（`/menu/all`）加载，支持按钮级权限码
+- **系统管理**：用户、角色、部门、岗位、菜单、字典、参数配置、租户、权限模板
+- **消息中心**：站内信 SSE 实时推送，通知公告富文本发布
+- **定时任务**：基于 Cron 的任务管理与执行日志
+- **多租户隔离**：租户级数据与权限模板
+- **企业级基线**：国际化（zh-CN / en-US）、主题与暗色模式、个性化配置
 
-## Tech Stack
+## 技术栈
 
 - [Vue 3](https://vuejs.org/) + [TypeScript](https://www.typescriptlang.org/)
 - [Vite](https://vitejs.dev/) + [pnpm](https://pnpm.io/) + [Turbo](https://turbo.build/) monorepo
 - [Ant Design Vue](https://next.antdv.com/)
-- [Vben Admin 5.x](https://github.com/vbenjs/vue-vben-admin) as the base framework
+- 以 [Vben Admin 5.x](https://github.com/vbenjs/vue-vben-admin) 为基础框架
 
-## Quick Start
+## 快速开始
 
-The frontend requires the backend service to be running (see the backend's `DEVELOPMENT-PLAN.md` for how to start it).
+前端需要后端服务先启动（后端启动方式见其 `DEVELOPMENT-PLAN.md`）。
 
 ```bash
-# install dependencies
+# 安装依赖
 pnpm install
 
-# start the web-antd application
+# 启动 web-antd 应用
 pnpm dev:antd
 ```
 
-Then open http://localhost:5666 (or the port printed in the terminal).
+启动后访问 http://localhost:5666（或终端打印的端口）。
 
-## Project Structure
+## 目录结构
 
 ```
 apps/
-  web-antd/          # the ypbin-admin web application (Ant Design Vue)
-packages/            # shared libraries (layouts, common-ui, preferences, ...)
-internal/            # build tooling (vite-config, eslint-config, ...)
+  web-antd/          # ypbin-admin Web 应用（Ant Design Vue）
+packages/            # 共享库（layouts、common-ui、preferences 等）
+internal/            # 构建工具链（vite-config、eslint-config 等）
 ```
 
-## License
+## 许可证
 
-[Ypbin Admin](https://github.com/wenbin-wb/ypbin-admin-ui) is [MIT licensed](./LICENSE).
+[Ypbin Admin](https://github.com/wenbin-wb/ypbin-admin-ui) 使用 [MIT](./LICENSE) 许可。
 
-This project is derived from [vue-vben-admin](https://github.com/vbenjs/vue-vben-admin) (MIT, Copyright (c) 2024-present, Vben). We keep the original copyright and license notice as required by the MIT License. The ypbin-admin modifications and additions are Copyright (c) 2026-present, ypbin-admin authors.
+本项目派生自 [vue-vben-admin](https://github.com/vbenjs/vue-vben-admin)（MIT，Copyright (c) 2024-present, Vben）。按照 MIT 许可证要求，保留原作者版权与许可声明；ypbin-admin 的改造与新增部分版权归 Copyright (c) 2026-present, ypbin-admin authors。
