@@ -22,7 +22,7 @@
   <img src="https://ypbin.cn/screenshots/admin-ui/dashboard.png" alt="运行概览" width="75%" />
 </p>
 <p align="center">
-  <img src="https://ypbin.cn/screenshots/admin-ui/login.png" alt="登录页" width="55%" />
+  <img src="https://ypbin.cn/screenshots/admin-ui/roles.png" alt="角色权限" width="55%" />
 </p>
 
 ## 简介

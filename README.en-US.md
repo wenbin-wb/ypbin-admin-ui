@@ -22,7 +22,7 @@
   <img src="https://ypbin.cn/screenshots/admin-ui/dashboard.png" alt="Dashboard" width="75%" />
 </p>
 <p align="center">
-  <img src="https://ypbin.cn/screenshots/admin-ui/login.png" alt="Login" width="55%" />
+  <img src="https://ypbin.cn/screenshots/admin-ui/roles.png" alt="Roles" width="55%" />
 </p>
 
 ## Introduction
