@@ -213,6 +213,9 @@ export function useFormSchema(): FormSchema[] {
       fieldName: 'content',
       label: $t('system.notice.content'),
       formItemClass: 'items-start',
+      componentProps: {
+        placeholder: $t('system.notice.contentPlaceholder'),
+      },
     },
   ];
 }

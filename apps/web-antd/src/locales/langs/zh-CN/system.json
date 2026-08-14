@@ -1,4 +1,4 @@
-﻿{
+{
   "title": "系统管理",
   "user": {
     "title": "用户管理",
@@ -244,6 +244,7 @@
     "typeAnnouncement": "公告",
     "publishTime": "发布时间",
     "content": "内容",
+    "contentPlaceholder": "请输入公告内容...",
     "cover": "封面图",
     "preview": "预览",
     "scope": "通知范围",

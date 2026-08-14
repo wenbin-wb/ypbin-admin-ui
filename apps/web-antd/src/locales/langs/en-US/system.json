@@ -244,6 +244,7 @@
     "typeAnnouncement": "Announcement",
     "publishTime": "Publish Time",
     "content": "Content",
+    "contentPlaceholder": "Enter notice content...",
     "cover": "Cover",
     "preview": "Preview",
     "scope": "Notify Scope",
