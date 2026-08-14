@@ -25,9 +25,9 @@ const captchaPayload = ref<null | {
   track: AuthApi.CaptchaTrack;
 }>(null);
 
-// 演示账号：登录页预填给访客直接体验，部署后可按需修改或停用
-const DEMO_USERNAME = 'demo';
-const DEMO_PASSWORD = 'Ypbin@2026';
+// 演示登录账号：直接用平台超管 admin，每天重置数据库后由 Bootstrap 按 .env 重建，密码与 ADMIN_BOOTSTRAP_PASSWORD 一致
+const DEMO_USERNAME = 'admin';
+const DEMO_PASSWORD = 'pt5aQ5E6t8dkVkMp';
 
 const formSchema = computed((): VbenFormSchema[] => {
   return [
@@ -116,9 +116,9 @@ function refreshCaptcha() {
         <div
           class="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs text-muted-foreground"
         >
-          演示账号 <code class="font-semibold text-foreground">demo</code> /
-          <code class="font-semibold text-foreground">Ypbin@2026</code>
-          已自动填入，直接点击登录即可查看
+          管理员账号 <code class="font-semibold text-foreground">admin</code> /
+          <code class="font-semibold text-foreground">pt5aQ5E6t8dkVkMp</code>
+          已自动填入，直接点击登录即可查看（演示环境每日重置）
         </div>
       </div>
     </template>
