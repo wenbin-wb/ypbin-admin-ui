@@ -5,6 +5,7 @@ import { computed, nextTick, ref } from 'vue';
 
 import { useAccess } from '@vben/access';
 import { useVbenModal } from '@vben/common-ui';
+import { VbenTiptap } from '@vben/plugins/tiptap';
 
 import { Button, message } from 'ant-design-vue';
 
@@ -31,6 +32,15 @@ const [Form, formApi] = useVbenForm({
   schema: useFormSchema(),
   showDefaultActions: false,
 });
+
+/**
+ * 富文本内容变化时写回表单 content 字段。
+ * VbenTiptap 的 modelValue 双向绑定在弹层表单中偶发不同步，这里用其 change 事件
+ * 显式将 HTML 写回 formApi，确保提交时 content 一定带上。
+ */
+function onContentChange(payload: { html: string }) {
+  formApi.setFieldValue('content', payload.html);
+}
 
 /** 提交：draft=true 存为草稿（publishStatus=0） */
 async function submit(draft: boolean) {
@@ -124,6 +134,14 @@ defineExpose({ modalApi });
           v-bind="slotProps.componentField"
           module="notice"
           aspect-ratio="16:9"
+        />
+      </template>
+      <!-- 富文本内容：显式绑定 change 事件写回 content，避免提交时内容丢失 -->
+      <template #content="{ componentField, modelValue }">
+        <VbenTiptap
+          v-bind="componentField"
+          :model-value="modelValue"
+          @change="onContentChange"
         />
       </template>
     </Form>
