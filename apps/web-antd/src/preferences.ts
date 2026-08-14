@@ -24,9 +24,6 @@ export const overridesPreferences = defineOverridesPreferences({
     locale: 'zh-CN',
     // Sa-Token 为续期机制、无 refresh token，关闭前端刷新逻辑
     enableRefreshToken: false,
-    // 默认首页：后端 homePath 未下发时兜底。/dashboard 不在所有角色菜单内（演示账号无该菜单），
-    // 用各角色都有的用户列表页，避免登录后落到无权限的 404
-    defaultHomePath: '/system/user',
   },
   copyright: {
     companyName: 'Ypbin Admin',
