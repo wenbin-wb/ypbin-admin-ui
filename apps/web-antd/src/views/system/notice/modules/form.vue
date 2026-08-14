@@ -141,6 +141,7 @@ defineExpose({ modalApi });
         <VbenTiptap
           v-bind="componentField"
           :model-value="modelValue"
+          :placeholder="$t('system.notice.contentPlaceholder')"
           @change="onContentChange"
         />
       </template>
