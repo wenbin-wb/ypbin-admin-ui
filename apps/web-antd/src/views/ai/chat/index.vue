@@ -3,6 +3,9 @@ import type { AiApi } from '#/api/ai';
 
 import { nextTick, onMounted, ref } from 'vue';
 
+import hljs from 'highlight.js';
+import { marked } from 'marked';
+
 import {
   chat,
   createConversation,
@@ -15,13 +18,31 @@ import { $t } from '#/locales';
 
 defineOptions({ name: 'AiChat' });
 
+// 配置 marked 使用 highlight.js
+marked.setOptions({
+  renderer: new marked.Renderer(),
+  gfm: true,
+  breaks: true,
+});
+
+const renderer = new marked.Renderer();
+renderer.code = ({ text, lang }: { lang?: string; text: string; }) => {
+  const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
+  const highlighted = hljs.highlight(text, { language }).value;
+  return `<pre class="ai-code-block"><code class="hljs language-${language}">${highlighted}</code><button class="ai-copy-btn" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent)">复制</button></pre>`;
+};
+marked.use({ renderer });
+
+// ===== 状态 =====
 const conversations = ref<AiApi.Conversation[]>([]);
 const activeConvId = ref<string>('');
 const messages = ref<AiApi.Message[]>([]);
 const inputText = ref('');
 const isStreaming = ref(false);
 const msgListRef = ref<HTMLElement>();
+let abortController: AbortController | null = null;
 
+// ===== 会话 =====
 async function loadConversations() {
   conversations.value = await listConversations();
 }
@@ -33,6 +54,7 @@ async function handleNewChat() {
 }
 
 async function selectConversation(id: string) {
+  if (!id) return;
   activeConvId.value = id;
   const data = await listMessages(id, { page: 1, pageSize: 100 });
   messages.value = data.items ?? [];
@@ -48,6 +70,7 @@ async function handleDeleteConv(id: string) {
   }
 }
 
+// ===== 发送消息（流式 + AbortController）=====
 async function handleSendWithStream() {
   const text = inputText.value.trim();
   if (!text || isStreaming.value) return;
@@ -80,6 +103,9 @@ async function handleSendWithStream() {
   messages.value.push(assistantMsg);
   isStreaming.value = true;
 
+  // 创建 AbortController 用于中断流
+  abortController = new AbortController();
+
   try {
     await chat(
       { conversationId: activeConvId.value, message: text },
@@ -89,14 +115,29 @@ async function handleSendWithStream() {
       },
       async () => {
         isStreaming.value = false;
+        abortController = null;
         assistantMsg.id = Date.now().toString();
         await loadConversations();
       },
+      abortController.signal,
     );
-  } catch {
-    assistantMsg.content = '请求出错，请重试。';
+  } catch (error: unknown) {
+    // AbortError 是用户主动中断，不报错
+    if (!(error instanceof Error && error.name === 'AbortError')) {
+      assistantMsg.content = assistantMsg.content || '请求出错，请重试。';
+    }
     isStreaming.value = false;
+    abortController = null;
   }
+}
+
+/** 中断当前流式请求 */
+function handleStop() {
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+  }
+  isStreaming.value = false;
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -113,6 +154,7 @@ async function scrollToBottom() {
   }
 }
 
+// ===== 重命名 =====
 const renaming = ref<string>('');
 const renameTitle = ref('');
 function startRename(conv: AiApi.Conversation) {
@@ -127,14 +169,15 @@ async function commitRename(id: string) {
   renaming.value = '';
 }
 
+// ===== Markdown 渲染 =====
 function renderMd(content: string): string {
-  return content
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-    .replaceAll(/`([^`]+)`/g, '<code>$1</code>')
-    .replaceAll('\n', '<br>');
+  if (!content) return '';
+  try {
+    return marked.parse(content) as string;
+  } catch {
+    // 渲染失败兜底为纯文本
+    return content.replaceAll('\n', '<br>');
+  }
 }
 
 onMounted(async () => {
@@ -147,6 +190,7 @@ onMounted(async () => {
 
 <template>
   <div class="ai-chat-layout">
+    <!-- 左侧会话列表 -->
     <div class="ai-chat-sidebar">
       <div class="ai-chat-sidebar__header">
         <span class="ai-chat-sidebar__title">{{
@@ -189,6 +233,7 @@ onMounted(async () => {
       </div>
     </div>
 
+    <!-- 右侧对话区 -->
     <div class="ai-chat-main">
       <div ref="msgListRef" class="ai-chat-messages">
         <div v-if="messages.length === 0" class="ai-chat-empty">
@@ -223,6 +268,7 @@ onMounted(async () => {
         </div>
       </div>
 
+      <!-- 输入区 -->
       <div class="ai-chat-input-area">
         <a-textarea
           v-model:value="inputText"
@@ -240,7 +286,7 @@ onMounted(async () => {
           >
             {{ $t('page.ai.chat.send') }}
           </a-button>
-          <a-button v-else danger @click="isStreaming = false">
+          <a-button v-else danger @click="handleStop">
             {{ $t('page.ai.chat.stop') }}
           </a-button>
         </div>
@@ -345,7 +391,7 @@ onMounted(async () => {
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  max-width: 80%;
+  max-width: 82%;
 }
 
 .ai-chat-msg--user {
@@ -404,20 +450,95 @@ onMounted(async () => {
   }
 }
 
-.ai-chat-markdown :deep(pre) {
-  padding: 10px;
+/* Markdown 渲染（marked + highlight.js） */
+.ai-chat-markdown :deep(p) {
+  margin: 0 0 8px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.ai-chat-markdown :deep(h1),
+.ai-chat-markdown :deep(h2),
+.ai-chat-markdown :deep(h3) {
+  margin: 12px 0 6px;
+  font-weight: 600;
+}
+
+.ai-chat-markdown :deep(ul),
+.ai-chat-markdown :deep(ol) {
+  padding-left: 20px;
+  margin: 6px 0;
+}
+
+.ai-chat-markdown :deep(li) {
+  margin: 2px 0;
+}
+
+.ai-chat-markdown :deep(blockquote) {
+  padding-left: 10px;
+  margin: 8px 0;
+  color: var(--vp-c-text-2);
+  border-left: 3px solid var(--vp-c-brand);
+}
+
+.ai-chat-markdown :deep(.ai-code-block) {
+  position: relative;
   margin: 8px 0;
   overflow-x: auto;
-  font-size: 13px;
   background: var(--vp-c-bg-soft);
   border-radius: 6px;
 }
 
-.ai-chat-markdown :deep(code) {
+.ai-chat-markdown :deep(.ai-code-block code) {
+  display: block;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ai-chat-markdown :deep(.ai-copy-btn) {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-border);
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.ai-chat-markdown :deep(.ai-code-block:hover .ai-copy-btn) {
+  opacity: 1;
+}
+
+.ai-chat-markdown :deep(code:not(.hljs)) {
   padding: 2px 5px;
   font-size: 13px;
   background: var(--vp-c-bg-soft);
   border-radius: 3px;
+}
+
+.ai-chat-markdown :deep(table) {
+  width: 100%;
+  margin: 8px 0;
+  font-size: 13px;
+  border-collapse: collapse;
+}
+
+.ai-chat-markdown :deep(th),
+.ai-chat-markdown :deep(td) {
+  padding: 6px 10px;
+  text-align: left;
+  border: 1px solid var(--vp-c-border);
+}
+
+.ai-chat-markdown :deep(th) {
+  background: var(--vp-c-bg-soft);
 }
 
 .ai-chat-input-area {

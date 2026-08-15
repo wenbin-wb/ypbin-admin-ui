@@ -121,16 +121,18 @@ export function listMessages(
   );
 }
 
-/** 流式对话，复用 requestClient.postSSE */
+/** 流式对话，复用 requestClient.postSSE，支持 AbortController 中断 */
 export function chat(
   data: AiApi.ChatReq,
   onMessage: (token: string) => void,
   onEnd?: () => void,
+  signal?: AbortSignal,
 ) {
   return requestClient.postSSE('/ai/chat', data, {
     headers: { 'Content-Type': 'application/json' },
     onMessage,
     onEnd,
+    signal,
   });
 }
 
