@@ -72,9 +72,23 @@ export namespace AiApi {
     errorMsg?: string;
     createTime: string;
   }
-}
+  export interface PromptTemplate {
+    id: string;
+    name: string;
+    category?: string;
+    template: string;
+    description?: string;
+    status: number;
+    createTime: string;
+  }
 
-// 对话
+  export interface PromptTemplateSaveReq {
+    name: string;
+    category?: string;
+    template: string;
+    description?: string;
+  }
+}
 export function listConversations() {
   return requestClient.get<AiApi.Conversation[]>('/ai/chat/conversations');
 }
@@ -173,4 +187,53 @@ export function setDefaultModel(id: string) {
 
 export function testModel(id: string) {
   return requestClient.post<{ latencyMs: number }>(`/ai/models/${id}/test`);
+}
+
+// Prompt 模板
+export function listPromptTemplates() {
+  return requestClient.get<AiApi.PromptTemplate[]>('/ai/prompt-templates');
+}
+
+export function createPromptTemplate(data: AiApi.PromptTemplateSaveReq) {
+  return requestClient.post('/ai/prompt-templates', data);
+}
+
+export function updatePromptTemplate(
+  id: string,
+  data: AiApi.PromptTemplateSaveReq,
+) {
+  return requestClient.put(`/ai/prompt-templates/${id}`, data);
+}
+
+export function deletePromptTemplate(id: string) {
+  return requestClient.delete(`/ai/prompt-templates/${id}`);
+}
+
+export function togglePromptTemplate(id: string, status: 0 | 1) {
+  return requestClient.put(`/ai/prompt-templates/${id}/status/${status}`);
+}
+
+// 用量统计
+export function getUsageSummary() {
+  return requestClient.get<{
+    avgLatencyMs: number;
+    totalCalls: number;
+    totalTokens: number;
+  }>('/ai/usage/summary');
+}
+
+export function getDailyUsage(params?: {
+  endDate?: string;
+  startDate?: string;
+}) {
+  return requestClient.get<Array<{ date: string; tokens: number }>>(
+    '/ai/usage/daily',
+    { params },
+  );
+}
+
+export function getUsageByModel() {
+  return requestClient.get<Array<{ model: string; tokens: number }>>(
+    '/ai/usage/by-model',
+  );
 }

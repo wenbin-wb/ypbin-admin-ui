@@ -33,6 +33,22 @@
       "testQueryPlaceholder": "输入问题测试检索效果",
       "chunkCount": "切片数"
     },
+    "prompt": {
+      "title": "Prompt 模板",
+      "create": "新增模板",
+      "name": "模板名称",
+      "category": "分类",
+      "template": "系统提示词",
+      "description": "描述"
+    },
+    "usage": {
+      "title": "用量统计",
+      "totalCalls": "总对话次数",
+      "totalTokens": "总 Token 消耗",
+      "avgLatency": "平均响应耗时",
+      "daily": "近 30 天每日用量",
+      "byModel": "按模型分布"
+    },
     "config": {
       "title": "AI 配置",
       "modelList": "模型列表",
