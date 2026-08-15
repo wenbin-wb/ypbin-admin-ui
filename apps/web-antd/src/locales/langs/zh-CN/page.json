@@ -1,4 +1,59 @@
 {
+  "ai": {
+    "title": "AI 助手",
+    "chat": {
+      "title": "AI 对话",
+      "newChat": "新建对话",
+      "placeholder": "按 Enter 发送，Shift+Enter 换行",
+      "thinking": "正在思考…",
+      "send": "发送",
+      "stop": "停止",
+      "retry": "重新生成",
+      "copy": "复制",
+      "deleteConv": "删除对话",
+      "renameConv": "重命名",
+      "selectModel": "选择模型",
+      "selectKb": "关联知识库",
+      "emptyHint": "开始一段新对话",
+      "contextCleared": "已清空上下文"
+    },
+    "knowledge": {
+      "title": "知识库",
+      "create": "新建知识库",
+      "name": "知识库名称",
+      "description": "描述",
+      "docCount": "文档数",
+      "upload": "上传文档",
+      "uploadHint": "支持 PDF / Markdown / TXT，单文件不超过 50MB",
+      "processing": "处理中",
+      "ready": "就绪",
+      "failed": "处理失败",
+      "deleteDoc": "删除文档",
+      "testQuery": "测试问答",
+      "testQueryPlaceholder": "输入问题测试检索效果",
+      "chunkCount": "切片数"
+    },
+    "config": {
+      "title": "AI 配置",
+      "modelList": "模型列表",
+      "addModel": "新增模型",
+      "provider": "提供商",
+      "modelName": "模型名称",
+      "apiKey": "API Key",
+      "baseUrl": "接口地址",
+      "isDefault": "默认",
+      "setDefault": "设为默认",
+      "testConn": "测试连接",
+      "testOk": "连接成功，延迟 {ms}ms",
+      "testFail": "连接失败",
+      "providerOptions": {
+        "deepseek": "DeepSeek",
+        "openai": "OpenAI",
+        "ollama": "Ollama（本地）",
+        "custom": "自定义"
+      }
+    }
+  },
   "auth": {
     "login": "登录",
     "register": "注册",
