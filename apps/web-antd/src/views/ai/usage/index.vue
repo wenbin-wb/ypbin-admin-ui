@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 
 import { getDailyUsage, getUsageByModel, getUsageSummary } from '#/api/ai';
+import { $t } from '#/locales';
 
 defineOptions({ name: 'AiUsage' });
 
@@ -38,29 +39,33 @@ onMounted(loadData);
 <template>
   <div class="p-4">
     <div class="mb-6 flex items-center justify-between">
-      <h2 class="text-lg font-semibold">Token 用量统计</h2>
-      <a-button :loading="loading" @click="loadData">刷新</a-button>
+      <h2 class="text-lg font-semibold">
+        {{ $t('page.ai.usage.title') }}
+      </h2>
+      <a-button :loading="loading" @click="loadData">
+        {{ $t('page.ai.usage.refresh') }}
+      </a-button>
     </div>
 
     <!-- 概览卡片 -->
     <a-row :gutter="[16, 16]" class="mb-6">
       <a-col :xs="24" :sm="8">
         <a-statistic
-          title="总对话次数"
+          :title="$t('page.ai.usage.totalCalls')"
           :value="summary.totalCalls"
           class="rounded-lg border p-4"
         />
       </a-col>
       <a-col :xs="24" :sm="8">
         <a-statistic
-          title="总 Token 消耗"
+          :title="$t('page.ai.usage.totalTokens')"
           :value="formatTokens(summary.totalTokens)"
           class="rounded-lg border p-4"
         />
       </a-col>
       <a-col :xs="24" :sm="8">
         <a-statistic
-          title="平均响应耗时"
+          :title="$t('page.ai.usage.avgLatency')"
           :value="summary.avgLatencyMs"
           suffix="ms"
           class="rounded-lg border p-4"
@@ -68,19 +73,24 @@ onMounted(loadData);
       </a-col>
     </a-row>
 
-    <!-- 每日用量折线图（简化为表格展示，echarts 可按需集成）-->
+    <!-- 每日用量 -->
     <a-row :gutter="[16, 16]">
       <a-col :xs="24" :lg="14">
         <div class="rounded-lg border p-4">
-          <div class="mb-3 font-medium">近 30 天每日 Token 用量</div>
+          <div class="mb-3 font-medium">
+            {{ $t('page.ai.usage.daily') }}
+          </div>
           <a-table
             :data-source="dailyData"
             row-key="date"
             size="small"
             :pagination="{ pageSize: 10, size: 'small' }"
           >
-            <a-table-column title="日期" data-index="date" />
-            <a-table-column title="Token 数" data-index="tokens">
+            <a-table-column
+              :title="$t('page.ai.usage.date')"
+              data-index="date"
+            />
+            <a-table-column :title="$t('page.ai.usage.tokens')">
               <template #default="{ record }">
                 {{ formatTokens(record.tokens) }}
                 <a-progress
@@ -105,20 +115,25 @@ onMounted(loadData);
 
       <a-col :xs="24" :lg="10">
         <div class="rounded-lg border p-4">
-          <div class="mb-3 font-medium">按模型分布</div>
+          <div class="mb-3 font-medium">
+            {{ $t('page.ai.usage.byModel') }}
+          </div>
           <a-table
             :data-source="modelData"
             row-key="model"
             size="small"
             :pagination="false"
           >
-            <a-table-column title="模型" data-index="model" />
-            <a-table-column title="Token 数">
+            <a-table-column
+              :title="$t('page.ai.usage.model')"
+              data-index="model"
+            />
+            <a-table-column :title="$t('page.ai.usage.tokens')">
               <template #default="{ record }">
                 {{ formatTokens(record.tokens) }}
               </template>
             </a-table-column>
-            <a-table-column title="占比">
+            <a-table-column :title="$t('page.ai.usage.percent')">
               <template #default="{ record }">
                 <a-progress
                   :percent="

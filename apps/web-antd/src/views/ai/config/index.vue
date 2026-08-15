@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { AiApi } from '#/api/ai';
 
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import { message } from 'ant-design-vue';
 
@@ -32,12 +32,12 @@ const form = ref<AiApi.ModelConfigSaveReq>({
   remark: '',
 });
 
-const providerOptions = [
-  { value: 'deepseek', label: 'DeepSeek' },
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'ollama', label: 'Ollama（本地）' },
-  { value: 'custom', label: '自定义' },
-];
+const providerOptions = computed(() => [
+  { value: 'deepseek', label: $t('page.ai.config.providerOptions.deepseek') },
+  { value: 'openai', label: $t('page.ai.config.providerOptions.openai') },
+  { value: 'ollama', label: $t('page.ai.config.providerOptions.ollama') },
+  { value: 'custom', label: $t('page.ai.config.providerOptions.custom') },
+]);
 
 /** 不同提供商的默认模型名提示 */
 const defaultModelHints: Record<string, string> = {
@@ -130,49 +130,75 @@ onMounted(loadModels);
     </div>
 
     <a-table :data-source="modelList" row-key="id" :pagination="false">
-      <a-table-column title="名称" data-index="name" />
-      <a-table-column title="提供商" data-index="provider" :width="100">
+      <a-table-column :title="$t('page.ai.config.name')" data-index="name" />
+      <a-table-column
+        :title="$t('page.ai.config.provider')"
+        data-index="provider"
+        :width="100"
+      >
         <template #default="{ text }">
           <a-tag>{{ text }}</a-tag>
         </template>
       </a-table-column>
-      <a-table-column title="模型" data-index="modelName" />
-      <a-table-column title="接口地址" data-index="baseUrl" ellipsis />
-      <a-table-column title="API Key" data-index="apiKeyMasked" :width="120" />
-      <a-table-column title="状态" :width="80">
+      <a-table-column
+        :title="$t('page.ai.config.model')"
+        data-index="modelName"
+      />
+      <a-table-column
+        :title="$t('page.ai.config.baseUrl')"
+        data-index="baseUrl"
+        ellipsis
+      />
+      <a-table-column
+        :title="$t('page.ai.config.apiKey')"
+        data-index="apiKeyMasked"
+        :width="120"
+      />
+      <a-table-column :title="$t('page.ai.config.status')" :width="80">
         <template #default="{ record }">
           <a-badge
             :status="record.status === 1 ? 'success' : 'default'"
-            :text="record.status === 1 ? '启用' : '停用'"
+            :text="
+              record.status === 1
+                ? $t('page.ai.config.enabled')
+                : $t('page.ai.config.disabled')
+            "
           />
         </template>
       </a-table-column>
-      <a-table-column title="默认" :width="70">
+      <a-table-column :title="$t('page.ai.config.isDefault')" :width="70">
         <template #default="{ record }">
-          <a-tag v-if="record.isDefault" color="blue">默认</a-tag>
+          <a-tag v-if="record.isDefault" color="blue">
+            {{ $t('page.ai.config.default') }}
+          </a-tag>
         </template>
       </a-table-column>
-      <a-table-column title="操作" :width="220">
+      <a-table-column :title="$t('page.ai.config.action')" :width="220">
         <template #default="{ record }">
           <a-space>
-            <a-button size="small" @click="openEdit(record)">编辑</a-button>
+            <a-button size="small" @click="openEdit(record)">
+              {{ $t('page.ai.config.edit') }}
+            </a-button>
             <a-button
               size="small"
               :loading="testing === record.id"
               @click="handleTest(record.id)"
             >
-              测试
+              {{ $t('page.ai.config.test') }}
             </a-button>
             <a-button
               v-if="!record.isDefault"
               size="small"
               @click="handleSetDefault(record.id)"
             >
-              设默认
+              {{ $t('page.ai.config.setDefault') }}
             </a-button>
-            <a-popconfirm title="确认删除？" @confirm="handleDelete(record.id)">
+            <a-popconfirm
+              :title="$t('page.ai.config.confirmDelete')"
+              @confirm="handleDelete(record.id)"
+            >
               <a-button v-if="!record.isDefault" size="small" danger>
-                删除
+                {{ $t('page.ai.config.delete') }}
               </a-button>
             </a-popconfirm>
           </a-space>
@@ -183,11 +209,15 @@ onMounted(loadModels);
     <!-- 新增/编辑抽屉 -->
     <a-drawer
       v-model:open="drawerOpen"
-      :title="editingId ? '编辑模型' : $t('page.ai.config.addModel')"
+      :title="
+        editingId
+          ? $t('page.ai.config.editModel')
+          : $t('page.ai.config.addModel')
+      "
       :width="480"
     >
       <a-form layout="vertical">
-        <a-form-item label="显示名称" required>
+        <a-form-item :label="$t('page.ai.config.name')" required>
           <a-input v-model:value="form.name" />
         </a-form-item>
         <a-form-item :label="$t('page.ai.config.provider')" required>
@@ -205,7 +235,9 @@ onMounted(loadModels);
         <a-form-item :label="$t('page.ai.config.apiKey')">
           <a-input-password
             v-model:value="form.apiKey"
-            :placeholder="editingId ? '留空表示不修改' : ''"
+            :placeholder="
+              editingId ? $t('page.ai.config.apiKeyPlaceholder') : ''
+            "
           />
         </a-form-item>
         <a-form-item
@@ -217,16 +249,18 @@ onMounted(loadModels);
             placeholder="http://localhost:11434"
           />
         </a-form-item>
-        <a-form-item label="备注">
+        <a-form-item :label="$t('page.ai.config.remark')">
           <a-textarea v-model:value="form.remark" :rows="2" />
         </a-form-item>
       </a-form>
 
       <template #footer>
         <a-space>
-          <a-button @click="drawerOpen = false">取消</a-button>
+          <a-button @click="drawerOpen = false">
+            {{ $t('page.ai.config.cancel') }}
+          </a-button>
           <a-button type="primary" :loading="saving" @click="handleSave">
-            保存
+            {{ $t('page.ai.config.save') }}
           </a-button>
         </a-space>
       </template>

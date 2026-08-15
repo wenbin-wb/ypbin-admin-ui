@@ -11,6 +11,7 @@ import {
   listKnowledgeBases,
   queryKnowledgeBase,
 } from '#/api/ai';
+import { requestClient } from '#/api/request';
 import { $t } from '#/locales';
 
 defineOptions({ name: 'AiKnowledge' });
@@ -66,7 +67,6 @@ async function handleUpload(file: File) {
   const formData = new FormData();
   formData.append('file', file);
   try {
-    const { requestClient } = await import('#/api/request');
     await requestClient.post(
       `/ai/knowledge-bases/${activeKb.value.id}/documents`,
       formData,
@@ -124,7 +124,9 @@ onMounted(loadKbList);
 <template>
   <div class="p-4">
     <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-semibold">{{ $t('page.ai.knowledge.title') }}</h2>
+      <h2 class="text-lg font-semibold">
+        {{ $t('page.ai.knowledge.title') }}
+      </h2>
       <a-button type="primary" @click="createModalOpen = true">
         + {{ $t('page.ai.knowledge.create') }}
       </a-button>
@@ -143,18 +145,24 @@ onMounted(loadKbList);
         <a-card hoverable class="cursor-pointer" @click="openKb(kb)">
           <a-card-meta
             :title="kb.name"
-            :description="kb.description || '无描述'"
+            :description="
+              kb.description || $t('page.ai.knowledge.noDescription')
+            "
           />
           <div
             class="mt-3 flex items-center justify-between text-sm text-gray-500"
           >
-            <span>{{ kb.docCount }} 个文档</span>
+            <span>
+              {{ kb.docCount }} {{ $t('page.ai.knowledge.docCountSuffix') }}
+            </span>
             <a-popconfirm
-              title="确认删除知识库及全部向量数据？"
+              :title="$t('page.ai.knowledge.confirmDeleteKb')"
               @confirm.stop="handleDeleteKb(kb.id)"
               @click.stop
             >
-              <a-button size="small" danger type="link">删除</a-button>
+              <a-button size="small" danger type="link">
+                {{ $t('page.ai.knowledge.delete') }}
+              </a-button>
             </a-popconfirm>
           </div>
         </a-card>
@@ -207,14 +215,22 @@ onMounted(loadKbList);
         row-key="id"
         size="small"
       >
-        <a-table-column title="文件名" data-index="filename" ellipsis />
-        <a-table-column title="大小" :width="80">
+        <a-table-column
+          :title="$t('page.ai.knowledge.filename')"
+          data-index="filename"
+          ellipsis
+        />
+        <a-table-column :title="$t('page.ai.knowledge.size')" :width="80">
           <template #default="{ record }">
             {{ formatSize(record.fileSize) }}
           </template>
         </a-table-column>
-        <a-table-column title="切片数" :width="70" data-index="chunkCount" />
-        <a-table-column title="状态" :width="90">
+        <a-table-column
+          :title="$t('page.ai.knowledge.chunkCount')"
+          :width="70"
+          data-index="chunkCount"
+        />
+        <a-table-column :title="$t('page.ai.knowledge.status')" :width="90">
           <template #default="{ record }">
             <a-badge
               :status="statusTag(record.status).color"
@@ -222,13 +238,15 @@ onMounted(loadKbList);
             />
           </template>
         </a-table-column>
-        <a-table-column title="操作" :width="80">
+        <a-table-column :title="$t('page.ai.knowledge.action')" :width="80">
           <template #default="{ record }">
             <a-popconfirm
-              title="确认删除？"
+              :title="$t('page.ai.knowledge.confirmDelete')"
               @confirm="handleDeleteDoc(record.id)"
             >
-              <a-button size="small" danger type="link">删除</a-button>
+              <a-button size="small" danger type="link">
+                {{ $t('page.ai.knowledge.delete') }}
+              </a-button>
             </a-popconfirm>
           </template>
         </a-table-column>
@@ -243,7 +261,7 @@ onMounted(loadKbList);
           v-model:value="testQuery"
           :placeholder="$t('page.ai.knowledge.testQueryPlaceholder')"
           :loading="testLoading"
-          enter-button="问"
+          :enter-button="$t('page.ai.knowledge.ask')"
           @search="handleTestQuery"
         />
         <a-alert

@@ -3,6 +3,7 @@ import type { AiApi } from '#/api/ai';
 
 import { nextTick, onMounted, ref } from 'vue';
 
+import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
 import { marked } from 'marked';
 
@@ -18,20 +19,14 @@ import { $t } from '#/locales';
 
 defineOptions({ name: 'AiChat' });
 
-// 配置 marked 使用 highlight.js
-marked.setOptions({
-  renderer: new marked.Renderer(),
-  gfm: true,
-  breaks: true,
-});
-
-const renderer = new marked.Renderer();
-renderer.code = ({ text, lang }: { lang?: string; text: string; }) => {
+// marked + highlight.js 全局配置（模块级只执行一次）
+const markdownRenderer = new marked.Renderer();
+markdownRenderer.code = ({ text, lang }: { lang?: string; text: string }) => {
   const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
   const highlighted = hljs.highlight(text, { language }).value;
-  return `<pre class="ai-code-block"><code class="hljs language-${language}">${highlighted}</code><button class="ai-copy-btn" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent)">复制</button></pre>`;
+  return `<pre class="ai-code-block"><code class="hljs language-${language}">${highlighted}</code><button type="button" class="ai-copy-btn">${$t('page.ai.chat.copy')}</button></pre>`;
 };
-marked.use({ renderer });
+marked.use({ renderer: markdownRenderer, gfm: true, breaks: true });
 
 // ===== 状态 =====
 const conversations = ref<AiApi.Conversation[]>([]);
@@ -124,7 +119,8 @@ async function handleSendWithStream() {
   } catch (error: unknown) {
     // AbortError 是用户主动中断，不报错
     if (!(error instanceof Error && error.name === 'AbortError')) {
-      assistantMsg.content = assistantMsg.content || '请求出错，请重试。';
+      assistantMsg.content =
+        assistantMsg.content || $t('page.ai.chat.requestError');
     }
     isStreaming.value = false;
     abortController = null;
@@ -169,15 +165,27 @@ async function commitRename(id: string) {
   renaming.value = '';
 }
 
-// ===== Markdown 渲染 =====
+// ===== Markdown 渲染（DOMPurify 消毒，防 XSS）=====
 function renderMd(content: string): string {
   if (!content) return '';
   try {
-    return marked.parse(content) as string;
+    const raw = marked.parse(content) as string;
+    return DOMPurify.sanitize(raw, { ADD_ATTR: ['class'] });
   } catch {
     // 渲染失败兜底为纯文本
-    return content.replaceAll('\n', '<br>');
+    return content
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
   }
+}
+
+/** 复制代码块：事件委托处理 .ai-copy-btn 点击 */
+function handleMarkdownClick(e: MouseEvent) {
+  const target = (e.target as HTMLElement).closest('.ai-copy-btn');
+  if (!target) return;
+  const code = target.previousElementSibling?.textContent ?? '';
+  navigator.clipboard.writeText(code);
 }
 
 onMounted(async () => {
@@ -219,9 +227,16 @@ onMounted(async () => {
           <template v-else>
             <span class="ai-chat-conv-item__title">{{ conv.title }}</span>
             <span class="ai-chat-conv-item__actions">
-              <a-button size="small" type="text" @click.stop="startRename(conv)">✏️</a-button>
+              <a-button
+                size="small"
+                type="text"
+                :title="$t('page.ai.chat.renameConv')"
+                @click.stop="startRename(conv)"
+              >
+                ✏️
+              </a-button>
               <a-popconfirm
-                title="确认删除？"
+                :title="$t('page.ai.chat.confirmDelete')"
                 @confirm="handleDeleteConv(conv.id)"
                 @click.stop
               >
@@ -254,12 +269,14 @@ onMounted(async () => {
           <template v-else>
             <div class="ai-chat-msg__avatar">🤖</div>
             <div class="ai-chat-msg__bubble ai-chat-msg__bubble--assistant">
-              <!-- eslint-disable-next-line vue/no-v-html -->
+              <!-- eslint-disable vue/no-v-html -->
               <div
                 v-if="msg.content"
                 class="ai-chat-markdown"
                 v-html="renderMd(msg.content)"
+                @click="handleMarkdownClick"
               ></div>
+              <!-- eslint-enable vue/no-v-html -->
               <span v-else class="ai-chat-thinking">{{
                 $t('page.ai.chat.thinking')
               }}</span>
@@ -300,7 +317,8 @@ onMounted(async () => {
   display: flex;
   height: calc(100vh - 120px);
   overflow: hidden;
-  background: var(--vp-c-bg);
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
   border-radius: 8px;
 }
 
@@ -309,7 +327,7 @@ onMounted(async () => {
   flex-direction: column;
   width: 240px;
   min-width: 200px;
-  border-right: 1px solid var(--vp-c-border);
+  border-right: 1px solid hsl(var(--border));
 }
 
 .ai-chat-sidebar__header {
@@ -318,7 +336,7 @@ onMounted(async () => {
   justify-content: space-between;
   padding: 12px;
   font-weight: 600;
-  border-bottom: 1px solid var(--vp-c-border);
+  border-bottom: 1px solid hsl(var(--border));
 }
 
 .ai-chat-sidebar__list {
@@ -339,11 +357,11 @@ onMounted(async () => {
 }
 
 .ai-chat-conv-item:hover {
-  background: var(--vp-c-bg-alt);
+  background: hsl(var(--muted));
 }
 
 .ai-chat-conv-item.active {
-  background: var(--vp-c-brand-soft);
+  background: hsl(var(--accent));
 }
 
 .ai-chat-conv-item__title {
@@ -383,7 +401,7 @@ onMounted(async () => {
 .ai-chat-empty {
   margin: auto;
   font-size: 15px;
-  color: var(--vp-c-text-3);
+  color: hsl(var(--muted-foreground));
   text-align: center;
 }
 
@@ -411,7 +429,7 @@ onMounted(async () => {
   width: 32px;
   height: 32px;
   font-size: 16px;
-  background: var(--vp-c-brand-soft);
+  background: hsl(var(--accent));
   border-radius: 50%;
 }
 
@@ -425,17 +443,17 @@ onMounted(async () => {
 }
 
 .ai-chat-msg__bubble--user {
-  color: white;
-  background: var(--vp-c-brand);
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
 }
 
 .ai-chat-msg__bubble--assistant {
-  background: var(--vp-c-bg-alt);
-  border: 1px solid var(--vp-c-border);
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
 }
 
 .ai-chat-thinking {
-  color: var(--vp-c-text-3);
+  color: hsl(var(--muted-foreground));
   animation: blink 1s infinite;
 }
 
@@ -479,15 +497,15 @@ onMounted(async () => {
 .ai-chat-markdown :deep(blockquote) {
   padding-left: 10px;
   margin: 8px 0;
-  color: var(--vp-c-text-2);
-  border-left: 3px solid var(--vp-c-brand);
+  color: hsl(var(--muted-foreground));
+  border-left: 3px solid hsl(var(--primary));
 }
 
 .ai-chat-markdown :deep(.ai-code-block) {
   position: relative;
   margin: 8px 0;
   overflow-x: auto;
-  background: var(--vp-c-bg-soft);
+  background: hsl(var(--secondary));
   border-radius: 6px;
 }
 
@@ -505,8 +523,8 @@ onMounted(async () => {
   padding: 2px 8px;
   font-size: 11px;
   cursor: pointer;
-  background: var(--vp-c-bg);
-  border: 1px solid var(--vp-c-border);
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
   border-radius: 4px;
   opacity: 0;
   transition: opacity 0.2s;
@@ -519,7 +537,7 @@ onMounted(async () => {
 .ai-chat-markdown :deep(code:not(.hljs)) {
   padding: 2px 5px;
   font-size: 13px;
-  background: var(--vp-c-bg-soft);
+  background: hsl(var(--secondary));
   border-radius: 3px;
 }
 
@@ -534,11 +552,11 @@ onMounted(async () => {
 .ai-chat-markdown :deep(td) {
   padding: 6px 10px;
   text-align: left;
-  border: 1px solid var(--vp-c-border);
+  border: 1px solid hsl(var(--border));
 }
 
 .ai-chat-markdown :deep(th) {
-  background: var(--vp-c-bg-soft);
+  background: hsl(var(--secondary));
 }
 
 .ai-chat-input-area {
@@ -546,7 +564,7 @@ onMounted(async () => {
   gap: 10px;
   align-items: flex-end;
   padding: 12px 16px;
-  border-top: 1px solid var(--vp-c-border);
+  border-top: 1px solid hsl(var(--border));
 }
 
 .ai-chat-input-area .ant-input {
