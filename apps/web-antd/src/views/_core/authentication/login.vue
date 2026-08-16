@@ -107,16 +107,16 @@ function refreshCaptcha() {
         <div class="flex items-center justify-center gap-2.5">
           <img src="/ypbin-logo.svg" alt="ypbin" class="h-9 w-9 shrink-0" />
           <h2 class="text-2xl font-bold tracking-tight text-foreground">
-            {{ $t('auth.title') }}
+            {{ $t('page.auth.title') }}
           </h2>
         </div>
         <p class="mt-2 text-center text-sm text-muted-foreground">
-          {{ $t('auth.techStack') }}
+          {{ $t('page.auth.techStack') }}
         </p>
         <div
           class="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs text-muted-foreground"
         >
-          {{ $t('auth.demoTip') }}
+          {{ $t('page.auth.demoTip') }}
         </div>
       </div>
     </template>
