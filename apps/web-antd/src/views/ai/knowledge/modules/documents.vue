@@ -22,6 +22,8 @@ import {
   deleteDocument,
   getDocumentList,
   queryKnowledgeBase,
+  searchKnowledgeBaseMultiple,
+  searchKnowledgeBaseRerank,
   searchKnowledgeBaseTest,
 } from '#/api/ai';
 import { requestClient } from '#/api/request';
@@ -36,6 +38,7 @@ const testLoading = ref(false);
 const recallList = ref<
   Array<{ content: string; metadata: Record<string, any>; source?: string }>
 >([]);
+const testMode = ref<'multiple' | 'rerank' | 'single'>('single');
 
 const [Drawer, drawerApi] = useVbenDrawer<AiApi.KnowledgeBase | null>({
   onOpenChange: (isOpen) => {
@@ -149,12 +152,33 @@ async function onTestQuery() {
   testAnswer.value = '';
   recallList.value = [];
   try {
+    const question = testQuery.value;
     [testAnswer.value, recallList.value] = await Promise.all([
-      queryKnowledgeBase(kb.id, testQuery.value),
-      searchKnowledgeBaseTest(kb.id, testQuery.value, 5).catch(() => []),
+      queryKnowledgeBase(kb.id, question),
+      fetchRecallByMode(kb.id, question),
     ]);
   } finally {
     testLoading.value = false;
+  }
+}
+
+async function fetchRecallByMode(
+  kbId: string,
+  question: string,
+): Promise<
+  Array<{ content: string; metadata: Record<string, any>; source?: string }>
+> {
+  switch (testMode.value) {
+    case 'multiple': {
+      // 多库联合：以当前库为主，附带最近创建的其它库（演示 RRF 合并）
+      return searchKnowledgeBaseMultiple([kbId], question, 5).catch(() => []);
+    }
+    case 'rerank': {
+      return searchKnowledgeBaseRerank(kbId, question, 5).catch(() => []);
+    }
+    default: {
+      return searchKnowledgeBaseTest(kbId, question, 5).catch(() => []);
+    }
   }
 }
 
@@ -234,6 +258,29 @@ defineExpose({ drawerApi });
     </Grid>
 
     <Card :title="$t('page.ai.knowledge.testQuery')" size="small">
+      <div class="mb-3 flex flex-wrap gap-2">
+        <Button
+          :type="testMode === 'single' ? 'primary' : 'default'"
+          size="small"
+          @click="testMode = 'single'"
+        >
+          {{ $t('page.ai.knowledge.testModeSingle') }}
+        </Button>
+        <Button
+          :type="testMode === 'rerank' ? 'primary' : 'default'"
+          size="small"
+          @click="testMode = 'rerank'"
+        >
+          {{ $t('page.ai.knowledge.testModeRerank') }}
+        </Button>
+        <Button
+          :type="testMode === 'multiple' ? 'primary' : 'default'"
+          size="small"
+          @click="testMode = 'multiple'"
+        >
+          {{ $t('page.ai.knowledge.testModeMultiple') }}
+        </Button>
+      </div>
       <Input.Search
         v-model:value="testQuery"
         :enter-button="$t('page.ai.knowledge.ask')"

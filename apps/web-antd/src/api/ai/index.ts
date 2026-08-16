@@ -320,6 +320,33 @@ export function searchKnowledgeBaseTest(
   });
 }
 
+export function searchKnowledgeBaseMultiple(
+  kbIds: string[],
+  question: string,
+  topKPerKb = 5,
+) {
+  return requestClient.post<
+    Array<{ content: string; metadata: Record<string, any>; source?: string }>
+  >('/ai/knowledge-bases/search-multiple-test', {
+    knowledgeBaseIds: kbIds,
+    question,
+    topKPerKb,
+  });
+}
+
+export function searchKnowledgeBaseRerank(
+  kbId: string,
+  question: string,
+  topK = 5,
+) {
+  return requestClient.post<
+    Array<{ content: string; metadata: Record<string, any>; source?: string }>
+  >(`/ai/knowledge-bases/${kbId}/search-rerank-test`, {
+    question,
+    topK,
+  });
+}
+
 // 模型配置
 export function getModelList() {
   return requestClient.get<AiApi.ModelConfig[]>('/ai/models');

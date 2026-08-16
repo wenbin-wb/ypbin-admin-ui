@@ -74,7 +74,10 @@
       "status": "状态",
       "action": "操作",
       "ask": "问",
-      "recallHint": "召回片段"
+      "recallHint": "召回片段",
+      "testModeSingle": "单库检索",
+      "testModeRerank": "重排对比",
+      "testModeMultiple": "多库联合"
     },
     "prompt": {
       "title": "Prompt 模板",

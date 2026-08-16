@@ -86,7 +86,10 @@
       "status": "Status",
       "action": "Action",
       "ask": "Ask",
-      "recallHint": "Recalled Chunks"
+      "recallHint": "Recalled Chunks",
+      "testModeSingle": "Single KB",
+      "testModeRerank": "Rerank",
+      "testModeMultiple": "Multi-KB"
     },
     "prompt": {
       "title": "Prompt Templates",
