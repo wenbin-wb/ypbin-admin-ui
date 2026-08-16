@@ -136,17 +136,17 @@ export async function chat(
 ) {
   const accessStore = useAccessStore();
   const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
-  const response = await fetch(apiURL + '/ai/chat', {
+  const response = await fetch(`${apiURL}/ai/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + accessStore.accessToken,
+      Authorization: `Bearer ${accessStore.accessToken}`,
     },
     body: JSON.stringify(data),
     signal,
   });
   if (!response.ok) {
-    throw new Error('HTTP error! status: ' + response.status);
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
   const reader = response.body?.getReader();
   if (!reader) {

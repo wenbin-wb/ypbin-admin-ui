@@ -193,7 +193,9 @@ function toggleLike(id: string, type: 'down' | 'up') {
 /** 重新生成：删除尾部助手回复，重发最后一条用户消息 */
 async function regenerate() {
   if (isStreaming.value) return;
-  const lastUser = [...messages.value].reverse().find((m) => m.role === 'user');
+  const lastUser = [...messages.value]
+    .toReversed()
+    .find((m) => m.role === 'user');
   if (!lastUser) return;
   while (messages.value.length > 0) {
     const lastMsg = messages.value[messages.value.length - 1];
@@ -264,63 +266,79 @@ onMounted(async () => {
       <div v-if="drawerOpen" class="ds-drawer">
         <div class="ds-drawer__mask" @click="drawerOpen = false"></div>
         <aside class="ds-drawer__panel">
-            <div class="ds-drawer__header">
-              <button class="ds-chat__menu-btn" @click="drawerOpen = false">
-                <X class="size-5" />
-              </button>
-              <span class="ds-chat__brand">Ypbin AI</span>
-            </div>
-            <button class="ds-drawer__new" @click="handleNewChat">
-              <Plus class="size-4" />
-              {{ $t('page.ai.chat.newChat') }}
+          <div class="ds-drawer__header">
+            <button class="ds-chat__menu-btn" @click="drawerOpen = false">
+              <X class="size-5" />
             </button>
-            <div class="ds-drawer__list">
-              <div
-                v-for="conv in conversations"
-                :key="conv.id"
-                class="ds-drawer__item"
-                :class="{ active: conv.id === activeConvId }"
-                @click="selectConversation(conv.id)"
-              >
-                <template v-if="renaming === conv.id">
-                  <Input
-                    v-model:value="renameTitle"
+            <span class="ds-chat__brand">Ypbin AI</span>
+          </div>
+          <button class="ds-drawer__new" @click="handleNewChat">
+            <Plus class="size-4" />
+            {{ $t('page.ai.chat.newChat') }}
+          </button>
+          <div class="ds-drawer__list">
+            <div
+              v-for="conv in conversations"
+              :key="conv.id"
+              class="ds-drawer__item"
+              :class="{ active: conv.id === activeConvId }"
+              @click="selectConversation(conv.id)"
+            >
+              <template v-if="renaming === conv.id">
+                <Input
+                  v-model:value="renameTitle"
+                  size="small"
+                  @blur="commitRename(conv.id)"
+                  @press-enter="commitRename(conv.id)"
+                />
+              </template>
+              <template v-else>
+                <span class="ds-drawer__item-title">{{ conv.title }}</span>
+                <span class="ds-drawer__item-actions">
+                  <Button
                     size="small"
-                    @blur="commitRename(conv.id)"
-                    @press-enter="commitRename(conv.id)"
-                  />
-                </template>
-                <template v-else>
-                  <span class="ds-drawer__item-title">{{ conv.title }}</span>
-                  <span class="ds-drawer__item-actions">
-                    <Button
-                      size="small"
-                      type="text"
-                      :title="$t('page.ai.chat.renameConv')"
-                      @click.stop="startRename(conv)"
+                    type="text"
+                    :title="$t('page.ai.chat.renameConv')"
+                    @click.stop="startRename(conv)"
+                  >
+                    <svg
+                      class="size-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
                     >
-                      <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                      <path
+                        d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"
+                      />
+                    </svg>
+                  </Button>
+                  <Popconfirm
+                    :title="$t('page.ai.chat.confirmDelete')"
+                    @click.stop
+                    @confirm="handleDeleteConv(conv.id)"
+                  >
+                    <Button size="small" danger type="text">
+                      <svg
+                        class="size-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                        />
                       </svg>
                     </Button>
-                    <Popconfirm
-                      :title="$t('page.ai.chat.confirmDelete')"
-                      @click.stop
-                      @confirm="handleDeleteConv(conv.id)"
-                    >
-                      <Button size="small" danger type="text">
-                        <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                      </Button>
-                    </Popconfirm>
-                  </span>
-                </template>
-              </div>
+                  </Popconfirm>
+                </span>
+              </template>
             </div>
-          </aside>
-        </div>
-      </Transition>
+          </div>
+        </aside>
+      </div>
+    </Transition>
 
     <!-- ===== 主内容 ===== -->
     <main class="ds-chat__main">
@@ -359,7 +377,10 @@ onMounted(async () => {
             <span v-else class="ds-msg__thinking">{{
               $t('page.ai.chat.thinking')
             }}</span>
-            <div v-if="!isStreaming || msg.id !== 'streaming'" class="ds-msg__actions">
+            <div
+              v-if="!isStreaming || msg.id !== 'streaming'"
+              class="ds-msg__actions"
+            >
               <button
                 class="ds-msg__action"
                 :title="$t('page.ai.chat.copy')"
@@ -373,8 +394,19 @@ onMounted(async () => {
                 :title="$t('page.ai.chat.thumbUp')"
                 @click="toggleLike(msg.id, 'up')"
               >
-                <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M7 10v12" /><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" />
+                <svg
+                  class="size-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M7 10v12" />
+                  <path
+                    d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"
+                  />
                 </svg>
               </button>
               <button
@@ -383,8 +415,19 @@ onMounted(async () => {
                 :title="$t('page.ai.chat.thumbDown')"
                 @click="toggleLike(msg.id, 'down')"
               >
-                <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M17 14V2" /><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" />
+                <svg
+                  class="size-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M17 14V2" />
+                  <path
+                    d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"
+                  />
                 </svg>
               </button>
               <button
@@ -434,11 +477,23 @@ onMounted(async () => {
                 :disabled="!inputText.trim()"
                 @click="handleSendWithStream"
               >
-                <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                  class="size-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
                 </svg>
               </button>
-              <button v-else class="ds-chat__send ds-chat__send--stop" @click="handleStop">
+              <button
+                v-else
+                class="ds-chat__send ds-chat__send--stop"
+                @click="handleStop"
+              >
                 <Square class="size-4" />
               </button>
             </div>
@@ -485,8 +540,8 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   padding: 6px;
-  cursor: pointer;
   color: hsl(var(--foreground));
+  cursor: pointer;
   background: transparent;
   border: none;
   border-radius: 6px;
@@ -505,26 +560,26 @@ onMounted(async () => {
 
 .ds-chat__title {
   overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 14px;
   color: hsl(var(--muted-foreground));
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 /* ===== 会话抽屉 ===== */
 .ds-drawer__mask {
   position: absolute;
-  z-index: 20;
   inset: 0;
+  z-index: 20;
   background: hsl(var(--foreground) / 30%);
 }
 
 .ds-drawer__panel {
   position: absolute;
-  z-index: 21;
   top: 0;
   bottom: 0;
   left: 0;
+  z-index: 21;
   display: flex;
   flex-direction: column;
   width: 280px;
@@ -546,12 +601,12 @@ onMounted(async () => {
   gap: 6px;
   align-items: center;
   justify-content: center;
-  margin: 8px 12px;
   padding: 9px;
+  margin: 8px 12px;
   font-size: 13px;
   font-weight: 500;
-  cursor: pointer;
   color: hsl(var(--foreground));
+  cursor: pointer;
   background: transparent;
   border: 1px solid hsl(var(--border));
   border-radius: 8px;
@@ -590,8 +645,8 @@ onMounted(async () => {
 .ds-drawer__item-title {
   flex: 1;
   overflow: hidden;
-  font-size: 13px;
   text-overflow: ellipsis;
+  font-size: 13px;
   white-space: nowrap;
 }
 
@@ -650,8 +705,8 @@ onMounted(async () => {
   margin: 0;
   font-size: 30px;
   font-weight: 600;
-  letter-spacing: -0.5px;
   color: hsl(var(--foreground));
+  letter-spacing: -0.5px;
 }
 
 .ds-chat__welcome-desc {
@@ -665,8 +720,8 @@ onMounted(async () => {
   flex: 1;
   width: 100%;
   max-width: 780px;
-  margin: 0 auto;
   padding: 24px 16px;
+  margin: 0 auto;
   overflow-y: auto;
 }
 
@@ -696,8 +751,8 @@ onMounted(async () => {
 .ds-msg__plain {
   font-size: 15px;
   line-height: 1.7;
-  white-space: pre-wrap;
   word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .ds-msg__ai {
@@ -745,8 +800,8 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   padding: 5px;
-  cursor: pointer;
   color: hsl(var(--muted-foreground));
+  cursor: pointer;
   background: transparent;
   border: none;
   border-radius: 5px;
@@ -772,8 +827,8 @@ onMounted(async () => {
 .ds-chat__input-box {
   width: min(46vw, 780px);
   min-width: 420px;
-  margin: 0 auto;
   padding: 14px 14px 10px 18px;
+  margin: 0 auto;
   background: hsl(var(--background));
   border: 1px solid hsl(var(--border));
   border-radius: 14px;
@@ -790,11 +845,11 @@ onMounted(async () => {
 
 .ds-chat__textarea {
   min-height: 52px;
-  border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
   font-size: 15px;
   resize: none;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .ds-chat__input-tools {
@@ -821,8 +876,8 @@ onMounted(async () => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  cursor: pointer;
   color: hsl(var(--primary-foreground));
+  cursor: pointer;
   background: hsl(var(--primary));
   border: none;
   border-radius: 50%;
@@ -903,8 +958,8 @@ onMounted(async () => {
   align-items: center;
   padding: 3px 8px;
   font-size: 11px;
-  cursor: pointer;
   color: hsl(var(--muted-foreground));
+  cursor: pointer;
   background: hsl(var(--background));
   border: 1px solid hsl(var(--border));
   border-radius: 5px;
