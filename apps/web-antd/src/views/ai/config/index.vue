@@ -10,7 +10,7 @@ import { Button, message, Tag } from 'ant-design-vue';
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
   deleteModel,
-  listModels,
+  getModelList,
   setDefaultModel,
   testModel,
 } from '#/api/ai';
@@ -36,7 +36,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     proxyConfig: {
       ajax: {
         query: async () => {
-          const items = await listModels();
+          const items = await getModelList();
           return { items, total: items.length };
         },
       },

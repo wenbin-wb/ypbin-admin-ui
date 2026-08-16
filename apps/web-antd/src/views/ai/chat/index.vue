@@ -14,9 +14,9 @@ import {
   chat,
   createConversation,
   deleteConversation,
-  listConversations,
-  listKnowledgeBases,
-  listMessages,
+  getConversationList,
+  getKnowledgeBaseList,
+  getMessageList,
   renameConversation,
 } from '#/api/ai';
 import { $t } from '#/locales';
@@ -46,7 +46,7 @@ let abortController: AbortController | null = null;
 
 // ===== 会话 =====
 async function loadConversations() {
-  conversations.value = await listConversations();
+  conversations.value = await getConversationList();
 }
 
 async function handleNewChat() {
@@ -60,7 +60,7 @@ async function selectConversation(id: string) {
   if (!id || id === activeConvId.value) return;
   activeConvId.value = id;
   drawerOpen.value = false;
-  const data = await listMessages(id, { page: 1, pageSize: 100 });
+  const data = await getMessageList(id, { page: 1, pageSize: 100 });
   messages.value = data.items ?? [];
   await scrollToBottom();
 }
@@ -168,8 +168,7 @@ async function scrollToBottom(force = false) {
   const el = msgListRef.value;
   if (!el) return;
   // 流式高频回调时仅在接近底部时钉底，避免用户上翻阅读历史被打断
-  const nearBottom =
-    el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
   if (force || nearBottom) {
     el.scrollTop = el.scrollHeight;
   }
@@ -264,7 +263,7 @@ onMounted(async () => {
     await selectConversation(conversations.value[0]?.id ?? '');
   }
   try {
-    knowledgeBases.value = await listKnowledgeBases();
+    knowledgeBases.value = await getKnowledgeBaseList();
   } catch {
     // 知识库不可用时仅隐藏关联选择
   }
@@ -787,7 +786,7 @@ onUnmounted(() => {
 .ds-msg__plain {
   font-size: 15px;
   line-height: 1.7;
-  word-break: break-word;
+  overflow-wrap: break-word;
   white-space: pre-wrap;
 }
 
@@ -799,7 +798,7 @@ onUnmounted(() => {
   font-size: 15px;
   line-height: 1.75;
   color: hsl(var(--foreground));
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .ds-msg__markdown--error {

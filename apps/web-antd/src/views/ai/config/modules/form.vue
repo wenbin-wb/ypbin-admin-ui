@@ -36,7 +36,7 @@ const [Drawer, drawerApi] = useVbenDrawer<AiApi.ModelConfig | null>({
   },
   onOpenChange: async (isOpen) => {
     if (!isOpen) return;
-    formApi.resetForm();
+    formApi.reset();
     const data = drawerApi.getData();
     if (data) {
       await formApi.setValues({

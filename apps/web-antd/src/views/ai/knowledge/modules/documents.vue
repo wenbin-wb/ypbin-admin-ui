@@ -7,14 +7,18 @@ import { ref } from 'vue';
 import { useVbenDrawer } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
-import { Alert, Badge, Button, Card, Input, message, Upload } from 'ant-design-vue';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Input,
+  message,
+  Upload,
+} from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
-import {
-  deleteDocument,
-  listDocuments,
-  queryKnowledgeBase,
-} from '#/api/ai';
+import { deleteDocument, getDocumentList, queryKnowledgeBase } from '#/api/ai';
 import { requestClient } from '#/api/request';
 import { $t } from '#/locales';
 
@@ -81,7 +85,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
         query: async ({ page }) => {
           const kb = drawerApi.getData();
           if (!kb) return { items: [], total: 0 };
-          const res = await listDocuments(kb.id, {
+          const res = await getDocumentList(kb.id, {
             page: page.currentPage,
             pageSize: page.pageSize,
           });
@@ -145,7 +149,10 @@ async function onTestQuery() {
 function statusTag(status: number) {
   switch (status) {
     case 0: {
-      return { color: 'processing' as const, text: $t('page.ai.knowledge.processing') };
+      return {
+        color: 'processing' as const,
+        text: $t('page.ai.knowledge.processing'),
+      };
     }
     case 1: {
       return { color: 'success' as const, text: $t('page.ai.knowledge.ready') };
@@ -170,7 +177,11 @@ defineExpose({ drawerApi });
 <template>
   <Drawer :title="drawerApi.getData()?.name ?? ''" :width="760">
     <div class="mb-4 flex items-center gap-3">
-      <Upload :before-upload="onUpload" accept=".pdf,.md,.txt" :show-upload-list="false">
+      <Upload
+        :before-upload="onUpload"
+        accept=".pdf,.md,.txt"
+        :show-upload-list="false"
+      >
         <Button :loading="docUploading" type="primary">
           <Plus class="size-4" />
           {{ $t('page.ai.knowledge.upload') }}

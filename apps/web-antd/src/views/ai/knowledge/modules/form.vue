@@ -35,7 +35,7 @@ const [Drawer, drawerApi] = useVbenDrawer({
   },
   onOpenChange: (isOpen) => {
     if (isOpen) {
-      formApi.resetForm();
+      formApi.reset();
     }
   },
 });

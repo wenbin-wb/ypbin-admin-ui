@@ -25,7 +25,10 @@ const [Drawer, drawerApi] = useVbenDrawer<AiApi.PromptTemplate | null>({
     const values = await formApi.getValues<AiApi.PromptTemplateSaveReq>();
     const data = drawerApi.getData();
     drawerApi.lock();
-    (data?.id ? updatePromptTemplate(data.id, values) : createPromptTemplate(values))
+    (data?.id
+      ? updatePromptTemplate(data.id, values)
+      : createPromptTemplate(values)
+    )
       .then(() => {
         drawerApi.close();
         emits('reload');
@@ -36,7 +39,7 @@ const [Drawer, drawerApi] = useVbenDrawer<AiApi.PromptTemplate | null>({
   },
   onOpenChange: async (isOpen) => {
     if (!isOpen) return;
-    formApi.resetForm();
+    formApi.reset();
     const data = drawerApi.getData();
     if (data) {
       await formApi.setValues({

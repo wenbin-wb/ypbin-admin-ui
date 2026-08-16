@@ -8,7 +8,7 @@ import { Plus } from '@vben/icons';
 import { Button, message } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
-import { deleteKnowledgeBase, listKnowledgeBases } from '#/api/ai';
+import { deleteKnowledgeBase, getKnowledgeBaseList } from '#/api/ai';
 import { $t } from '#/locales';
 
 import { useColumns, useGridFormSchema } from './data';
@@ -37,7 +37,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     proxyConfig: {
       ajax: {
         query: async () => {
-          const items = await listKnowledgeBases();
+          const items = await getKnowledgeBaseList();
           return { items, total: items.length };
         },
       },

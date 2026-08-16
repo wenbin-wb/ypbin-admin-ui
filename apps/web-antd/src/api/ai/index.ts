@@ -93,7 +93,7 @@ export namespace AiApi {
     description?: string;
   }
 }
-export function listConversations() {
+export function getConversationList() {
   return requestClient.get<AiApi.Conversation[]>('/ai/chat/conversations');
 }
 
@@ -115,7 +115,7 @@ export function renameConversation(id: string, title: string) {
   return requestClient.put(`/ai/chat/conversations/${id}/title`, { title });
 }
 
-export function listMessages(
+export function getMessageList(
   conversationId: string,
   params?: Record<string, any>,
 ) {
@@ -218,7 +218,7 @@ export async function chat(
 }
 
 // 知识库
-export function listKnowledgeBases() {
+export function getKnowledgeBaseList() {
   return requestClient.get<AiApi.KnowledgeBase[]>('/ai/knowledge-bases');
 }
 
@@ -230,7 +230,7 @@ export function deleteKnowledgeBase(id: string) {
   return requestClient.delete(`/ai/knowledge-bases/${id}`);
 }
 
-export function listDocuments(kbId: string, params?: Record<string, any>) {
+export function getDocumentList(kbId: string, params?: Record<string, any>) {
   return requestClient.get<{ items: AiApi.KbDocument[]; total: number }>(
     `/ai/knowledge-bases/${kbId}/documents`,
     { params },
@@ -248,7 +248,7 @@ export function queryKnowledgeBase(kbId: string, question: string) {
 }
 
 // 模型配置
-export function listModels() {
+export function getModelList() {
   return requestClient.get<AiApi.ModelConfig[]>('/ai/models');
 }
 
@@ -273,7 +273,7 @@ export function testModel(id: string) {
 }
 
 // Prompt 模板
-export function listPromptTemplates() {
+export function getPromptTemplateList() {
   return requestClient.get<AiApi.PromptTemplate[]>('/ai/prompt-templates');
 }
 

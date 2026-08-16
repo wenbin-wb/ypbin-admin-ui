@@ -10,7 +10,7 @@ import { Button, message } from 'ant-design-vue';
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
   deletePromptTemplate,
-  listPromptTemplates,
+  getPromptTemplateList,
   togglePromptTemplate,
 } from '#/api/ai';
 import { $t } from '#/locales';
@@ -35,7 +35,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     proxyConfig: {
       ajax: {
         query: async () => {
-          const items = await listPromptTemplates();
+          const items = await getPromptTemplateList();
           return { items, total: items.length };
         },
       },
@@ -97,7 +97,11 @@ function categoryLabel(val?: string) {
     <FormDrawer @reload="onRefresh" />
     <Grid :table-title="$t('page.ai.prompt.title')">
       <template #toolbar-tools>
-        <Button type="primary" @click="onCreate">
+        <Button
+          v-access:code="['ai:prompt:create']"
+          type="primary"
+          @click="onCreate"
+        >
           <Plus class="size-5" />
           {{ $t('page.ai.prompt.create') }}
         </Button>
@@ -113,6 +117,7 @@ function categoryLabel(val?: string) {
             {
               text: $t('common.edit'),
               icon: 'lucide:edit',
+              auth: 'ai:prompt:edit',
               onClick: () => onEdit(row),
             },
             {
@@ -121,12 +126,14 @@ function categoryLabel(val?: string) {
                   ? $t('page.ai.prompt.disabled')
                   : $t('page.ai.prompt.enabled'),
               icon: row.status === 1 ? 'lucide:power' : 'lucide:power-off',
+              auth: 'ai:prompt:edit',
               onClick: () => onToggle(row),
             },
             {
               text: $t('common.delete'),
               icon: 'lucide:trash-2',
               danger: true,
+              auth: 'ai:prompt:delete',
               popConfirm: {
                 title: $t('page.ai.prompt.confirmDelete'),
                 confirm: () => onDelete(row),
