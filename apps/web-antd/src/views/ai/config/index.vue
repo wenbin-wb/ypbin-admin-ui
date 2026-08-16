@@ -1,165 +1,38 @@
 <script lang="ts" setup>
-import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { AiApi } from '#/api/ai';
-
-import { computed } from 'vue';
 
 import { Page, useVbenDrawer } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
-import { message } from 'ant-design-vue';
+import { Button, message, Tag } from 'ant-design-vue';
 
-import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
-  createModel,
   deleteModel,
   listModels,
   setDefaultModel,
   testModel,
-  updateModel,
 } from '#/api/ai';
 import { $t } from '#/locales';
 
-defineOptions({ name: 'AiConfig' });
+import { useColumns, useGridFormSchema } from './data';
+import Form from './modules/form.vue';
 
-// ===== 表单 schema =====
-function useFormSchema(): VbenFormSchema[] {
-  return [
-  {
-    component: 'Input',
-    componentProps: {
-      placeholder: $t('page.ai.config.name'),
-    },
-    fieldName: 'name',
-    label: $t('page.ai.config.name'),
-    rules: 'required',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      options: [
-        { label: $t('page.ai.config.providerOptions.deepseek'), value: 'deepseek' },
-        { label: $t('page.ai.config.providerOptions.openai'), value: 'openai' },
-        { label: $t('page.ai.config.providerOptions.ollama'), value: 'ollama' },
-        { label: $t('page.ai.config.providerOptions.custom'), value: 'custom' },
-      ],
-    },
-    fieldName: 'provider',
-    label: $t('page.ai.config.provider'),
-    rules: 'required',
-  },
-  {
-    component: 'Input',
-    componentProps: {
-      placeholder: 'deepseek-v4-flash / deepseek-v4-pro',
-    },
-    fieldName: 'modelName',
-    label: $t('page.ai.config.modelName'),
-    rules: 'required',
-  },
-  {
-    component: 'InputPassword',
-    fieldName: 'apiKey',
-    label: $t('page.ai.config.apiKey'),
-  },
-  {
-    component: 'Input',
-    fieldName: 'baseUrl',
-    label: $t('page.ai.config.baseUrl'),
-  },
-  {
-    component: 'Textarea',
-    fieldName: 'remark',
-    label: $t('page.ai.config.remark'),
-  },
-];
-}
-
-const [Form, formApi] = useVbenForm({
-  layout: 'vertical',
-  schema: useFormSchema(),
-  showDefaultActions: false,
+const [FormDrawer, formDrawerApi] = useVbenDrawer({
+  connectedComponent: Form,
+  destroyOnClose: false,
 });
 
-// ===== 抽屉 =====
-const [Drawer, drawerApi] = useVbenDrawer<AiApi.ModelConfig | null>({
-  onConfirm: async () => {
-    const { valid } = await formApi.validate();
-    if (!valid) return;
-    const values = await formApi.getValues<AiApi.ModelConfigSaveReq>();
-    drawerApi.lock();
-    const target = drawerApi.getData();
-    (target?.id ? updateModel(target.id, values) : createModel(values))
-      .then(() => {
-        message.success($t('common.success'));
-        drawerApi.close();
-        gridApi.query();
-      })
-      .catch(() => drawerApi.unlock());
-  },
-  onOpenChange: async (isOpen) => {
-    if (!isOpen) return;
-    formApi.resetForm();
-    const data = drawerApi.getData();
-    if (data) {
-      await formApi.setValues({
-        baseUrl: data.baseUrl ?? '',
-        modelName: data.modelName,
-        name: data.name,
-        provider: data.provider,
-        remark: data.remark ?? '',
-      });
-    }
-  },
-});
-
-const drawerTitle = computed(() => {
-  const data = drawerApi.getData();
-  return data?.id
-    ? $t('page.ai.config.editModel')
-    : $t('page.ai.config.addModel');
-});
-
-// ===== 表格 =====
 const [Grid, gridApi] = useVbenVxeGrid({
+  formOptions: {
+    schema: useGridFormSchema(),
+    submitOnChange: true,
+  },
   gridOptions: {
-    columns: [
-      { field: 'name', title: $t('page.ai.config.name'), minWidth: 140 },
-      {
-        field: 'provider',
-        title: $t('page.ai.config.provider'),
-        width: 110,
-        slots: { default: 'provider' },
-      },
-      { field: 'modelName', title: $t('page.ai.config.model'), minWidth: 140 },
-      { field: 'baseUrl', title: $t('page.ai.config.baseUrl'), minWidth: 160 },
-      {
-        field: 'apiKeyMasked',
-        title: $t('page.ai.config.apiKey'),
-        width: 130,
-      },
-      {
-        field: 'status',
-        title: $t('page.ai.config.status'),
-        width: 90,
-        slots: { default: 'status' },
-      },
-      {
-        field: 'isDefault',
-        title: $t('page.ai.config.isDefault'),
-        width: 80,
-        slots: { default: 'default' },
-      },
-      {
-        field: 'action',
-        title: $t('common.action'),
-        width: 230,
-        slots: { default: 'action' },
-        fixed: 'right',
-      },
-    ],
+    columns: useColumns(),
+    height: 'auto',
+    keepSource: true,
     proxyConfig: {
       ajax: {
         query: async () => {
@@ -173,35 +46,40 @@ const [Grid, gridApi] = useVbenVxeGrid({
       custom: true,
       export: false,
       refresh: true,
+      search: true,
       zoom: true,
     },
   } as VxeTableGridOptions<AiApi.ModelConfig>,
 });
 
-// ===== 操作 =====
+function onRefresh() {
+  gridApi.query();
+}
+
 function onEdit(row: AiApi.ModelConfig) {
-  drawerApi.setData(row).open();
+  formDrawerApi.setData(row).open();
 }
 
 function onCreate() {
-  drawerApi.setData(null).open();
+  formDrawerApi.setData(null).open();
 }
 
-async function onTest(row: AiApi.ModelConfig) {
-  try {
-    const result = await testModel(row.id);
-    message.success(
-      $t('page.ai.config.testOk').replace('{ms}', String(result.latencyMs)),
-    );
-  } catch {
-    message.error($t('page.ai.config.testFail'));
-  }
+function onTest(row: AiApi.ModelConfig) {
+  testModel(row.id)
+    .then((result) => {
+      message.success(
+        $t('page.ai.config.testOk').replace('{ms}', String(result.latencyMs)),
+      );
+    })
+    .catch(() => {
+      message.error($t('page.ai.config.testFail'));
+    });
 }
 
 function onSetDefault(row: AiApi.ModelConfig) {
   setDefaultModel(row.id).then(() => {
     message.success($t('common.success'));
-    gridApi.query();
+    onRefresh();
   });
 }
 
@@ -209,45 +87,44 @@ function onDelete(row: AiApi.ModelConfig) {
   deleteModel(row.id)
     .then(() => {
       message.success($t('common.success'));
-      gridApi.query();
+      onRefresh();
     })
     .catch(() => {});
 }
+
+const providerTags: Record<string, string> = {
+  custom: 'default',
+  deepseek: 'blue',
+  ollama: 'green',
+  openai: 'purple',
+};
 </script>
 
 <template>
   <Page auto-content-height>
+    <FormDrawer @reload="onRefresh" />
     <Grid :table-title="$t('page.ai.config.title')">
       <template #toolbar-tools>
-        <a-button
+        <Button
           v-access:code="['ai:model:create']"
           type="primary"
           @click="onCreate"
         >
-          <Plus class="size-4" />
+          <Plus class="size-5" />
           {{ $t('page.ai.config.addModel') }}
-        </a-button>
+        </Button>
       </template>
 
       <template #provider="{ row }">
-        <a-tag>{{ row.provider }}</a-tag>
-      </template>
-
-      <template #status="{ row }">
-        <a-badge
-          :status="row.status === 1 ? 'success' : 'default'"
-          :text="
-            row.status === 1
-              ? $t('page.ai.config.enabled')
-              : $t('page.ai.config.disabled')
-          "
-        />
+        <Tag :color="providerTags[row.provider] ?? 'default'">
+          {{ row.provider }}
+        </Tag>
       </template>
 
       <template #default="{ row }">
-        <a-tag v-if="row.isDefault" color="blue">
+        <Tag v-if="row.isDefault" color="blue">
           {{ $t('page.ai.config.default') }}
-        </a-tag>
+        </Tag>
       </template>
 
       <template #action="{ row }">
@@ -288,9 +165,5 @@ function onDelete(row: AiApi.ModelConfig) {
         />
       </template>
     </Grid>
-
-    <Drawer :title="drawerTitle" :width="520">
-      <Form />
-    </Drawer>
   </Page>
 </template>

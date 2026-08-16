@@ -5,9 +5,13 @@ import { onMounted, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
+import { Card, Col, Progress, Row, Statistic } from 'ant-design-vue';
+
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getDailyUsage, getUsageByModel, getUsageSummary } from '#/api/ai';
 import { $t } from '#/locales';
+
+import { useDailyColumns, useModelColumns } from './data';
 
 defineOptions({ name: 'AiUsage' });
 
@@ -32,17 +36,9 @@ function formatTokens(n: number) {
 // 每日用量表
 const [DailyGrid] = useVbenVxeGrid({
   gridOptions: {
-    columns: [
-      { field: 'date', title: $t('page.ai.usage.date'), minWidth: 120 },
-      {
-        field: 'tokens',
-        title: $t('page.ai.usage.tokens'),
-        minWidth: 160,
-        slots: { default: 'tokens' },
-      },
-    ],
-    data: [],
+    columns: useDailyColumns(),
     height: 'auto',
+    keepSource: true,
     proxyConfig: {
       ajax: {
         query: async () => {
@@ -52,35 +48,25 @@ const [DailyGrid] = useVbenVxeGrid({
       },
     },
     rowConfig: { keyField: 'date' },
-    toolbarConfig: { refresh: true, zoom: true, export: false },
+    toolbarConfig: {
+      export: false,
+      refresh: true,
+      zoom: true,
+    },
   } as VxeTableGridOptions<{ date: string; tokens: number }>,
 });
 
 // 按模型分布表
 const [ModelGrid] = useVbenVxeGrid({
   gridOptions: {
-    columns: [
-      { field: 'model', title: $t('page.ai.usage.model'), minWidth: 140 },
-      {
-        field: 'tokens',
-        title: $t('page.ai.usage.tokens'),
-        minWidth: 140,
-        slots: { default: 'tokens' },
-      },
-      {
-        field: 'percent',
-        title: $t('page.ai.usage.percent'),
-        minWidth: 160,
-        slots: { default: 'percent' },
-      },
-    ],
-    data: [],
+    columns: useModelColumns(),
     height: 'auto',
+    keepSource: true,
     proxyConfig: {
       ajax: {
         query: async () => {
           const items = await getUsageByModel();
-          const total = items.reduce((s, m) => s + m.tokens, 0);
+          const total = items.reduce((sum, m) => sum + m.tokens, 0);
           return {
             items: items.map((m) => ({
               ...m,
@@ -92,65 +78,57 @@ const [ModelGrid] = useVbenVxeGrid({
       },
     },
     rowConfig: { keyField: 'model' },
-    toolbarConfig: { refresh: true, zoom: true, export: false },
+    toolbarConfig: {
+      export: false,
+      refresh: true,
+      zoom: true,
+    },
   } as VxeTableGridOptions<{ model: string; percent: number; tokens: number }>,
 });
 
-function tokenPercent(percent: number) {
-  return Math.min(100, Math.max(0, percent));
-}
-
-onMounted(() => {
-  loadSummary();
-});
+onMounted(loadSummary);
 </script>
 
 <template>
   <Page auto-content-height>
     <div class="p-4">
-      <!-- 概览卡片 -->
-      <a-row :gutter="[16, 16]" class="mb-6">
-        <a-col :sm="8" :xs="24">
-          <a-card class="rounded-lg">
-            <a-statistic
+      <Row :gutter="[16, 16]" class="mb-6">
+        <Col :sm="8" :xs="24">
+          <Card class="rounded-lg">
+            <Statistic
               :loading="loading"
               :title="$t('page.ai.usage.totalCalls')"
               :value="summary.totalCalls"
             />
-          </a-card>
-        </a-col>
-        <a-col :sm="8" :xs="24">
-          <a-card class="rounded-lg">
-            <a-statistic
+          </Card>
+        </Col>
+        <Col :sm="8" :xs="24">
+          <Card class="rounded-lg">
+            <Statistic
               :loading="loading"
               :title="$t('page.ai.usage.totalTokens')"
               :value="formatTokens(summary.totalTokens)"
             />
-          </a-card>
-        </a-col>
-        <a-col :sm="8" :xs="24">
-          <a-card class="rounded-lg">
-            <a-statistic
+          </Card>
+        </Col>
+        <Col :sm="8" :xs="24">
+          <Card class="rounded-lg">
+            <Statistic
               :loading="loading"
               :title="$t('page.ai.usage.avgLatency')"
               :value="summary.avgLatencyMs"
               suffix="ms"
             />
-          </a-card>
-        </a-col>
-      </a-row>
+          </Card>
+        </Col>
+      </Row>
 
-      <!-- 每日用量 -->
-      <a-card
-        :title="$t('page.ai.usage.daily')"
-        class="mb-6"
-        size="small"
-      >
+      <Card :title="$t('page.ai.usage.daily')" class="mb-6" size="small">
         <DailyGrid>
-          <template #tokens="{ row }">
-            <div class="flex items-center gap-2">
+          <template #dailyTokens="{ row }">
+            <div class="flex items-center gap-3">
               <span class="w-16">{{ formatTokens(row.tokens) }}</span>
-              <a-progress
+              <Progress
                 :percent="
                   row.tokens > 0
                     ? Math.min(
@@ -168,19 +146,18 @@ onMounted(() => {
             </div>
           </template>
         </DailyGrid>
-      </a-card>
+      </Card>
 
-      <!-- 按模型分布 -->
-      <a-card :title="$t('page.ai.usage.byModel')" size="small">
+      <Card :title="$t('page.ai.usage.byModel')" size="small">
         <ModelGrid>
-          <template #tokens="{ row }">
+          <template #modelTokens="{ row }">
             {{ formatTokens(row.tokens) }}
           </template>
           <template #percent="{ row }">
-            <a-progress :percent="tokenPercent(row.percent)" size="small" />
+            <Progress :percent="Math.min(100, Math.max(0, row.percent))" size="small" />
           </template>
         </ModelGrid>
-      </a-card>
+      </Card>
     </div>
   </Page>
 </template>

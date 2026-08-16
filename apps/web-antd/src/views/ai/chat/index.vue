@@ -4,6 +4,7 @@ import type { AiApi } from '#/api/ai';
 import { nextTick, onMounted, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
+import { CornerDownLeft, Plus, Square } from '@vben/icons';
 
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
@@ -200,15 +201,21 @@ onMounted(async () => {
   <Page auto-content-height class="ai-chat-page">
     <div class="ai-chat-layout">
       <!-- 左侧会话列表 -->
-      <div class="ai-chat-sidebar">
+      <aside class="ai-chat-sidebar">
         <div class="ai-chat-sidebar__header">
           <span class="ai-chat-sidebar__title">{{
             $t('page.ai.chat.title')
           }}</span>
-          <a-button size="small" type="primary" @click="handleNewChat">
-            + {{ $t('page.ai.chat.newChat') }}
-          </a-button>
         </div>
+        <a-button
+          block
+          class="ai-chat-sidebar__new"
+          type="primary"
+          @click="handleNewChat"
+        >
+          <Plus class="size-4" />
+          {{ $t('page.ai.chat.newChat') }}
+        </a-button>
         <div class="ai-chat-sidebar__list">
           <div
             v-for="conv in conversations"
@@ -247,15 +254,26 @@ onMounted(async () => {
             </template>
           </div>
         </div>
-      </div>
+      </aside>
 
       <!-- 右侧对话区 -->
-      <div class="ai-chat-main">
-        <div ref="msgListRef" class="ai-chat-messages">
-          <div v-if="messages.length === 0" class="ai-chat-empty">
+      <main class="ai-chat-main">
+        <!-- 空状态（无会话/无消息） -->
+        <div
+          v-if="!activeConvId || messages.length === 0"
+          class="ai-chat-welcome"
+        >
+          <div class="ai-chat-welcome__icon">🤖</div>
+          <h2 class="ai-chat-welcome__title">
+            {{ $t('page.ai.chat.welcomeTitle') }}
+          </h2>
+          <p class="ai-chat-welcome__desc">
             {{ $t('page.ai.chat.emptyHint') }}
-          </div>
+          </p>
+        </div>
 
+        <!-- 消息流 -->
+        <div v-else ref="msgListRef" class="ai-chat-messages">
           <div
             v-for="msg in messages"
             :key="msg.id"
@@ -288,28 +306,35 @@ onMounted(async () => {
 
         <!-- 输入区 -->
         <div class="ai-chat-input-area">
-          <a-textarea
-            v-model:value="inputText"
-            :auto-size="{ maxRows: 6, minRows: 2 }"
-            :disabled="isStreaming"
-            :placeholder="$t('page.ai.chat.placeholder')"
-            @keydown="handleKeydown"
-          />
-          <div class="ai-chat-input-actions">
-            <a-button
-              v-if="!isStreaming"
-              :disabled="!inputText.trim()"
-              type="primary"
-              @click="handleSendWithStream"
-            >
-              {{ $t('page.ai.chat.send') }}
-            </a-button>
-            <a-button v-else danger @click="handleStop">
-              {{ $t('page.ai.chat.stop') }}
-            </a-button>
+          <div class="ai-chat-input-box">
+            <a-textarea
+              v-model:value="inputText"
+              :auto-size="{ maxRows: 8, minRows: 1 }"
+              :disabled="isStreaming"
+              :placeholder="$t('page.ai.chat.placeholder')"
+              class="ai-chat-input-box__textarea"
+              @keydown="handleKeydown"
+            />
+            <div class="ai-chat-input-box__actions">
+              <span class="ai-chat-input-box__tip">{{
+                $t('page.ai.chat.enterTip')
+              }}</span>
+              <a-button
+                v-if="!isStreaming"
+                :disabled="!inputText.trim()"
+                shape="circle"
+                type="primary"
+                @click="handleSendWithStream"
+              >
+                <CornerDownLeft class="size-4" />
+              </a-button>
+              <a-button v-else danger shape="circle" @click="handleStop">
+                <Square class="size-4" />
+              </a-button>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   </Page>
 </template>
@@ -328,26 +353,34 @@ onMounted(async () => {
   border-radius: 8px;
 }
 
+/* ===== 左侧会话列表 ===== */
 .ai-chat-sidebar {
   display: flex;
   flex-direction: column;
-  width: 240px;
-  min-width: 200px;
+  width: 260px;
+  min-width: 220px;
+  background: hsl(var(--muted) / 35%);
   border-right: 1px solid hsl(var(--border));
 }
 
 .ai-chat-sidebar__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px;
+  height: 52px;
+  padding: 0 16px;
+  font-size: 15px;
   font-weight: 600;
   border-bottom: 1px solid hsl(var(--border));
 }
 
+.ai-chat-sidebar__new {
+  margin: 12px;
+  width: calc(100% - 24px);
+}
+
 .ai-chat-sidebar__list {
   flex: 1;
-  padding: 8px 0;
+  padding: 0 8px 12px;
   overflow-y: auto;
 }
 
@@ -355,19 +388,19 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
-  margin: 2px 6px;
+  padding: 9px 10px;
+  margin-bottom: 2px;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: background 0.15s;
 }
 
 .ai-chat-conv-item:hover {
-  background: hsl(var(--muted));
+  background: hsl(var(--accent));
 }
 
 .ai-chat-conv-item.active {
-  background: hsl(var(--accent));
+  background: hsl(var(--primary) / 12%);
 }
 
 .ai-chat-conv-item__title {
@@ -388,34 +421,57 @@ onMounted(async () => {
   opacity: 1;
 }
 
+/* ===== 右侧对话区 ===== */
 .ai-chat-main {
   display: flex;
   flex: 1;
   flex-direction: column;
-  overflow: hidden;
+  min-width: 0;
 }
 
+/* 欢迎/空状态 */
+.ai-chat-welcome {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.ai-chat-welcome__icon {
+  font-size: 48px;
+}
+
+.ai-chat-welcome__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.ai-chat-welcome__desc {
+  margin: 0;
+  font-size: 14px;
+  color: hsl(var(--muted-foreground));
+}
+
+/* 消息流 */
 .ai-chat-messages {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 16px;
-  padding: 20px;
+  gap: 20px;
+  padding: 24px 32px;
   overflow-y: auto;
-}
-
-.ai-chat-empty {
-  margin: auto;
-  font-size: 15px;
-  color: hsl(var(--muted-foreground));
-  text-align: center;
 }
 
 .ai-chat-msg {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: flex-start;
-  max-width: 82%;
+  max-width: 88%;
 }
 
 .ai-chat-msg--user {
@@ -436,26 +492,28 @@ onMounted(async () => {
   height: 32px;
   font-size: 16px;
   background: hsl(var(--accent));
-  border-radius: 50%;
+  border-radius: 8px;
 }
 
 .ai-chat-msg__bubble {
   max-width: 100%;
   padding: 10px 14px;
   font-size: 14px;
-  line-height: 1.6;
-  word-break: break-all;
-  border-radius: 12px;
+  line-height: 1.7;
+  word-break: break-word;
+  border-radius: 10px;
 }
 
 .ai-chat-msg__bubble--user {
   color: hsl(var(--primary-foreground));
   background: hsl(var(--primary));
+  border-top-right-radius: 2px;
 }
 
 .ai-chat-msg__bubble--assistant {
-  background: hsl(var(--muted));
+  background: hsl(var(--background));
   border: 1px solid hsl(var(--border));
+  border-top-left-radius: 2px;
 }
 
 .ai-chat-thinking {
@@ -474,7 +532,52 @@ onMounted(async () => {
   }
 }
 
-/* Markdown 渲染 */
+/* ===== 输入区 ===== */
+.ai-chat-input-area {
+  padding: 16px 24px 20px;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.ai-chat-input-box {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 8px 8px 6px 14px;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  box-shadow: 0 2px 12px hsl(var(--foreground) / 6%);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.ai-chat-input-box:focus-within {
+  border-color: hsl(var(--primary) / 50%);
+  box-shadow: 0 2px 16px hsl(var(--primary) / 12%);
+}
+
+.ai-chat-input-box__textarea {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  resize: none;
+}
+
+.ai-chat-input-box__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.ai-chat-input-box__tip {
+  margin-right: auto;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ===== Markdown 渲染 ===== */
 .ai-chat-markdown :deep(p) {
   margin: 0 0 8px;
 
@@ -512,14 +615,14 @@ onMounted(async () => {
   margin: 8px 0;
   overflow-x: auto;
   background: hsl(var(--secondary));
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .ai-chat-markdown :deep(.ai-code-block code) {
   display: block;
   padding: 12px;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .ai-chat-markdown :deep(.ai-copy-btn) {
@@ -563,23 +666,5 @@ onMounted(async () => {
 
 .ai-chat-markdown :deep(th) {
   background: hsl(var(--secondary));
-}
-
-.ai-chat-input-area {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-  padding: 12px 16px;
-  border-top: 1px solid hsl(var(--border));
-}
-
-.ai-chat-input-area .ant-input {
-  flex: 1;
-}
-
-.ai-chat-input-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
 </style>

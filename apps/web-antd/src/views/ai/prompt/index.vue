@@ -1,146 +1,37 @@
 <script lang="ts" setup>
-import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { AiApi } from '#/api/ai';
-
-import { computed } from 'vue';
 
 import { Page, useVbenDrawer } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
-import { message } from 'ant-design-vue';
+import { Button, message } from 'ant-design-vue';
 
-import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
-  createPromptTemplate,
   deletePromptTemplate,
   listPromptTemplates,
   togglePromptTemplate,
-  updatePromptTemplate,
 } from '#/api/ai';
 import { $t } from '#/locales';
 
-defineOptions({ name: 'AiPrompt' });
+import { useColumns, useGridFormSchema } from './data';
+import Form from './modules/form.vue';
 
-const categoryOptions = computed(() => [
-  { label: $t('page.ai.prompt.categoryCoding'), value: 'coding' },
-  { label: $t('page.ai.prompt.categoryWriting'), value: 'writing' },
-  { label: $t('page.ai.prompt.categoryAnalysis'), value: 'analysis' },
-  { label: $t('page.ai.prompt.categoryTranslation'), value: 'translation' },
-  { label: $t('page.ai.prompt.categoryQa'), value: 'qa' },
-  { label: $t('page.ai.prompt.categoryOther'), value: 'other' },
-]);
-
-// ===== 表单 =====
-function useFormSchema(): VbenFormSchema[] {
-  return [
-  {
-    component: 'Input',
-    fieldName: 'name',
-    label: $t('page.ai.prompt.name'),
-    rules: 'required',
-  },
-  {
-    component: 'Select',
-    componentProps: { options: categoryOptions.value, allowClear: true },
-    fieldName: 'category',
-    label: $t('page.ai.prompt.category'),
-  },
-  {
-    component: 'Textarea',
-    componentProps: { rows: 8 },
-    fieldName: 'template',
-    help: $t('page.ai.prompt.placeholderDetail'),
-    label: $t('page.ai.prompt.template'),
-    rules: 'required',
-  },
-  {
-    component: 'Input',
-    fieldName: 'description',
-    label: $t('page.ai.prompt.description'),
-  },
-];
-}
-
-const [Form, formApi] = useVbenForm({
-  layout: 'vertical',
-  schema: useFormSchema(),
-  showDefaultActions: false,
+const [FormDrawer, formDrawerApi] = useVbenDrawer({
+  connectedComponent: Form,
+  destroyOnClose: false,
 });
 
-// ===== 抽屉 =====
-const [Drawer, drawerApi] = useVbenDrawer<AiApi.PromptTemplate | null>({
-  onConfirm: async () => {
-    const { valid } = await formApi.validate();
-    if (!valid) return;
-    const values = await formApi.getValues<AiApi.PromptTemplateSaveReq>();
-    drawerApi.lock();
-    const target = drawerApi.getData();
-    (target?.id
-      ? updatePromptTemplate(target.id, values)
-      : createPromptTemplate(values)
-    )
-      .then(() => {
-        message.success($t('common.success'));
-        drawerApi.close();
-        gridApi.query();
-      })
-      .catch(() => drawerApi.unlock());
-  },
-  onOpenChange: async (isOpen) => {
-    if (!isOpen) return;
-    formApi.resetForm();
-    const data = drawerApi.getData();
-    if (data) {
-      await formApi.setValues(data);
-    }
-  },
-});
-
-const drawerTitle = computed(() => {
-  const data = drawerApi.getData();
-  return data?.id
-    ? $t('page.ai.prompt.edit')
-    : $t('page.ai.prompt.create');
-});
-
-// ===== 表格 =====
 const [Grid, gridApi] = useVbenVxeGrid({
+  formOptions: {
+    schema: useGridFormSchema(),
+    submitOnChange: true,
+  },
   gridOptions: {
-    columns: [
-      { field: 'name', title: $t('page.ai.prompt.name'), minWidth: 160 },
-      {
-        field: 'category',
-        title: $t('page.ai.prompt.category'),
-        width: 110,
-        slots: { default: 'category' },
-      },
-      {
-        field: 'description',
-        title: $t('page.ai.prompt.description'),
-        minWidth: 220,
-        showOverflow: true,
-      },
-      {
-        field: 'status',
-        title: $t('page.ai.prompt.status'),
-        width: 90,
-        slots: { default: 'status' },
-      },
-      {
-        field: 'createTime',
-        title: $t('common.createTime'),
-        width: 170,
-      },
-      {
-        field: 'action',
-        title: $t('common.action'),
-        width: 150,
-        slots: { default: 'action' },
-        fixed: 'right',
-      },
-    ],
+    columns: useColumns(),
+    height: 'auto',
+    keepSource: true,
     proxyConfig: {
       ajax: {
         query: async () => {
@@ -154,25 +45,28 @@ const [Grid, gridApi] = useVbenVxeGrid({
       custom: true,
       export: false,
       refresh: true,
+      search: true,
       zoom: true,
     },
   } as VxeTableGridOptions<AiApi.PromptTemplate>,
 });
 
-// ===== 操作 =====
-function onCreate() {
-  drawerApi.setData(null).open();
+function onRefresh() {
+  gridApi.query();
 }
 
 function onEdit(row: AiApi.PromptTemplate) {
-  drawerApi.setData(row).open();
+  formDrawerApi.setData(row).open();
+}
+
+function onCreate() {
+  formDrawerApi.setData(null).open();
 }
 
 function onToggle(row: AiApi.PromptTemplate) {
-  const target = row.status === 1 ? 0 : 1;
-  togglePromptTemplate(row.id, target).then(() => {
+  togglePromptTemplate(row.id, row.status === 1 ? 0 : 1).then(() => {
     message.success($t('common.success'));
-    gridApi.query();
+    onRefresh();
   });
 }
 
@@ -180,41 +74,37 @@ function onDelete(row: AiApi.PromptTemplate) {
   deletePromptTemplate(row.id)
     .then(() => {
       message.success($t('common.success'));
-      gridApi.query();
+      onRefresh();
     })
     .catch(() => {});
 }
 
 function categoryLabel(val?: string) {
-  return (
-    categoryOptions.value.find((o) => o.value === val)?.label ?? val ?? '-'
-  );
+  const map: Record<string, string> = {
+    analysis: $t('page.ai.prompt.categoryAnalysis'),
+    coding: $t('page.ai.prompt.categoryCoding'),
+    other: $t('page.ai.prompt.categoryOther'),
+    qa: $t('page.ai.prompt.categoryQa'),
+    translation: $t('page.ai.prompt.categoryTranslation'),
+    writing: $t('page.ai.prompt.categoryWriting'),
+  };
+  return (val && map[val]) || val || '-';
 }
 </script>
 
 <template>
   <Page auto-content-height>
+    <FormDrawer @reload="onRefresh" />
     <Grid :table-title="$t('page.ai.prompt.title')">
       <template #toolbar-tools>
-        <a-button type="primary" @click="onCreate">
-          <Plus class="size-4" />
+        <Button type="primary" @click="onCreate">
+          <Plus class="size-5" />
           {{ $t('page.ai.prompt.create') }}
-        </a-button>
+        </Button>
       </template>
 
       <template #category="{ row }">
         {{ categoryLabel(row.category) }}
-      </template>
-
-      <template #status="{ row }">
-        <a-badge
-          :status="row.status === 1 ? 'success' : 'default'"
-          :text="
-            row.status === 1
-              ? $t('page.ai.prompt.enabled')
-              : $t('page.ai.prompt.disabled')
-          "
-        />
       </template>
 
       <template #action="{ row }">
@@ -247,9 +137,5 @@ function categoryLabel(val?: string) {
         />
       </template>
     </Grid>
-
-    <Drawer :title="drawerTitle" :width="560">
-      <Form />
-    </Drawer>
   </Page>
 </template>
