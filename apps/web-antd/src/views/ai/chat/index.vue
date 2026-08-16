@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { AiApi } from '#/api/ai';
 
-import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
 
 import { Copy, Menu, Plus, RotateCw, Square, X } from '@vben/icons';
 
@@ -128,6 +128,13 @@ async function handleSendWithStream() {
         await loadConversations();
       },
       abortController.signal,
+      (error: Error) => {
+        // 后端流式失败的错误帧（event:error）：展示原因并结束本次流
+        assistantMsg.content = error.message || $t('page.ai.chat.requestError');
+        isStreaming.value = false;
+        abortController = null;
+        assistantMsg.id = Date.now().toString();
+      },
     );
   } catch (error: unknown) {
     if (!(error instanceof Error && error.name === 'AbortError')) {
@@ -136,6 +143,8 @@ async function handleSendWithStream() {
     }
     isStreaming.value = false;
     abortController = null;
+    // 中断/出错后同样收敛临时 id，避免后续 key 重复
+    assistantMsg.id = Date.now().toString();
   }
 }
 
@@ -191,7 +200,7 @@ function toggleLike(id: string, type: 'down' | 'up') {
   liked.value[id] = liked.value[id] === type ? undefined : type;
 }
 
-/** 重新生成：删除尾部助手回复，重发最后一条用户消息 */
+/** 重新生成：删除尾部助手回复与最后一条用户消息（重发时重新入列），再发起流式对话 */
 async function regenerate() {
   if (isStreaming.value) return;
   const lastUser = [...messages.value]
@@ -200,9 +209,8 @@ async function regenerate() {
   if (!lastUser) return;
   while (messages.value.length > 0) {
     const lastMsg = messages.value[messages.value.length - 1];
-    if (lastMsg && lastMsg.role === 'assistant') {
-      messages.value.pop();
-    } else {
+    messages.value.pop();
+    if (lastMsg && lastMsg.role === 'user') {
       break;
     }
   }
@@ -222,6 +230,11 @@ function renderMd(content: string): string {
       .replaceAll('<', '&lt;')
       .replaceAll('>', '&gt;');
   }
+}
+
+/** 后端流式错误帧文本（event:error）以固定前缀开头，用于错误样式区分 */
+function isErrorText(content: string): boolean {
+  return content.startsWith('对话出错：');
 }
 
 function handleMarkdownClick(e: MouseEvent) {
@@ -245,6 +258,14 @@ onMounted(async () => {
     knowledgeBases.value = await listKnowledgeBases();
   } catch {
     // 知识库不可用时仅隐藏关联选择
+  }
+});
+
+onUnmounted(() => {
+  // 流式中离开页面：中断请求，避免卸载后回调更新已销毁的组件
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
   }
 });
 </script>
@@ -371,6 +392,7 @@ onMounted(async () => {
             <div
               v-if="msg.content"
               class="ds-msg__markdown"
+              :class="{ 'ds-msg__markdown--error': isErrorText(msg.content) }"
               v-html="renderMd(msg.content)"
               @click="handleMarkdownClick"
             ></div>
@@ -769,6 +791,10 @@ onMounted(async () => {
   line-height: 1.75;
   color: hsl(var(--foreground));
   word-break: break-word;
+}
+
+.ds-msg__markdown--error {
+  color: hsl(var(--destructive, 0 72% 51%));
 }
 
 .ds-msg__thinking {

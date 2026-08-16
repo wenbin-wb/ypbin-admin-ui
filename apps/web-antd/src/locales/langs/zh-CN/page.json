@@ -118,6 +118,7 @@
       "testConn": "测试连接",
       "testOk": "连接成功，延迟 {0}ms",
       "testFail": "连接失败",
+      "deleteFail": "删除失败",
       "action": "操作",
       "name": "显示名称",
       "model": "模型",

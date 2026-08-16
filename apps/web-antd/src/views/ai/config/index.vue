@@ -89,7 +89,11 @@ function onDelete(row: AiApi.ModelConfig) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch(() => {});
+    .catch((error: any) => {
+      // 显示后端返回的具体失败原因（如默认模型不可删除），不静默吞错
+      const reason = error?.message || error?.data?.message;
+      message.error(reason || $t('page.ai.config.deleteFail'));
+    });
 }
 
 const providerTags: Record<string, string> = {

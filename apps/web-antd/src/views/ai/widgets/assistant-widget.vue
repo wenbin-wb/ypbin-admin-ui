@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { AiApi } from '#/api/ai';
 
-import { nextTick, ref } from 'vue';
+import { nextTick, onUnmounted, reactive, ref } from 'vue';
 
 import { Button, Input } from 'ant-design-vue';
 import DOMPurify from 'dompurify';
@@ -87,14 +87,15 @@ async function handleSend() {
     inputText.value = '';
     await scrollToBottom();
 
-    const assistantMsg: AiApi.Message = {
+    // reactive 包装：流式回调里 content 逐帧追加，必须触发响应式渲染
+    const assistantMsg = reactive<AiApi.Message>({
       conversationId: conversationId.value,
       content: '',
       createTime: new Date().toISOString(),
       id: 'streaming',
       role: 'assistant',
       tokens: 0,
-    };
+    });
     messages.value.push(assistantMsg);
     isStreaming.value = true;
     abortController = new AbortController();
@@ -111,6 +112,12 @@ async function handleSend() {
         assistantMsg.id = Date.now().toString();
       },
       abortController.signal,
+      (error: Error) => {
+        assistantMsg.content = error.message || $t('page.ai.chat.requestError');
+        isStreaming.value = false;
+        abortController = null;
+        assistantMsg.id = Date.now().toString();
+      },
     );
   } catch (error: unknown) {
     if (!(error instanceof Error && error.name === 'AbortError')) {
@@ -121,10 +128,21 @@ async function handleSend() {
     }
     isStreaming.value = false;
     abortController = null;
+    if (messages.value[messages.value.length - 1]?.id === 'streaming') {
+      messages.value[messages.value.length - 1]!.id = Date.now().toString();
+    }
   } finally {
     sending.value = false;
   }
 }
+
+onUnmounted(() => {
+  // 流式中关闭悬浮窗：中断请求，避免卸载后回调更新已销毁的组件
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+  }
+});
 
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Enter' && !e.shiftKey) {
