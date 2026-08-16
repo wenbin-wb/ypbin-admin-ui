@@ -177,7 +177,11 @@ const providerTags: Record<string, string> = {
               text: $t('page.ai.config.setDefault'),
               icon: 'lucide:check-circle',
               auth: 'ai:model:edit',
-              ifShow: !row.isDefault,
+              disabled: row.isDefault === 1,
+              tooltip:
+                row.isDefault === 1
+                  ? $t('page.ai.config.defaultLocked')
+                  : undefined,
               onClick: () => onSetDefault(row),
             },
             {
@@ -188,6 +192,11 @@ const providerTags: Record<string, string> = {
               icon: 'lucide:power',
               auth: 'ai:model:edit',
               danger: row.status === 1,
+              disabled: row.isDefault === 1 && row.status === 1,
+              tooltip:
+                row.isDefault === 1 && row.status === 1
+                  ? $t('page.ai.config.defaultLocked')
+                  : undefined,
               popConfirm:
                 row.status === 1
                   ? {
@@ -208,7 +217,11 @@ const providerTags: Record<string, string> = {
               icon: 'lucide:trash-2',
               auth: 'ai:model:delete',
               danger: true,
-              ifShow: !row.isDefault,
+              disabled: row.isDefault === 1,
+              tooltip:
+                row.isDefault === 1
+                  ? $t('page.ai.config.defaultLocked')
+                  : undefined,
               popConfirm: {
                 title: $t('page.ai.config.confirmDelete'),
                 confirm: () => onDelete(row),

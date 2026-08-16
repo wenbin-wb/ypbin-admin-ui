@@ -123,6 +123,7 @@
       "confirmDisable": "Disable this model? It will no longer be available for chat.",
       "duplicate": "Duplicate",
       "duplicateFail": "Duplicate failed",
+      "defaultLocked": "Not allowed for the default model — set another default first",
       "model": "Model",
       "status": "Status",
       "enabled": "Enabled",

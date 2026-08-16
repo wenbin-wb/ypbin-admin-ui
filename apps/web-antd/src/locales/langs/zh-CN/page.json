@@ -111,6 +111,7 @@
       "confirmDisable": "确认停用该模型？停用后对话将不可使用此模型",
       "duplicate": "复制",
       "duplicateFail": "复制失败",
+      "defaultLocked": "默认模型不可执行此操作，请先更换默认模型",
       "model": "模型",
       "status": "状态",
       "enabled": "启用",
