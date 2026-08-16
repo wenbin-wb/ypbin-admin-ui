@@ -20,6 +20,7 @@
       "renameConv": "重命名",
       "selectModel": "选择模型",
       "selectKb": "关联知识库",
+      "attachKb": "关联知识库（检索增强）",
       "emptyHint": "开始一段新对话",
       "welcomeTitle": "我能帮你做点什么？",
       "enterTip": "Enter 发送，Shift+Enter 换行",

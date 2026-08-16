@@ -7,7 +7,7 @@ import { ref } from 'vue';
 import { useVbenDrawer } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
-import { Button, Card, message, Upload } from 'ant-design-vue';
+import { Alert, Badge, Button, Card, Input, message, Upload } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
@@ -145,13 +145,13 @@ async function onTestQuery() {
 function statusTag(status: number) {
   switch (status) {
     case 0: {
-      return { color: 'processing', text: $t('page.ai.knowledge.processing') };
+      return { color: 'processing' as const, text: $t('page.ai.knowledge.processing') };
     }
     case 1: {
-      return { color: 'success', text: $t('page.ai.knowledge.ready') };
+      return { color: 'success' as const, text: $t('page.ai.knowledge.ready') };
     }
     default: {
-      return { color: 'error', text: $t('page.ai.knowledge.failed') };
+      return { color: 'error' as const, text: $t('page.ai.knowledge.failed') };
     }
   }
 }
@@ -187,7 +187,7 @@ defineExpose({ drawerApi });
       </template>
 
       <template #status="{ row }">
-        <a-badge
+        <Badge
           :status="statusTag(row.status).color"
           :text="statusTag(row.status).text"
         />
@@ -211,7 +211,7 @@ defineExpose({ drawerApi });
     </Grid>
 
     <Card :title="$t('page.ai.knowledge.testQuery')" size="small">
-      <a-input-search
+      <Input.Search
         v-model:value="testQuery"
         :enter-button="$t('page.ai.knowledge.ask')"
         :loading="testLoading"
@@ -219,7 +219,7 @@ defineExpose({ drawerApi });
         class="mb-3"
         @search="onTestQuery"
       />
-      <a-alert
+      <Alert
         v-if="testAnswer"
         :message="testAnswer"
         class="whitespace-pre-wrap"

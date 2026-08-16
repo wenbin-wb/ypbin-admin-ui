@@ -5,6 +5,7 @@ import { computed, nextTick, onMounted, ref } from 'vue';
 
 import { Copy, Menu, Plus, RotateCw, Square, X } from '@vben/icons';
 
+import { Button, Input, Popconfirm, Select } from 'ant-design-vue';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
 import { marked } from 'marked';
@@ -14,6 +15,7 @@ import {
   createConversation,
   deleteConversation,
   listConversations,
+  listKnowledgeBases,
   listMessages,
   renameConversation,
 } from '#/api/ai';
@@ -37,8 +39,8 @@ const messages = ref<AiApi.Message[]>([]);
 const inputText = ref('');
 const isStreaming = ref(false);
 const drawerOpen = ref(false);
-const deepThink = ref(false);
-const webSearch = ref(false);
+const knowledgeBases = ref<AiApi.KnowledgeBase[]>([]);
+const knowledgeBaseId = ref<string>('');
 const msgListRef = ref<HTMLElement>();
 let abortController: AbortController | null = null;
 
@@ -109,7 +111,11 @@ async function handleSendWithStream() {
 
   try {
     await chat(
-      { conversationId: activeConvId.value, message: text },
+      {
+        conversationId: activeConvId.value,
+        knowledgeBaseId: knowledgeBaseId.value || undefined,
+        message: text,
+      },
       (token: string) => {
         assistantMsg.content += token;
         scrollToBottom();
@@ -232,6 +238,11 @@ onMounted(async () => {
   if (conversations.value.length > 0) {
     await selectConversation(conversations.value[0]?.id ?? '');
   }
+  try {
+    knowledgeBases.value = await listKnowledgeBases();
+  } catch {
+    // 知识库不可用时仅隐藏关联选择
+  }
 });
 </script>
 
@@ -248,12 +259,11 @@ onMounted(async () => {
       </div>
     </header>
 
-    <!-- ===== 会话抽屉（覆盖式）===== -->
-    <Teleport to="body">
-      <Transition name="ds-drawer">
-        <div v-if="drawerOpen" class="ds-drawer">
-          <div class="ds-drawer__mask" @click="drawerOpen = false"></div>
-          <aside class="ds-drawer__panel">
+    <!-- ===== 会话抽屉（页面内覆盖，不遮挡全局菜单）===== -->
+    <Transition name="ds-drawer">
+      <div v-if="drawerOpen" class="ds-drawer">
+        <div class="ds-drawer__mask" @click="drawerOpen = false"></div>
+        <aside class="ds-drawer__panel">
             <div class="ds-drawer__header">
               <button class="ds-chat__menu-btn" @click="drawerOpen = false">
                 <X class="size-5" />
@@ -273,7 +283,7 @@ onMounted(async () => {
                 @click="selectConversation(conv.id)"
               >
                 <template v-if="renaming === conv.id">
-                  <a-input
+                  <Input
                     v-model:value="renameTitle"
                     size="small"
                     @blur="commitRename(conv.id)"
@@ -283,7 +293,7 @@ onMounted(async () => {
                 <template v-else>
                   <span class="ds-drawer__item-title">{{ conv.title }}</span>
                   <span class="ds-drawer__item-actions">
-                    <a-button
+                    <Button
                       size="small"
                       type="text"
                       :title="$t('page.ai.chat.renameConv')"
@@ -292,18 +302,18 @@ onMounted(async () => {
                       <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                       </svg>
-                    </a-button>
-                    <a-popconfirm
+                    </Button>
+                    <Popconfirm
                       :title="$t('page.ai.chat.confirmDelete')"
                       @click.stop
                       @confirm="handleDeleteConv(conv.id)"
                     >
-                      <a-button size="small" danger type="text">
+                      <Button size="small" danger type="text">
                         <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                           <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                         </svg>
-                      </a-button>
-                    </a-popconfirm>
+                      </Button>
+                    </Popconfirm>
                   </span>
                 </template>
               </div>
@@ -311,7 +321,6 @@ onMounted(async () => {
           </aside>
         </div>
       </Transition>
-    </Teleport>
 
     <!-- ===== 主内容 ===== -->
     <main class="ds-chat__main">
@@ -393,7 +402,7 @@ onMounted(async () => {
       <!-- ===== 输入区 ===== -->
       <div class="ds-chat__input-area">
         <div class="ds-chat__input-box">
-          <a-textarea
+          <Input.TextArea
             v-model:value="inputText"
             :auto-size="{ maxRows: 10, minRows: 1 }"
             :disabled="isStreaming"
@@ -402,42 +411,37 @@ onMounted(async () => {
             @keydown="handleKeydown"
           />
           <div class="ds-chat__input-tools">
-            <div class="ds-chat__input-switches">
-              <button
-                class="ds-chat__switch"
-                :class="{ 'ds-chat__switch--on': deepThink }"
-                @click="deepThink = !deepThink"
+            <Select
+              v-if="knowledgeBases.length > 0"
+              v-model:value="knowledgeBaseId"
+              :placeholder="$t('page.ai.chat.attachKb')"
+              class="ds-chat__kb-select"
+              size="small"
+              allow-clear
+            >
+              <Select.Option
+                v-for="kb in knowledgeBases"
+                :key="kb.id"
+                :value="kb.id"
               >
-                <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2a7 7 0 1 0 3.5 13.06 6 6 0 1 1-3.5-11.06Z" />
-                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2" />
+                {{ kb.name }}
+              </Select.Option>
+            </Select>
+            <div class="ds-chat__input-tools-right">
+              <button
+                v-if="!isStreaming"
+                class="ds-chat__send"
+                :disabled="!inputText.trim()"
+                @click="handleSendWithStream"
+              >
+                <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
                 </svg>
-                {{ $t('page.ai.chat.deepThink') }}
               </button>
-              <button
-                class="ds-chat__switch"
-                :class="{ 'ds-chat__switch--on': webSearch }"
-                @click="webSearch = !webSearch"
-              >
-                <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-                </svg>
-                {{ $t('page.ai.chat.webSearch') }}
+              <button v-else class="ds-chat__send ds-chat__send--stop" @click="handleStop">
+                <Square class="size-4" />
               </button>
             </div>
-            <button
-              v-if="!isStreaming"
-              class="ds-chat__send"
-              :disabled="!inputText.trim()"
-              @click="handleSendWithStream"
-            >
-              <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-              </svg>
-            </button>
-            <button v-else class="ds-chat__send ds-chat__send--stop" @click="handleStop">
-              <Square class="size-4" />
-            </button>
           </div>
         </div>
         <p class="ds-chat__input-tip">
@@ -450,6 +454,7 @@ onMounted(async () => {
 
 <style scoped>
 .ds-chat {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -508,15 +513,15 @@ onMounted(async () => {
 
 /* ===== 会话抽屉 ===== */
 .ds-drawer__mask {
-  position: fixed;
-  z-index: 2000;
+  position: absolute;
+  z-index: 20;
   inset: 0;
   background: hsl(var(--foreground) / 30%);
 }
 
 .ds-drawer__panel {
-  position: fixed;
-  z-index: 2001;
+  position: absolute;
+  z-index: 21;
   top: 0;
   bottom: 0;
   left: 0;
@@ -765,10 +770,10 @@ onMounted(async () => {
 }
 
 .ds-chat__input-box {
-  width: 100%;
-  max-width: 780px;
+  width: min(46vw, 780px);
+  min-width: 420px;
   margin: 0 auto;
-  padding: 12px 12px 8px 16px;
+  padding: 14px 14px 10px 18px;
   background: hsl(var(--background));
   border: 1px solid hsl(var(--border));
   border-radius: 14px;
@@ -784,6 +789,7 @@ onMounted(async () => {
 }
 
 .ds-chat__textarea {
+  min-height: 52px;
   border: none !important;
   box-shadow: none !important;
   background: transparent !important;
@@ -799,33 +805,13 @@ onMounted(async () => {
   margin-top: 6px;
 }
 
-.ds-chat__input-switches {
+.ds-chat__kb-select {
+  width: 200px;
+}
+
+.ds-chat__input-tools-right {
   display: flex;
-  gap: 6px;
-}
-
-.ds-chat__switch {
-  display: flex;
-  gap: 5px;
-  align-items: center;
-  padding: 4px 10px;
-  font-size: 12px;
-  cursor: pointer;
-  color: hsl(var(--muted-foreground));
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  transition: all 0.15s;
-}
-
-.ds-chat__switch:hover {
-  background: hsl(var(--muted));
-}
-
-.ds-chat__switch--on {
-  color: hsl(var(--primary));
-  background: hsl(var(--primary) / 8%);
-  border-color: hsl(var(--primary) / 25%);
+  gap: 8px;
 }
 
 .ds-chat__send {

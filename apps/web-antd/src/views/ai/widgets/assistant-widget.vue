@@ -3,6 +3,7 @@ import type { AiApi } from '#/api/ai';
 
 import { nextTick, ref } from 'vue';
 
+import { Button, Input } from 'ant-design-vue';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
 import { marked } from 'marked';
@@ -184,11 +185,11 @@ function handleStop() {
             </svg>
             {{ $t('page.ai.widget.title') }}
           </span>
-          <a-button size="small" type="text" @click="open = false">
+          <Button size="small" type="text" @click="open = false">
             <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
-          </a-button>
+          </Button>
         </div>
 
         <div ref="listRef" class="aiw-panel__list">
@@ -227,7 +228,7 @@ function handleStop() {
         </div>
 
         <div class="aiw-panel__input">
-          <a-textarea
+          <Input.TextArea
             v-model:value="inputText"
             :auto-size="{ maxRows: 4, minRows: 1 }"
             :disabled="isStreaming"
@@ -236,7 +237,7 @@ function handleStop() {
             @keydown="handleKeydown"
           />
           <div class="aiw-panel__actions">
-            <a-button
+            <Button
               v-if="!isStreaming"
               :disabled="!inputText.trim()"
               shape="circle"
@@ -247,12 +248,12 @@ function handleStop() {
               <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
               </svg>
-            </a-button>
-            <a-button v-else danger shape="circle" size="small" @click="handleStop">
+            </Button>
+            <Button v-else danger shape="circle" size="small" @click="handleStop">
               <svg class="size-3.5" fill="currentColor" viewBox="0 0 24 24">
                 <rect height="12" width="12" x="6" y="6" />
               </svg>
-            </a-button>
+            </Button>
           </div>
         </div>
       </div>
@@ -264,7 +265,7 @@ function handleStop() {
 /* 悬浮按钮 */
 .aiw-fab {
   position: fixed;
-  z-index: 1000;
+  z-index: 3000;
   right: 24px;
   bottom: 24px;
   display: flex;
@@ -295,7 +296,7 @@ function handleStop() {
 /* 面板 */
 .aiw-panel {
   position: fixed;
-  z-index: 1000;
+  z-index: 3000;
   right: 24px;
   bottom: 84px;
   display: flex;

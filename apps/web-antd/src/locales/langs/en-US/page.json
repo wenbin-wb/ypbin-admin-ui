@@ -30,6 +30,7 @@
       "renameConv": "Rename",
       "selectModel": "Select Model",
       "selectKb": "Knowledge Base",
+      "attachKb": "Attach Knowledge Base (RAG)",
       "emptyHint": "Start a new conversation",
       "welcomeTitle": "How can I help you?",
       "enterTip": "Enter to send, Shift+Enter for new line",
