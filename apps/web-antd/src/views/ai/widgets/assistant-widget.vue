@@ -12,7 +12,7 @@ import { $t } from '#/locales';
 
 defineOptions({ name: 'AiAssistantWidget' });
 
-// marked 渲染（只渲染行内代码即可，保持轻量）
+// marked 渲染
 const renderer = new marked.Renderer();
 renderer.code = ({ text, lang }: { lang?: string; text: string }) => {
   const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
@@ -27,7 +27,7 @@ const inputText = ref('');
 const isStreaming = ref(false);
 const sending = ref(false);
 const listRef = ref<HTMLElement>();
-let conversationId = ref<string>('');
+const conversationId = ref('');
 let abortController: AbortController | null = null;
 
 function renderMd(content: string): string {
@@ -63,7 +63,7 @@ async function ensureConversation() {
     const data = await listMessages(conv.id, { page: 1, pageSize: 50 });
     messages.value = data.items ?? [];
   } catch {
-    // 未登录或接口异常时保持可输入，发送时再报错
+    // 未登录或接口异常时保持可输入
   }
 }
 
@@ -151,11 +151,12 @@ function handleStop() {
       stroke="currentColor"
       stroke-width="2"
       viewBox="0 0 24 24"
+      stroke-linecap="round"
+      stroke-linejoin="round"
     >
-      <path
-        d="M12 2a5 5 0 0 1 5 5c0 1.5-.5 2.9-1.5 4-.8.9-1 1.8-1 3.5h-5c0-1.7-.2-2.6-1-3.5C7.5 9.9 7 8.5 7 7a5 5 0 0 1 5-5z"
-      />
-      <path d="M9.5 18h5M10 21h4" />
+      <path d="M12 8V4H8" />
+      <rect width="16" height="12" x="4" y="8" rx="2" />
+      <path d="M2 14h2M20 14h2M15 13v2M9 13v2" />
     </svg>
     <svg
       v-else
@@ -164,8 +165,9 @@ function handleStop() {
       stroke="currentColor"
       stroke-width="2"
       viewBox="0 0 24 24"
+      stroke-linecap="round"
     >
-      <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" />
+      <path d="M18 6L6 18M6 6l12 12" />
     </svg>
   </div>
 
@@ -174,23 +176,28 @@ function handleStop() {
     <Transition name="aiw-pop">
       <div v-if="open" class="aiw-panel">
         <div class="aiw-panel__header">
-          <span class="aiw-panel__title">🤖 {{ $t('page.ai.widget.title') }}</span>
+          <span class="aiw-panel__title">
+            <svg class="aiw-panel__logo" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 8V4H8" />
+              <rect width="16" height="12" x="4" y="8" rx="2" />
+              <path d="M2 14h2M20 14h2M15 13v2M9 13v2" />
+            </svg>
+            {{ $t('page.ai.widget.title') }}
+          </span>
           <a-button size="small" type="text" @click="open = false">
-            <svg
-              class="size-4"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" />
+            <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round">
+              <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </a-button>
         </div>
 
         <div ref="listRef" class="aiw-panel__list">
           <div v-if="messages.length === 0" class="aiw-panel__empty">
-            <div class="aiw-panel__empty-icon">🤖</div>
+            <svg class="aiw-panel__empty-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 8V4H8" />
+              <rect width="16" height="12" x="4" y="8" rx="2" />
+              <path d="M2 14h2M20 14h2M15 13v2M9 13v2" />
+            </svg>
             <p>{{ $t('page.ai.widget.hint') }}</p>
           </div>
           <div
@@ -205,7 +212,6 @@ function handleStop() {
               </div>
             </template>
             <template v-else>
-              <div class="aiw-msg__avatar">🤖</div>
               <!-- eslint-disable vue/no-v-html -->
               <div
                 v-if="msg.content"
@@ -238,32 +244,12 @@ function handleStop() {
               type="primary"
               @click="handleSend"
             >
-              <svg
-                class="size-3.5"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
+              <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
               </svg>
             </a-button>
-            <a-button
-              v-else
-              danger
-              shape="circle"
-              size="small"
-              @click="handleStop"
-            >
-              <svg
-                class="size-3.5"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
+            <a-button v-else danger shape="circle" size="small" @click="handleStop">
+              <svg class="size-3.5" fill="currentColor" viewBox="0 0 24 24">
                 <rect height="12" width="12" x="6" y="6" />
               </svg>
             </a-button>
@@ -334,6 +320,17 @@ function handleStop() {
   border-bottom: 1px solid hsl(var(--border));
 }
 
+.aiw-panel__title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.aiw-panel__logo {
+  width: 18px;
+  height: 18px;
+}
+
 .aiw-panel__list {
   flex: 1;
   padding: 14px;
@@ -353,7 +350,9 @@ function handleStop() {
 }
 
 .aiw-panel__empty-icon {
-  font-size: 36px;
+  width: 40px;
+  height: 40px;
+  color: hsl(var(--muted-foreground) / 60%);
 }
 
 .aiw-msg {
@@ -368,18 +367,6 @@ function handleStop() {
   justify-content: flex-end;
 }
 
-.aiw-msg__avatar {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  font-size: 13px;
-  background: hsl(var(--accent));
-  border-radius: 6px;
-}
-
 .aiw-msg__bubble--user {
   max-width: 82%;
   padding: 8px 12px;
@@ -388,6 +375,7 @@ function handleStop() {
   border-radius: 10px;
   border-bottom-right-radius: 3px;
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .aiw-msg__markdown {
@@ -396,6 +384,7 @@ function handleStop() {
   background: hsl(var(--muted) / 50%);
   border-radius: 10px;
   border-bottom-left-radius: 3px;
+  word-break: break-word;
 }
 
 .aiw-msg__markdown :deep(.aiw-code) {

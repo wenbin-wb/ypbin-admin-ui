@@ -3,8 +3,7 @@ import type { AiApi } from '#/api/ai';
 
 import { computed, nextTick, onMounted, ref } from 'vue';
 
-import { Page } from '@vben/common-ui';
-import { Plus, RotateCw, Square } from '@vben/icons';
+import { Copy, Menu, Plus, RotateCw, Square, X } from '@vben/icons';
 
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
@@ -22,12 +21,12 @@ import { $t } from '#/locales';
 
 defineOptions({ name: 'AiChat' });
 
-// ===== marked + highlight.js（模块级配置一次）=====
+// ===== marked + highlight.js =====
 const markdownRenderer = new marked.Renderer();
 markdownRenderer.code = ({ text, lang }: { lang?: string; text: string }) => {
   const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
   const highlighted = hljs.highlight(text, { language }).value;
-  return `<pre class="ai-code-block"><code class="hljs language-${language}">${highlighted}</code><button type="button" class="ai-copy-btn">${$t('page.ai.chat.copy')}</button></pre>`;
+  return `<pre class="ai-code-block"><code class="hljs language-${language}">${highlighted}</code><button type="button" class="ai-copy-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>${$t('page.ai.chat.copy')}</button></pre>`;
 };
 marked.use({ breaks: true, gfm: true, renderer: markdownRenderer });
 
@@ -37,12 +36,11 @@ const activeConvId = ref<string>('');
 const messages = ref<AiApi.Message[]>([]);
 const inputText = ref('');
 const isStreaming = ref(false);
-const showSidebar = ref(true);
+const drawerOpen = ref(false);
+const deepThink = ref(false);
+const webSearch = ref(false);
 const msgListRef = ref<HTMLElement>();
 let abortController: AbortController | null = null;
-
-// 模型选择（新建会话时生效）
-const modelId = ref<string>('');
 
 // ===== 会话 =====
 async function loadConversations() {
@@ -50,7 +48,8 @@ async function loadConversations() {
 }
 
 async function handleNewChat() {
-  const conv = await createConversation(modelId.value || undefined);
+  drawerOpen.value = false;
+  const conv = await createConversation();
   conversations.value.unshift(conv);
   await selectConversation(conv.id);
 }
@@ -58,6 +57,7 @@ async function handleNewChat() {
 async function selectConversation(id: string) {
   if (!id || id === activeConvId.value) return;
   activeConvId.value = id;
+  drawerOpen.value = false;
   const data = await listMessages(id, { page: 1, pageSize: 100 });
   messages.value = data.items ?? [];
   await scrollToBottom();
@@ -72,13 +72,13 @@ async function handleDeleteConv(id: string) {
   }
 }
 
-// ===== 发送消息（流式 + AbortController）=====
+// ===== 发送（流式）=====
 async function handleSendWithStream() {
   const text = inputText.value.trim();
   if (!text || isStreaming.value) return;
 
   if (!activeConvId.value) {
-    const conv = await createConversation(modelId.value || undefined);
+    const conv = await createConversation();
     conversations.value.unshift(conv);
     activeConvId.value = conv.id;
   }
@@ -170,6 +170,8 @@ async function commitRename(id: string) {
 }
 
 // ===== 消息操作 =====
+const liked = ref<Record<string, 'down' | 'up' | undefined>>({});
+
 async function copyMessage(content: string) {
   try {
     await navigator.clipboard.writeText(content);
@@ -178,12 +180,15 @@ async function copyMessage(content: string) {
   }
 }
 
-/** 重新生成：删除最后一条助手消息，重发最后一条用户消息 */
+function toggleLike(id: string, type: 'down' | 'up') {
+  liked.value[id] = liked.value[id] === type ? undefined : type;
+}
+
+/** 重新生成：删除尾部助手回复，重发最后一条用户消息 */
 async function regenerate() {
   if (isStreaming.value) return;
   const lastUser = [...messages.value].reverse().find((m) => m.role === 'user');
   if (!lastUser) return;
-  // 移除最后的助手回复（若有）
   while (messages.value.length > 0) {
     const lastMsg = messages.value[messages.value.length - 1];
     if (lastMsg && lastMsg.role === 'assistant') {
@@ -196,7 +201,7 @@ async function regenerate() {
   await handleSendWithStream();
 }
 
-// ===== Markdown 渲染（DOMPurify 消毒）=====
+// ===== Markdown 渲染 =====
 function renderMd(content: string): string {
   if (!content) return '';
   try {
@@ -217,10 +222,9 @@ function handleMarkdownClick(e: MouseEvent) {
   navigator.clipboard.writeText(code);
 }
 
-// ===== 当前会话标题 =====
 const activeTitle = computed(() => {
   const conv = conversations.value.find((c) => c.id === activeConvId.value);
-  return conv?.title ?? $t('page.ai.chat.title');
+  return conv?.title ?? '';
 });
 
 onMounted(async () => {
@@ -232,266 +236,353 @@ onMounted(async () => {
 </script>
 
 <template>
-  <Page auto-content-height class="ai-chat-page">
-    <div class="ai-chat-layout">
-      <!-- ===== 左侧会话栏 ===== -->
-      <aside v-show="showSidebar" class="ai-chat-sidebar">
-        <div class="ai-chat-sidebar__header">
-          <span class="ai-chat-sidebar__title">{{
-            $t('page.ai.chat.history')
-          }}</span>
-          <a-button
-            type="primary"
-            size="small"
-            @click="handleNewChat"
-          >
-            <Plus class="size-4" />
-            {{ $t('page.ai.chat.newChat') }}
-          </a-button>
-        </div>
-        <div class="ai-chat-sidebar__list">
-          <div
-            v-for="conv in conversations"
-            :key="conv.id"
-            class="ai-chat-conv-item"
-            :class="{ active: conv.id === activeConvId }"
-            @click="selectConversation(conv.id)"
-          >
-            <template v-if="renaming === conv.id">
-              <a-input
-                v-model:value="renameTitle"
-                size="small"
-                @blur="commitRename(conv.id)"
-                @press-enter="commitRename(conv.id)"
-              />
-            </template>
-            <template v-else>
-              <span class="ai-chat-conv-item__title">{{ conv.title }}</span>
-              <span class="ai-chat-conv-item__actions">
-                <a-button
-                  size="small"
-                  type="text"
-                  :title="$t('page.ai.chat.renameConv')"
-                  @click.stop="startRename(conv)"
-                >
-                  ✏️
-                </a-button>
-                <a-popconfirm
-                  :title="$t('page.ai.chat.confirmDelete')"
-                  @click.stop
-                  @confirm="handleDeleteConv(conv.id)"
-                >
-                  <a-button size="small" danger type="text">🗑</a-button>
-                </a-popconfirm>
-              </span>
-            </template>
-          </div>
-        </div>
-      </aside>
+  <div class="ds-chat">
+    <!-- ===== 顶部栏 ===== -->
+    <header class="ds-chat__topbar">
+      <div class="ds-chat__topbar-inner">
+        <button class="ds-chat__menu-btn" @click="drawerOpen = true">
+          <Menu class="size-5" />
+        </button>
+        <span class="ds-chat__brand">Ypbin AI</span>
+        <span v-if="activeTitle" class="ds-chat__title">{{ activeTitle }}</span>
+      </div>
+    </header>
 
-      <!-- ===== 主对话区 ===== -->
-      <main class="ai-chat-main">
-        <!-- 顶部工具栏 -->
-        <header class="ai-chat-topbar">
-          <a-button
-            class="ai-chat-topbar__toggle"
-            size="small"
-            type="text"
-            @click="showSidebar = !showSidebar"
-          >
-            ☰
-          </a-button>
-          <span class="ai-chat-topbar__title">{{ activeTitle }}</span>
-          <div class="ai-chat-topbar__actions">
-            <a-select
-              v-model:value="modelId"
-              :placeholder="$t('page.ai.chat.selectModel')"
-              class="ai-chat-topbar__model"
-              size="small"
-              allow-clear
-            >
-              <a-select-option value="deepseek-v4-flash">
-                DeepSeek V4 Flash
-              </a-select-option>
-              <a-select-option value="deepseek-v4-pro">
-                DeepSeek V4 Pro
-              </a-select-option>
-            </a-select>
-          </div>
-        </header>
-
-        <!-- 欢迎页（无消息时） -->
-        <div v-if="messages.length === 0" class="ai-chat-welcome">
-          <div class="ai-chat-welcome__logo">🤖</div>
-          <h1 class="ai-chat-welcome__title">
-            {{ $t('page.ai.chat.welcomeTitle') }}
-          </h1>
-          <p class="ai-chat-welcome__desc">
-            {{ $t('page.ai.chat.emptyHint') }}
-          </p>
-        </div>
-
-        <!-- 消息流 -->
-        <div v-else ref="msgListRef" class="ai-chat-messages">
-          <div
-            v-for="msg in messages"
-            :key="msg.id"
-            class="ai-chat-msg"
-            :class="`ai-chat-msg--${msg.role}`"
-          >
-            <template v-if="msg.role === 'user'">
-              <div class="ai-chat-msg__bubble ai-chat-msg__bubble--user">
-                <span class="ai-chat-msg__content">{{ msg.content }}</span>
-              </div>
-            </template>
-            <template v-else>
-              <div class="ai-chat-msg__avatar">🤖</div>
-              <div class="ai-chat-msg__body">
-                <div class="ai-chat-msg__bubble ai-chat-msg__bubble--assistant">
-                  <!-- eslint-disable vue/no-v-html -->
-                  <div
-                    v-if="msg.content"
-                    class="ai-chat-markdown"
-                    v-html="renderMd(msg.content)"
-                    @click="handleMarkdownClick"
-                  ></div>
-                  <!-- eslint-enable vue/no-v-html -->
-                  <span v-else class="ai-chat-thinking">{{
-                    $t('page.ai.chat.thinking')
-                  }}</span>
-                </div>
-                <div class="ai-chat-msg__actions">
-                  <a-button
-                    size="small"
-                    type="text"
-                    :title="$t('page.ai.chat.copy')"
-                    @click="copyMessage(msg.content)"
-                  >
-                    📋
-                  </a-button>
-                  <a-button
-                    size="small"
-                    type="text"
-                    :title="$t('page.ai.chat.regenerate')"
-                    @click="regenerate"
-                  >
-                    <RotateCw class="size-4" />
-                  </a-button>
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <!-- 底部输入区 -->
-        <div class="ai-chat-input-area">
-          <div class="ai-chat-input-box">
-            <a-textarea
-              v-model:value="inputText"
-              :auto-size="{ maxRows: 10, minRows: 1 }"
-              :disabled="isStreaming"
-              :placeholder="$t('page.ai.chat.placeholder')"
-              class="ai-chat-input-box__textarea"
-              @keydown="handleKeydown"
-            />
-            <div class="ai-chat-input-box__actions">
-              <span class="ai-chat-input-box__tip">{{
-                $t('page.ai.chat.enterTip')
-              }}</span>
-              <a-button
-                v-if="!isStreaming"
-                :disabled="!inputText.trim()"
-                shape="circle"
-                type="primary"
-                @click="handleSendWithStream"
+    <!-- ===== 会话抽屉（覆盖式）===== -->
+    <Teleport to="body">
+      <Transition name="ds-drawer">
+        <div v-if="drawerOpen" class="ds-drawer">
+          <div class="ds-drawer__mask" @click="drawerOpen = false"></div>
+          <aside class="ds-drawer__panel">
+            <div class="ds-drawer__header">
+              <button class="ds-chat__menu-btn" @click="drawerOpen = false">
+                <X class="size-5" />
+              </button>
+              <span class="ds-chat__brand">Ypbin AI</span>
+            </div>
+            <button class="ds-drawer__new" @click="handleNewChat">
+              <Plus class="size-4" />
+              {{ $t('page.ai.chat.newChat') }}
+            </button>
+            <div class="ds-drawer__list">
+              <div
+                v-for="conv in conversations"
+                :key="conv.id"
+                class="ds-drawer__item"
+                :class="{ active: conv.id === activeConvId }"
+                @click="selectConversation(conv.id)"
               >
-                <svg
-                  class="size-4"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                <template v-if="renaming === conv.id">
+                  <a-input
+                    v-model:value="renameTitle"
+                    size="small"
+                    @blur="commitRename(conv.id)"
+                    @press-enter="commitRename(conv.id)"
                   />
+                </template>
+                <template v-else>
+                  <span class="ds-drawer__item-title">{{ conv.title }}</span>
+                  <span class="ds-drawer__item-actions">
+                    <a-button
+                      size="small"
+                      type="text"
+                      :title="$t('page.ai.chat.renameConv')"
+                      @click.stop="startRename(conv)"
+                    >
+                      <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                      </svg>
+                    </a-button>
+                    <a-popconfirm
+                      :title="$t('page.ai.chat.confirmDelete')"
+                      @click.stop
+                      @confirm="handleDeleteConv(conv.id)"
+                    >
+                      <a-button size="small" danger type="text">
+                        <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </a-button>
+                    </a-popconfirm>
+                  </span>
+                </template>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ===== 主内容 ===== -->
+    <main class="ds-chat__main">
+      <!-- 欢迎页 -->
+      <div v-if="messages.length === 0" class="ds-chat__welcome">
+        <h1 class="ds-chat__welcome-title">
+          {{ $t('page.ai.chat.welcomeTitle') }}
+        </h1>
+        <p class="ds-chat__welcome-desc">
+          {{ $t('page.ai.chat.emptyHint') }}
+        </p>
+      </div>
+
+      <!-- 消息流 -->
+      <div v-else ref="msgListRef" class="ds-chat__messages">
+        <div
+          v-for="msg in messages"
+          :key="msg.id"
+          class="ds-msg"
+          :class="`ds-msg--${msg.role}`"
+        >
+          <div v-if="msg.role === 'user'" class="ds-msg__user">
+            <div class="ds-msg__user-bubble">
+              <span class="ds-msg__plain">{{ msg.content }}</span>
+            </div>
+          </div>
+          <div v-else class="ds-msg__ai">
+            <!-- eslint-disable vue/no-v-html -->
+            <div
+              v-if="msg.content"
+              class="ds-msg__markdown"
+              v-html="renderMd(msg.content)"
+              @click="handleMarkdownClick"
+            ></div>
+            <!-- eslint-enable vue/no-v-html -->
+            <span v-else class="ds-msg__thinking">{{
+              $t('page.ai.chat.thinking')
+            }}</span>
+            <div v-if="!isStreaming || msg.id !== 'streaming'" class="ds-msg__actions">
+              <button
+                class="ds-msg__action"
+                :title="$t('page.ai.chat.copy')"
+                @click="copyMessage(msg.content)"
+              >
+                <Copy class="size-4" />
+              </button>
+              <button
+                class="ds-msg__action"
+                :class="{ active: liked[msg.id] === 'up' }"
+                :title="$t('page.ai.chat.thumbUp')"
+                @click="toggleLike(msg.id, 'up')"
+              >
+                <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7 10v12" /><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" />
                 </svg>
-              </a-button>
-              <a-button v-else danger shape="circle" @click="handleStop">
-                <Square class="size-4" />
-              </a-button>
+              </button>
+              <button
+                class="ds-msg__action"
+                :class="{ active: liked[msg.id] === 'down' }"
+                :title="$t('page.ai.chat.thumbDown')"
+                @click="toggleLike(msg.id, 'down')"
+              >
+                <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 14V2" /><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" />
+                </svg>
+              </button>
+              <button
+                class="ds-msg__action"
+                :title="$t('page.ai.chat.regenerate')"
+                @click="regenerate"
+              >
+                <RotateCw class="size-4" />
+              </button>
             </div>
           </div>
         </div>
-      </main>
-    </div>
-  </Page>
+      </div>
+
+      <!-- ===== 输入区 ===== -->
+      <div class="ds-chat__input-area">
+        <div class="ds-chat__input-box">
+          <a-textarea
+            v-model:value="inputText"
+            :auto-size="{ maxRows: 10, minRows: 1 }"
+            :disabled="isStreaming"
+            :placeholder="$t('page.ai.chat.placeholder')"
+            class="ds-chat__textarea"
+            @keydown="handleKeydown"
+          />
+          <div class="ds-chat__input-tools">
+            <div class="ds-chat__input-switches">
+              <button
+                class="ds-chat__switch"
+                :class="{ 'ds-chat__switch--on': deepThink }"
+                @click="deepThink = !deepThink"
+              >
+                <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2a7 7 0 1 0 3.5 13.06 6 6 0 1 1-3.5-11.06Z" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2" />
+                </svg>
+                {{ $t('page.ai.chat.deepThink') }}
+              </button>
+              <button
+                class="ds-chat__switch"
+                :class="{ 'ds-chat__switch--on': webSearch }"
+                @click="webSearch = !webSearch"
+              >
+                <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                </svg>
+                {{ $t('page.ai.chat.webSearch') }}
+              </button>
+            </div>
+            <button
+              v-if="!isStreaming"
+              class="ds-chat__send"
+              :disabled="!inputText.trim()"
+              @click="handleSendWithStream"
+            >
+              <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+              </svg>
+            </button>
+            <button v-else class="ds-chat__send ds-chat__send--stop" @click="handleStop">
+              <Square class="size-4" />
+            </button>
+          </div>
+        </div>
+        <p class="ds-chat__input-tip">
+          {{ $t('page.ai.chat.enterTip') }}
+        </p>
+      </div>
+    </main>
+  </div>
 </template>
 
 <style scoped>
-.ai-chat-page {
-  overflow: hidden;
-}
-
-.ai-chat-layout {
+.ds-chat {
   display: flex;
+  flex-direction: column;
   height: 100%;
   overflow: hidden;
   background: hsl(var(--background));
 }
 
-/* ===== 左侧会话栏 ===== */
-.ai-chat-sidebar {
+/* ===== 顶栏 ===== */
+.ds-chat__topbar {
   display: flex;
-  flex-direction: column;
-  width: 260px;
-  min-width: 220px;
-  background: hsl(var(--muted) / 35%);
-  border-right: 1px solid hsl(var(--border));
-}
-
-.ai-chat-sidebar__header {
-  display: flex;
-  gap: 8px;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px;
+  justify-content: center;
+  height: 52px;
   border-bottom: 1px solid hsl(var(--border));
 }
 
-.ai-chat-sidebar__title {
-  font-size: 15px;
-  font-weight: 600;
+.ds-chat__topbar-inner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  max-width: 780px;
+  padding: 0 16px;
 }
 
-.ai-chat-sidebar__list {
+.ds-chat__menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  cursor: pointer;
+  color: hsl(var(--foreground));
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.ds-chat__menu-btn:hover {
+  background: hsl(var(--muted));
+}
+
+.ds-chat__brand {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.ds-chat__title {
+  overflow: hidden;
+  font-size: 14px;
+  color: hsl(var(--muted-foreground));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 会话抽屉 ===== */
+.ds-drawer__mask {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  background: hsl(var(--foreground) / 30%);
+}
+
+.ds-drawer__panel {
+  position: fixed;
+  z-index: 2001;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  background: hsl(var(--background));
+  border-right: 1px solid hsl(var(--border));
+  box-shadow: 4px 0 24px hsl(var(--foreground) / 10%);
+}
+
+.ds-drawer__header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  height: 52px;
+  padding: 0 12px 0 16px;
+}
+
+.ds-drawer__new {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  margin: 8px 12px;
+  padding: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: hsl(var(--foreground));
+  background: transparent;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.ds-drawer__new:hover {
+  background: hsl(var(--muted));
+}
+
+.ds-drawer__list {
   flex: 1;
-  padding: 8px;
+  padding: 4px 8px 16px;
   overflow-y: auto;
 }
 
-.ai-chat-conv-item {
+.ds-drawer__item {
   display: flex;
+  gap: 4px;
   align-items: center;
-  justify-content: space-between;
-  padding: 9px 10px;
+  padding: 8px 10px;
   margin-bottom: 2px;
   cursor: pointer;
   border-radius: 6px;
   transition: background 0.15s;
 }
 
-.ai-chat-conv-item:hover {
-  background: hsl(var(--accent));
+.ds-drawer__item:hover {
+  background: hsl(var(--muted));
 }
 
-.ai-chat-conv-item.active {
-  background: hsl(var(--primary) / 12%);
+.ds-drawer__item.active {
+  background: hsl(var(--muted) / 70%);
 }
 
-.ai-chat-conv-item__title {
+.ds-drawer__item-title {
   flex: 1;
   overflow: hidden;
   font-size: 13px;
@@ -499,161 +590,128 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
-.ai-chat-conv-item__actions {
+.ds-drawer__item-actions {
   display: flex;
   gap: 2px;
   opacity: 0;
 }
 
-.ai-chat-conv-item:hover .ai-chat-conv-item__actions {
+.ds-drawer__item:hover .ds-drawer__item-actions {
   opacity: 1;
 }
 
-/* ===== 主区 ===== */
-.ai-chat-main {
+/* 抽屉动画 */
+.ds-drawer-enter-active,
+.ds-drawer-leave-active {
+  transition: opacity 0.2s;
+}
+
+.ds-drawer-enter-active .ds-drawer__panel,
+.ds-drawer-leave-active .ds-drawer__panel {
+  transition: transform 0.2s;
+}
+
+.ds-drawer-enter-from,
+.ds-drawer-leave-to {
+  opacity: 0;
+}
+
+.ds-drawer-enter-from .ds-drawer__panel,
+.ds-drawer-leave-to .ds-drawer__panel {
+  transform: translateX(-100%);
+}
+
+/* ===== 主内容 ===== */
+.ds-chat__main {
   display: flex;
   flex: 1;
   flex-direction: column;
-  min-width: 0;
-}
-
-/* 顶栏 */
-.ai-chat-topbar {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  height: 52px;
-  padding: 0 20px;
-  border-bottom: 1px solid hsl(var(--border));
-}
-
-.ai-chat-topbar__toggle {
-  font-size: 16px;
-}
-
-.ai-chat-topbar__title {
-  flex: 1;
-  overflow: hidden;
-  font-size: 15px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ai-chat-topbar__model {
-  width: 180px;
+  min-height: 0;
 }
 
 /* 欢迎页 */
-.ai-chat-welcome {
+.ds-chat__welcome {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 24px;
   text-align: center;
 }
 
-.ai-chat-welcome__logo {
-  font-size: 56px;
-}
-
-.ai-chat-welcome__title {
+.ds-chat__welcome-title {
   margin: 0;
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 600;
+  letter-spacing: -0.5px;
   color: hsl(var(--foreground));
 }
 
-.ai-chat-welcome__desc {
+.ds-chat__welcome-desc {
   margin: 0;
   font-size: 14px;
   color: hsl(var(--muted-foreground));
 }
 
 /* 消息流 */
-.ai-chat-messages {
-  display: flex;
+.ds-chat__messages {
   flex: 1;
-  flex-direction: column;
-  gap: 24px;
-  max-width: 860px;
   width: 100%;
+  max-width: 780px;
   margin: 0 auto;
-  padding: 24px 20px;
+  padding: 24px 16px;
   overflow-y: auto;
 }
 
-.ai-chat-msg {
+.ds-msg {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  margin-bottom: 28px;
+}
+
+.ds-msg--user {
+  align-items: flex-end;
+}
+
+.ds-msg--ai {
   align-items: flex-start;
 }
 
-.ai-chat-msg--user {
-  justify-content: flex-end;
+.ds-msg__user-bubble {
+  max-width: 72%;
+  padding: 10px 14px;
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted));
+  border-radius: 10px;
+  border-bottom-right-radius: 3px;
 }
 
-.ai-chat-msg__avatar {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  font-size: 16px;
-  background: hsl(var(--accent));
-  border-radius: 8px;
-}
-
-.ai-chat-msg__body {
-  max-width: calc(100% - 44px);
-}
-
-.ai-chat-msg__bubble {
-  padding: 2px 2px;
-  font-size: 14px;
-  line-height: 1.75;
+.ds-msg__plain {
+  font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-wrap;
   word-break: break-word;
 }
 
-.ai-chat-msg__bubble--user {
-  max-width: 70%;
-  padding: 10px 16px;
-  color: hsl(var(--primary-foreground));
-  background: hsl(var(--primary));
-  border-radius: 12px;
-  border-bottom-right-radius: 4px;
+.ds-msg__ai {
+  width: 100%;
 }
 
-.ai-chat-msg__bubble--assistant {
-  background: transparent;
+.ds-msg__markdown {
+  font-size: 15px;
+  line-height: 1.75;
+  color: hsl(var(--foreground));
+  word-break: break-word;
 }
 
-.ai-chat-msg__content {
-  white-space: pre-wrap;
-}
-
-.ai-chat-msg__actions {
-  display: flex;
-  gap: 4px;
-  margin-top: 4px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.ai-chat-msg:hover .ai-chat-msg__actions {
-  opacity: 1;
-}
-
-.ai-chat-thinking {
+.ds-msg__thinking {
   color: hsl(var(--muted-foreground));
-  animation: blink 1s infinite;
+  animation: ds-blink 1s infinite;
 }
 
-@keyframes blink {
+@keyframes ds-blink {
   0%,
   100% {
     opacity: 1;
@@ -664,139 +722,240 @@ onMounted(async () => {
   }
 }
 
-/* ===== 底部输入区 ===== */
-.ai-chat-input-area {
-  padding: 12px 24px 20px;
-  border-top: 1px solid hsl(var(--border));
+/* 消息操作 */
+.ds-msg__actions {
+  display: flex;
+  gap: 2px;
+  margin-top: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 
-.ai-chat-input-box {
-  max-width: 860px;
+.ds-msg:hover .ds-msg__actions {
+  opacity: 1;
+}
+
+.ds-msg__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  cursor: pointer;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.ds-msg__action:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted));
+}
+
+.ds-msg__action.active {
+  color: hsl(var(--primary));
+}
+
+/* ===== 输入区 ===== */
+.ds-chat__input-area {
+  padding: 8px 16px 20px;
+}
+
+.ds-chat__input-box {
+  width: 100%;
+  max-width: 780px;
   margin: 0 auto;
-  padding: 10px 10px 8px 16px;
+  padding: 12px 12px 8px 16px;
   background: hsl(var(--background));
   border: 1px solid hsl(var(--border));
   border-radius: 14px;
-  box-shadow: 0 2px 16px hsl(var(--foreground) / 8%);
+  box-shadow: 0 2px 12px hsl(var(--foreground) / 6%);
   transition:
     border-color 0.2s,
     box-shadow 0.2s;
 }
 
-.ai-chat-input-box:focus-within {
-  border-color: hsl(var(--primary) / 50%);
-  box-shadow: 0 4px 24px hsl(var(--primary) / 14%);
+.ds-chat__input-box:focus-within {
+  border-color: hsl(var(--primary) / 60%);
+  box-shadow: 0 4px 20px hsl(var(--primary) / 14%);
 }
 
-.ai-chat-input-box__textarea {
+.ds-chat__textarea {
   border: none !important;
   box-shadow: none !important;
   background: transparent !important;
+  font-size: 15px;
   resize: none;
 }
 
-.ai-chat-input-box__actions {
+.ds-chat__input-tools {
   display: flex;
   gap: 8px;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   margin-top: 6px;
 }
 
-.ai-chat-input-box__tip {
-  margin-right: auto;
+.ds-chat__input-switches {
+  display: flex;
+  gap: 6px;
+}
+
+.ds-chat__switch {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  transition: all 0.15s;
+}
+
+.ds-chat__switch:hover {
+  background: hsl(var(--muted));
+}
+
+.ds-chat__switch--on {
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 8%);
+  border-color: hsl(var(--primary) / 25%);
+}
+
+.ds-chat__send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
+  border: none;
+  border-radius: 50%;
+  transition: opacity 0.15s;
+}
+
+.ds-chat__send:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.ds-chat__send--stop {
+  background: hsl(var(--destructive, 0 72% 51%));
+}
+
+.ds-chat__input-tip {
+  max-width: 780px;
+  margin: 8px auto 0;
   font-size: 12px;
   color: hsl(var(--muted-foreground));
+  text-align: center;
 }
 
 /* ===== Markdown ===== */
-.ai-chat-markdown :deep(p) {
-  margin: 0 0 8px;
+.ds-msg__markdown :deep(p) {
+  margin: 0 0 10px;
 
   &:last-child {
     margin-bottom: 0;
   }
 }
 
-.ai-chat-markdown :deep(h1),
-.ai-chat-markdown :deep(h2),
-.ai-chat-markdown :deep(h3) {
-  margin: 12px 0 6px;
+.ds-msg__markdown :deep(h1),
+.ds-msg__markdown :deep(h2),
+.ds-msg__markdown :deep(h3) {
+  margin: 14px 0 8px;
   font-weight: 600;
 }
 
-.ai-chat-markdown :deep(ul),
-.ai-chat-markdown :deep(ol) {
-  padding-left: 20px;
-  margin: 6px 0;
-}
-
-.ai-chat-markdown :deep(li) {
-  margin: 2px 0;
-}
-
-.ai-chat-markdown :deep(blockquote) {
-  padding-left: 10px;
+.ds-msg__markdown :deep(ul),
+.ds-msg__markdown :deep(ol) {
+  padding-left: 22px;
   margin: 8px 0;
+}
+
+.ds-msg__markdown :deep(li) {
+  margin: 3px 0;
+}
+
+.ds-msg__markdown :deep(blockquote) {
+  padding-left: 12px;
+  margin: 10px 0;
   color: hsl(var(--muted-foreground));
-  border-left: 3px solid hsl(var(--primary));
+  border-left: 3px solid hsl(var(--border));
 }
 
-.ai-chat-markdown :deep(.ai-code-block) {
+.ds-msg__markdown :deep(.ai-code-block) {
   position: relative;
-  margin: 8px 0;
+  margin: 10px 0;
   overflow-x: auto;
   background: hsl(var(--secondary));
   border-radius: 8px;
 }
 
-.ai-chat-markdown :deep(.ai-code-block code) {
+.ds-msg__markdown :deep(.ai-code-block code) {
   display: block;
-  padding: 12px;
+  padding: 14px;
   font-size: 13px;
   line-height: 1.6;
 }
 
-.ai-chat-markdown :deep(.ai-copy-btn) {
+.ds-msg__markdown :deep(.ai-copy-btn) {
   position: absolute;
-  top: 6px;
+  top: 8px;
   right: 8px;
-  padding: 2px 8px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 3px 8px;
   font-size: 11px;
   cursor: pointer;
+  color: hsl(var(--muted-foreground));
   background: hsl(var(--background));
   border: 1px solid hsl(var(--border));
-  border-radius: 4px;
+  border-radius: 5px;
   opacity: 0;
   transition: opacity 0.2s;
 }
 
-.ai-chat-markdown :deep(.ai-code-block:hover .ai-copy-btn) {
+.ds-msg__markdown :deep(.ai-copy-btn svg) {
+  width: 12px;
+  height: 12px;
+}
+
+.ds-msg__markdown :deep(.ai-code-block:hover .ai-copy-btn) {
   opacity: 1;
 }
 
-.ai-chat-markdown :deep(code:not(.hljs)) {
+.ds-msg__markdown :deep(code:not(.hljs)) {
   padding: 2px 5px;
   font-size: 13px;
   background: hsl(var(--secondary));
   border-radius: 3px;
 }
 
-.ai-chat-markdown :deep(table) {
+.ds-msg__markdown :deep(table) {
   width: 100%;
-  margin: 8px 0;
+  margin: 10px 0;
   font-size: 13px;
   border-collapse: collapse;
 }
 
-.ai-chat-markdown :deep(th),
-.ai-chat-markdown :deep(td) {
+.ds-msg__markdown :deep(th),
+.ds-msg__markdown :deep(td) {
   padding: 6px 10px;
   text-align: left;
   border: 1px solid hsl(var(--border));
 }
 
-.ai-chat-markdown :deep(th) {
+.ds-msg__markdown :deep(th) {
   background: hsl(var(--secondary));
 }
 </style>
