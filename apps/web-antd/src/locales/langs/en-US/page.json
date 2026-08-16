@@ -85,7 +85,8 @@
       "size": "Size",
       "status": "Status",
       "action": "Action",
-      "ask": "Ask"
+      "ask": "Ask",
+      "recallHint": "Recalled Chunks"
     },
     "prompt": {
       "title": "Prompt Templates",

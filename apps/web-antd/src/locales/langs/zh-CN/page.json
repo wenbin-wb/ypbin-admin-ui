@@ -73,7 +73,8 @@
       "size": "大小",
       "status": "状态",
       "action": "操作",
-      "ask": "问"
+      "ask": "问",
+      "recallHint": "召回片段"
     },
     "prompt": {
       "title": "Prompt 模板",

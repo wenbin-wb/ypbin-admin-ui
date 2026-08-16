@@ -307,6 +307,19 @@ export function queryKnowledgeBase(kbId: string, question: string) {
   });
 }
 
+export function searchKnowledgeBaseTest(
+  kbId: string,
+  question: string,
+  topK = 5,
+) {
+  return requestClient.post<
+    Array<{ content: string; metadata: Record<string, any>; source?: string }>
+  >(`/ai/knowledge-bases/${kbId}/search-test`, {
+    question,
+    topK,
+  });
+}
+
 // 模型配置
 export function getModelList() {
   return requestClient.get<AiApi.ModelConfig[]>('/ai/models');

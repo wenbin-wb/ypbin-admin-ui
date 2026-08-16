@@ -18,7 +18,12 @@ import {
 } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
-import { deleteDocument, getDocumentList, queryKnowledgeBase } from '#/api/ai';
+import {
+  deleteDocument,
+  getDocumentList,
+  queryKnowledgeBase,
+  searchKnowledgeBaseTest,
+} from '#/api/ai';
 import { requestClient } from '#/api/request';
 import { $t } from '#/locales';
 
@@ -28,6 +33,9 @@ const docUploading = ref(false);
 const testQuery = ref('');
 const testAnswer = ref('');
 const testLoading = ref(false);
+const recallList = ref<
+  Array<{ content: string; metadata: Record<string, any>; source?: string }>
+>([]);
 
 const [Drawer, drawerApi] = useVbenDrawer<AiApi.KnowledgeBase | null>({
   onOpenChange: (isOpen) => {
@@ -139,8 +147,12 @@ async function onTestQuery() {
   if (!kb) return;
   testLoading.value = true;
   testAnswer.value = '';
+  recallList.value = [];
   try {
-    testAnswer.value = await queryKnowledgeBase(kb.id, testQuery.value);
+    [testAnswer.value, recallList.value] = await Promise.all([
+      queryKnowledgeBase(kb.id, testQuery.value),
+      searchKnowledgeBaseTest(kb.id, testQuery.value, 5).catch(() => []),
+    ]);
   } finally {
     testLoading.value = false;
   }
@@ -237,6 +249,29 @@ defineExpose({ drawerApi });
         show-icon
         type="info"
       />
+
+      <template v-if="recallList.length > 0">
+        <div class="mt-4 flex items-center gap-2 text-sm font-medium">
+          {{ $t('page.ai.knowledge.recallHint') }}（{{ recallList.length }}）
+        </div>
+        <div class="mt-2 flex flex-col gap-2">
+          <div
+            v-for="(doc, idx) in recallList"
+            :key="idx"
+            class="rounded-md border border-border p-3"
+          >
+            <div
+              class="mb-1 flex items-center justify-between gap-2 text-xs text-muted-foreground"
+            >
+              <span>#{{ idx + 1 }}</span>
+              <span class="truncate">{{ doc.source }}</span>
+            </div>
+            <p class="m-0 text-[13px] leading-relaxed opacity-90">
+              {{ doc.content }}
+            </p>
+          </div>
+        </div>
+      </template>
     </Card>
   </Drawer>
 </template>
