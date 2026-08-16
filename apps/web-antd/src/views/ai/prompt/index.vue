@@ -1,8 +1,17 @@
 <script lang="ts" setup>
+import type { VbenFormSchema } from '#/adapter/form';
+import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { AiApi } from '#/api/ai';
 
-import { computed, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 
+import { Page, useVbenDrawer } from '@vben/common-ui';
+import { Plus } from '@vben/icons';
+
+import { message } from 'ant-design-vue';
+
+import { useVbenForm } from '#/adapter/form';
+import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
   createPromptTemplate,
   deletePromptTemplate,
@@ -14,69 +23,166 @@ import { $t } from '#/locales';
 
 defineOptions({ name: 'AiPrompt' });
 
-const templateList = ref<AiApi.PromptTemplate[]>([]);
-const drawerOpen = ref(false);
-const editingId = ref('');
-const saving = ref(false);
-const form = ref<AiApi.PromptTemplateSaveReq>({
-  name: '',
-  category: '',
-  template: '',
-  description: '',
-});
-
 const categoryOptions = computed(() => [
-  { value: 'coding', label: $t('page.ai.prompt.categoryCoding') },
-  { value: 'writing', label: $t('page.ai.prompt.categoryWriting') },
-  { value: 'analysis', label: $t('page.ai.prompt.categoryAnalysis') },
-  { value: 'translation', label: $t('page.ai.prompt.categoryTranslation') },
-  { value: 'qa', label: $t('page.ai.prompt.categoryQa') },
-  { value: 'other', label: $t('page.ai.prompt.categoryOther') },
+  { label: $t('page.ai.prompt.categoryCoding'), value: 'coding' },
+  { label: $t('page.ai.prompt.categoryWriting'), value: 'writing' },
+  { label: $t('page.ai.prompt.categoryAnalysis'), value: 'analysis' },
+  { label: $t('page.ai.prompt.categoryTranslation'), value: 'translation' },
+  { label: $t('page.ai.prompt.categoryQa'), value: 'qa' },
+  { label: $t('page.ai.prompt.categoryOther'), value: 'other' },
 ]);
 
-async function loadList() {
-  templateList.value = await listPromptTemplates();
+// ===== 表单 =====
+function useFormSchema(): VbenFormSchema[] {
+  return [
+  {
+    component: 'Input',
+    fieldName: 'name',
+    label: $t('page.ai.prompt.name'),
+    rules: 'required',
+  },
+  {
+    component: 'Select',
+    componentProps: { options: categoryOptions.value, allowClear: true },
+    fieldName: 'category',
+    label: $t('page.ai.prompt.category'),
+  },
+  {
+    component: 'Textarea',
+    componentProps: { rows: 8 },
+    fieldName: 'template',
+    help: $t('page.ai.prompt.placeholderDetail'),
+    label: $t('page.ai.prompt.template'),
+    rules: 'required',
+  },
+  {
+    component: 'Input',
+    fieldName: 'description',
+    label: $t('page.ai.prompt.description'),
+  },
+];
 }
 
-function openCreate() {
-  editingId.value = '';
-  form.value = { name: '', category: '', template: '', description: '' };
-  drawerOpen.value = true;
+const [Form, formApi] = useVbenForm({
+  layout: 'vertical',
+  schema: useFormSchema(),
+  showDefaultActions: false,
+});
+
+// ===== 抽屉 =====
+const [Drawer, drawerApi] = useVbenDrawer<AiApi.PromptTemplate | null>({
+  onConfirm: async () => {
+    const { valid } = await formApi.validate();
+    if (!valid) return;
+    const values = await formApi.getValues<AiApi.PromptTemplateSaveReq>();
+    drawerApi.lock();
+    const target = drawerApi.getData();
+    (target?.id
+      ? updatePromptTemplate(target.id, values)
+      : createPromptTemplate(values)
+    )
+      .then(() => {
+        message.success($t('common.success'));
+        drawerApi.close();
+        gridApi.query();
+      })
+      .catch(() => drawerApi.unlock());
+  },
+  onOpenChange: async (isOpen) => {
+    if (!isOpen) return;
+    formApi.resetForm();
+    const data = drawerApi.getData();
+    if (data) {
+      await formApi.setValues(data);
+    }
+  },
+});
+
+const drawerTitle = computed(() => {
+  const data = drawerApi.getData();
+  return data?.id
+    ? $t('page.ai.prompt.edit')
+    : $t('page.ai.prompt.create');
+});
+
+// ===== 表格 =====
+const [Grid, gridApi] = useVbenVxeGrid({
+  gridOptions: {
+    columns: [
+      { field: 'name', title: $t('page.ai.prompt.name'), minWidth: 160 },
+      {
+        field: 'category',
+        title: $t('page.ai.prompt.category'),
+        width: 110,
+        slots: { default: 'category' },
+      },
+      {
+        field: 'description',
+        title: $t('page.ai.prompt.description'),
+        minWidth: 220,
+        showOverflow: true,
+      },
+      {
+        field: 'status',
+        title: $t('page.ai.prompt.status'),
+        width: 90,
+        slots: { default: 'status' },
+      },
+      {
+        field: 'createTime',
+        title: $t('common.createTime'),
+        width: 170,
+      },
+      {
+        field: 'action',
+        title: $t('common.action'),
+        width: 150,
+        slots: { default: 'action' },
+        fixed: 'right',
+      },
+    ],
+    proxyConfig: {
+      ajax: {
+        query: async () => {
+          const items = await listPromptTemplates();
+          return { items, total: items.length };
+        },
+      },
+    },
+    rowConfig: { keyField: 'id' },
+    toolbarConfig: {
+      custom: true,
+      export: false,
+      refresh: true,
+      zoom: true,
+    },
+  } as VxeTableGridOptions<AiApi.PromptTemplate>,
+});
+
+// ===== 操作 =====
+function onCreate() {
+  drawerApi.setData(null).open();
 }
 
-function openEdit(tpl: AiApi.PromptTemplate) {
-  editingId.value = tpl.id;
-  form.value = {
-    name: tpl.name,
-    category: tpl.category ?? '',
-    template: tpl.template,
-    description: tpl.description ?? '',
-  };
-  drawerOpen.value = true;
+function onEdit(row: AiApi.PromptTemplate) {
+  drawerApi.setData(row).open();
 }
 
-async function handleSave() {
-  if (!form.value.name.trim() || !form.value.template.trim()) return;
-  saving.value = true;
-  try {
-    await (editingId.value
-      ? updatePromptTemplate(editingId.value, form.value)
-      : createPromptTemplate(form.value));
-    drawerOpen.value = false;
-    await loadList();
-  } finally {
-    saving.value = false;
-  }
+function onToggle(row: AiApi.PromptTemplate) {
+  const target = row.status === 1 ? 0 : 1;
+  togglePromptTemplate(row.id, target).then(() => {
+    message.success($t('common.success'));
+    gridApi.query();
+  });
 }
 
-async function handleDelete(id: string) {
-  await deletePromptTemplate(id);
-  await loadList();
-}
-
-async function handleToggle(id: string, currentStatus: number) {
-  await togglePromptTemplate(id, currentStatus === 1 ? 0 : 1);
-  await loadList();
+function onDelete(row: AiApi.PromptTemplate) {
+  deletePromptTemplate(row.id)
+    .then(() => {
+      message.success($t('common.success'));
+      gridApi.query();
+    })
+    .catch(() => {});
 }
 
 function categoryLabel(val?: string) {
@@ -84,123 +190,66 @@ function categoryLabel(val?: string) {
     categoryOptions.value.find((o) => o.value === val)?.label ?? val ?? '-'
   );
 }
-
-onMounted(loadList);
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-semibold">
-        {{ $t('page.ai.prompt.title') }}
-      </h2>
-      <a-button type="primary" @click="openCreate">
-        + {{ $t('page.ai.prompt.create') }}
-      </a-button>
-    </div>
-
-    <a-table :data-source="templateList" row-key="id" :pagination="false">
-      <a-table-column :title="$t('page.ai.prompt.name')" data-index="name" />
-      <a-table-column :title="$t('page.ai.prompt.category')" :width="100">
-        <template #default="{ record }">
-          {{ categoryLabel(record.category) }}
-        </template>
-      </a-table-column>
-      <a-table-column
-        :title="$t('page.ai.prompt.description')"
-        data-index="description"
-        ellipsis
-      />
-      <a-table-column :title="$t('page.ai.prompt.status')" :width="80">
-        <template #default="{ record }">
-          <a-badge
-            :status="record.status === 1 ? 'success' : 'default'"
-            :text="
-              record.status === 1
-                ? $t('page.ai.prompt.enabled')
-                : $t('page.ai.prompt.disabled')
-            "
-          />
-        </template>
-      </a-table-column>
-      <a-table-column
-        :title="$t('common.createTime')"
-        data-index="createTime"
-        :width="170"
-      />
-      <a-table-column :title="$t('page.ai.prompt.action')" :width="200">
-        <template #default="{ record }">
-          <a-space>
-            <a-button size="small" @click="openEdit(record)">
-              {{ $t('common.edit') }}
-            </a-button>
-            <a-button
-              size="small"
-              @click="handleToggle(record.id, record.status)"
-            >
-              {{
-                record.status === 1
-                  ? $t('page.ai.prompt.disabled')
-                  : $t('page.ai.prompt.enabled')
-              }}
-            </a-button>
-            <a-popconfirm
-              :title="$t('page.ai.prompt.confirmDelete')"
-              @confirm="handleDelete(record.id)"
-            >
-              <a-button size="small" danger>
-                {{ $t('page.ai.prompt.delete') }}
-              </a-button>
-            </a-popconfirm>
-          </a-space>
-        </template>
-      </a-table-column>
-    </a-table>
-
-    <a-drawer
-      v-model:open="drawerOpen"
-      :title="
-        editingId ? $t('page.ai.prompt.edit') : $t('page.ai.prompt.create')
-      "
-      width="560"
-    >
-      <a-form layout="vertical">
-        <a-form-item :label="$t('page.ai.prompt.name')" required>
-          <a-input v-model:value="form.name" />
-        </a-form-item>
-        <a-form-item :label="$t('page.ai.prompt.category')">
-          <a-select
-            v-model:value="form.category"
-            :options="categoryOptions"
-            allow-clear
-            :placeholder="$t('page.ai.prompt.selectCategory')"
-          />
-        </a-form-item>
-        <a-form-item :label="$t('page.ai.prompt.template')" required>
-          <a-textarea
-            v-model:value="form.template"
-            :rows="8"
-            :placeholder="$t('page.ai.prompt.placeholderTip')"
-          />
-          <div class="mt-1 text-xs text-gray-400">
-            {{ $t('page.ai.prompt.placeholderDetail') }}
-          </div>
-        </a-form-item>
-        <a-form-item :label="$t('page.ai.prompt.description')">
-          <a-input v-model:value="form.description" />
-        </a-form-item>
-      </a-form>
-
-      <template #footer>
-        <a-space>
-          <a-button @click="drawerOpen = false">
-            {{ $t('page.ai.prompt.cancel') }}
-          </a-button>
-          <a-button type="primary" :loading="saving" @click="handleSave">
-            {{ $t('page.ai.prompt.save') }}
-          </a-button>
-        </a-space>
+  <Page auto-content-height>
+    <Grid :table-title="$t('page.ai.prompt.title')">
+      <template #toolbar-tools>
+        <a-button type="primary" @click="onCreate">
+          <Plus class="size-4" />
+          {{ $t('page.ai.prompt.create') }}
+        </a-button>
       </template>
-    </a-drawer>
-  </div>
+
+      <template #category="{ row }">
+        {{ categoryLabel(row.category) }}
+      </template>
+
+      <template #status="{ row }">
+        <a-badge
+          :status="row.status === 1 ? 'success' : 'default'"
+          :text="
+            row.status === 1
+              ? $t('page.ai.prompt.enabled')
+              : $t('page.ai.prompt.disabled')
+          "
+        />
+      </template>
+
+      <template #action="{ row }">
+        <VbenTableAction
+          :actions="[
+            {
+              text: $t('common.edit'),
+              icon: 'lucide:edit',
+              onClick: () => onEdit(row),
+            },
+            {
+              text:
+                row.status === 1
+                  ? $t('page.ai.prompt.disabled')
+                  : $t('page.ai.prompt.enabled'),
+              icon: row.status === 1 ? 'lucide:power' : 'lucide:power-off',
+              onClick: () => onToggle(row),
+            },
+            {
+              text: $t('common.delete'),
+              icon: 'lucide:trash-2',
+              danger: true,
+              popConfirm: {
+                title: $t('page.ai.prompt.confirmDelete'),
+                confirm: () => onDelete(row),
+              },
+            },
+          ]"
+          :more-text="$t('common.more')"
+        />
+      </template>
+    </Grid>
+
+    <Drawer :title="drawerTitle" :width="560">
+      <Form />
+    </Drawer>
+  </Page>
 </template>

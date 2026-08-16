@@ -1,27 +1,23 @@
 <script lang="ts" setup>
+import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+
 import { onMounted, ref } from 'vue';
 
+import { Page } from '@vben/common-ui';
+
+import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getDailyUsage, getUsageByModel, getUsageSummary } from '#/api/ai';
 import { $t } from '#/locales';
 
 defineOptions({ name: 'AiUsage' });
 
-const summary = ref({ totalCalls: 0, totalTokens: 0, avgLatencyMs: 0 });
-const dailyData = ref<Array<{ date: string; tokens: number }>>([]);
-const modelData = ref<Array<{ model: string; tokens: number }>>([]);
+const summary = ref({ avgLatencyMs: 0, totalCalls: 0, totalTokens: 0 });
 const loading = ref(false);
 
-async function loadData() {
+async function loadSummary() {
   loading.value = true;
   try {
-    const [s, d, m] = await Promise.all([
-      getUsageSummary(),
-      getDailyUsage(),
-      getUsageByModel(),
-    ]);
-    summary.value = s;
-    dailyData.value = d;
-    modelData.value = m;
+    summary.value = await getUsageSummary();
   } finally {
     loading.value = false;
   }
@@ -33,125 +29,158 @@ function formatTokens(n: number) {
   return String(n);
 }
 
-onMounted(loadData);
+// 每日用量表
+const [DailyGrid] = useVbenVxeGrid({
+  gridOptions: {
+    columns: [
+      { field: 'date', title: $t('page.ai.usage.date'), minWidth: 120 },
+      {
+        field: 'tokens',
+        title: $t('page.ai.usage.tokens'),
+        minWidth: 160,
+        slots: { default: 'tokens' },
+      },
+    ],
+    data: [],
+    height: 'auto',
+    proxyConfig: {
+      ajax: {
+        query: async () => {
+          const items = await getDailyUsage();
+          return { items, total: items.length };
+        },
+      },
+    },
+    rowConfig: { keyField: 'date' },
+    toolbarConfig: { refresh: true, zoom: true, export: false },
+  } as VxeTableGridOptions<{ date: string; tokens: number }>,
+});
+
+// 按模型分布表
+const [ModelGrid] = useVbenVxeGrid({
+  gridOptions: {
+    columns: [
+      { field: 'model', title: $t('page.ai.usage.model'), minWidth: 140 },
+      {
+        field: 'tokens',
+        title: $t('page.ai.usage.tokens'),
+        minWidth: 140,
+        slots: { default: 'tokens' },
+      },
+      {
+        field: 'percent',
+        title: $t('page.ai.usage.percent'),
+        minWidth: 160,
+        slots: { default: 'percent' },
+      },
+    ],
+    data: [],
+    height: 'auto',
+    proxyConfig: {
+      ajax: {
+        query: async () => {
+          const items = await getUsageByModel();
+          const total = items.reduce((s, m) => s + m.tokens, 0);
+          return {
+            items: items.map((m) => ({
+              ...m,
+              percent: total > 0 ? Math.round((m.tokens / total) * 100) : 0,
+            })),
+            total: items.length,
+          };
+        },
+      },
+    },
+    rowConfig: { keyField: 'model' },
+    toolbarConfig: { refresh: true, zoom: true, export: false },
+  } as VxeTableGridOptions<{ model: string; percent: number; tokens: number }>,
+});
+
+function tokenPercent(percent: number) {
+  return Math.min(100, Math.max(0, percent));
+}
+
+onMounted(() => {
+  loadSummary();
+});
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-6 flex items-center justify-between">
-      <h2 class="text-lg font-semibold">
-        {{ $t('page.ai.usage.title') }}
-      </h2>
-      <a-button :loading="loading" @click="loadData">
-        {{ $t('page.ai.usage.refresh') }}
-      </a-button>
+  <Page auto-content-height>
+    <div class="p-4">
+      <!-- 概览卡片 -->
+      <a-row :gutter="[16, 16]" class="mb-6">
+        <a-col :sm="8" :xs="24">
+          <a-card class="rounded-lg">
+            <a-statistic
+              :loading="loading"
+              :title="$t('page.ai.usage.totalCalls')"
+              :value="summary.totalCalls"
+            />
+          </a-card>
+        </a-col>
+        <a-col :sm="8" :xs="24">
+          <a-card class="rounded-lg">
+            <a-statistic
+              :loading="loading"
+              :title="$t('page.ai.usage.totalTokens')"
+              :value="formatTokens(summary.totalTokens)"
+            />
+          </a-card>
+        </a-col>
+        <a-col :sm="8" :xs="24">
+          <a-card class="rounded-lg">
+            <a-statistic
+              :loading="loading"
+              :title="$t('page.ai.usage.avgLatency')"
+              :value="summary.avgLatencyMs"
+              suffix="ms"
+            />
+          </a-card>
+        </a-col>
+      </a-row>
+
+      <!-- 每日用量 -->
+      <a-card
+        :title="$t('page.ai.usage.daily')"
+        class="mb-6"
+        size="small"
+      >
+        <DailyGrid>
+          <template #tokens="{ row }">
+            <div class="flex items-center gap-2">
+              <span class="w-16">{{ formatTokens(row.tokens) }}</span>
+              <a-progress
+                :percent="
+                  row.tokens > 0
+                    ? Math.min(
+                        100,
+                        Math.round(
+                          (row.tokens / Math.max(summary.totalTokens, 1)) * 100,
+                        ),
+                      )
+                    : 0
+                "
+                :show-info="false"
+                class="flex-1"
+                size="small"
+              />
+            </div>
+          </template>
+        </DailyGrid>
+      </a-card>
+
+      <!-- 按模型分布 -->
+      <a-card :title="$t('page.ai.usage.byModel')" size="small">
+        <ModelGrid>
+          <template #tokens="{ row }">
+            {{ formatTokens(row.tokens) }}
+          </template>
+          <template #percent="{ row }">
+            <a-progress :percent="tokenPercent(row.percent)" size="small" />
+          </template>
+        </ModelGrid>
+      </a-card>
     </div>
-
-    <!-- 概览卡片 -->
-    <a-row :gutter="[16, 16]" class="mb-6">
-      <a-col :xs="24" :sm="8">
-        <a-statistic
-          :title="$t('page.ai.usage.totalCalls')"
-          :value="summary.totalCalls"
-          class="rounded-lg border p-4"
-        />
-      </a-col>
-      <a-col :xs="24" :sm="8">
-        <a-statistic
-          :title="$t('page.ai.usage.totalTokens')"
-          :value="formatTokens(summary.totalTokens)"
-          class="rounded-lg border p-4"
-        />
-      </a-col>
-      <a-col :xs="24" :sm="8">
-        <a-statistic
-          :title="$t('page.ai.usage.avgLatency')"
-          :value="summary.avgLatencyMs"
-          suffix="ms"
-          class="rounded-lg border p-4"
-        />
-      </a-col>
-    </a-row>
-
-    <!-- 每日用量 -->
-    <a-row :gutter="[16, 16]">
-      <a-col :xs="24" :lg="14">
-        <div class="rounded-lg border p-4">
-          <div class="mb-3 font-medium">
-            {{ $t('page.ai.usage.daily') }}
-          </div>
-          <a-table
-            :data-source="dailyData"
-            row-key="date"
-            size="small"
-            :pagination="{ pageSize: 10, size: 'small' }"
-          >
-            <a-table-column
-              :title="$t('page.ai.usage.date')"
-              data-index="date"
-            />
-            <a-table-column :title="$t('page.ai.usage.tokens')">
-              <template #default="{ record }">
-                {{ formatTokens(record.tokens) }}
-                <a-progress
-                  :percent="
-                    dailyData.length
-                      ? Math.round(
-                          (record.tokens /
-                            Math.max(...dailyData.map((d) => d.tokens))) *
-                            100,
-                        )
-                      : 0
-                  "
-                  :show-info="false"
-                  size="small"
-                  class="mt-1"
-                />
-              </template>
-            </a-table-column>
-          </a-table>
-        </div>
-      </a-col>
-
-      <a-col :xs="24" :lg="10">
-        <div class="rounded-lg border p-4">
-          <div class="mb-3 font-medium">
-            {{ $t('page.ai.usage.byModel') }}
-          </div>
-          <a-table
-            :data-source="modelData"
-            row-key="model"
-            size="small"
-            :pagination="false"
-          >
-            <a-table-column
-              :title="$t('page.ai.usage.model')"
-              data-index="model"
-            />
-            <a-table-column :title="$t('page.ai.usage.tokens')">
-              <template #default="{ record }">
-                {{ formatTokens(record.tokens) }}
-              </template>
-            </a-table-column>
-            <a-table-column :title="$t('page.ai.usage.percent')">
-              <template #default="{ record }">
-                <a-progress
-                  :percent="
-                    modelData.length
-                      ? Math.round(
-                          (record.tokens /
-                            modelData.reduce((s, m) => s + m.tokens, 0)) *
-                            100,
-                        )
-                      : 0
-                  "
-                  size="small"
-                />
-              </template>
-            </a-table-column>
-          </a-table>
-        </div>
-      </a-col>
-    </a-row>
-  </div>
+  </Page>
 </template>

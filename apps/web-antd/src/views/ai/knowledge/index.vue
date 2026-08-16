@@ -1,8 +1,17 @@
 <script lang="ts" setup>
+import type { VbenFormSchema } from '#/adapter/form';
+import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { AiApi } from '#/api/ai';
 
 import { onMounted, ref } from 'vue';
 
+import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
+import { Plus } from '@vben/icons';
+
+import { message } from 'ant-design-vue';
+
+import { useVbenForm } from '#/adapter/form';
+import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
   createKnowledgeBase,
   deleteDocument,
@@ -16,54 +25,179 @@ import { $t } from '#/locales';
 
 defineOptions({ name: 'AiKnowledge' });
 
+// ===== 知识库列表 =====
 const kbList = ref<AiApi.KnowledgeBase[]>([]);
-const activeKb = ref<AiApi.KnowledgeBase | null>(null);
-const docList = ref<AiApi.KbDocument[]>([]);
-const drawerOpen = ref(false);
-const createModalOpen = ref(false);
-const createForm = ref<AiApi.KnowledgeBaseSaveReq>({
-  name: '',
-  description: '',
+const loading = ref(false);
+
+async function loadKbList() {
+  loading.value = true;
+  try {
+    kbList.value = await listKnowledgeBases();
+  } finally {
+    loading.value = false;
+  }
+}
+
+// ===== 新建知识库弹窗 =====
+function useKbFormSchema(): VbenFormSchema[] {
+  return [
+    {
+      component: 'Input',
+      fieldName: 'name',
+      label: $t('page.ai.knowledge.name'),
+      rules: 'required',
+    },
+    {
+      component: 'Textarea',
+      componentProps: { rows: 3 },
+      fieldName: 'description',
+      label: $t('page.ai.knowledge.description'),
+    },
+    {
+      component: 'Input',
+      fieldName: 'remark',
+      label: $t('common.remark'),
+    },
+  ];
+}
+
+const [KbForm, kbFormApi] = useVbenForm({
+  layout: 'vertical',
+  schema: useKbFormSchema(),
+  showDefaultActions: false,
 });
+
+const [CreateModal, createModalApi] = useVbenModal({
+  onConfirm: async () => {
+    const { valid } = await kbFormApi.validate();
+    if (!valid) return;
+    const values = await kbFormApi.getValues<AiApi.KnowledgeBaseSaveReq>();
+    createModalApi.lock();
+    createKnowledgeBase(values)
+      .then(() => {
+        message.success($t('common.success'));
+        createModalApi.close();
+        loadKbList();
+      })
+      .catch(() => createModalApi.unlock());
+  },
+  onOpenChange: (isOpen) => {
+    if (isOpen) {
+      kbFormApi.resetForm();
+    }
+  },
+});
+
+// ===== 文档管理抽屉 =====
+const activeKb = ref<AiApi.KnowledgeBase | null>(null);
+const docUploading = ref(false);
 const testQuery = ref('');
 const testAnswer = ref('');
 const testLoading = ref(false);
-const uploading = ref(false);
 
-async function loadKbList() {
-  kbList.value = await listKnowledgeBases();
+const [DocDrawer, docDrawerApi] = useVbenDrawer<AiApi.KnowledgeBase | null>({
+  onOpenChange: (isOpen) => {
+    if (isOpen) {
+      const data = docDrawerApi.getData();
+      if (data) {
+        activeKb.value = data;
+        testQuery.value = '';
+        testAnswer.value = '';
+        gridApi.query();
+      }
+    }
+  },
+});
+
+// 文档表格（远程分页）
+const [Grid, gridApi] = useVbenVxeGrid({
+  gridOptions: {
+    columns: [
+      {
+        field: 'filename',
+        title: $t('page.ai.knowledge.filename'),
+        minWidth: 220,
+        showOverflow: true,
+      },
+      {
+        field: 'fileSize',
+        title: $t('page.ai.knowledge.size'),
+        width: 100,
+        slots: { default: 'size' },
+      },
+      {
+        field: 'chunkCount',
+        title: $t('page.ai.knowledge.chunkCount'),
+        width: 90,
+      },
+      {
+        field: 'status',
+        title: $t('page.ai.knowledge.status'),
+        width: 100,
+        slots: { default: 'status' },
+      },
+      {
+        field: 'createTime',
+        title: $t('common.createTime'),
+        width: 170,
+      },
+      {
+        field: 'action',
+        title: $t('common.action'),
+        width: 90,
+        slots: { default: 'action' },
+        fixed: 'right',
+      },
+    ],
+    proxyConfig: {
+      ajax: {
+        query: async ({ page }) => {
+          if (!activeKb.value) return { items: [], total: 0 };
+          const res = await listDocuments(activeKb.value.id, {
+            page: page.currentPage,
+            pageSize: page.pageSize,
+          });
+          return { items: res.items, total: res.total };
+        },
+      },
+    },
+    rowConfig: { keyField: 'id' },
+    toolbarConfig: {
+      custom: true,
+      export: false,
+      refresh: true,
+      zoom: true,
+    },
+  } as VxeTableGridOptions<AiApi.KbDocument>,
+});
+
+// ===== 操作 =====
+function onOpenKb(kb: AiApi.KnowledgeBase) {
+  docDrawerApi.setData(kb).open();
 }
 
-async function openKb(kb: AiApi.KnowledgeBase) {
-  activeKb.value = kb;
-  const data = await listDocuments(kb.id, { page: 1, pageSize: 100 });
-  docList.value = data.items ?? [];
-  drawerOpen.value = true;
+function onDeleteKb(kb: AiApi.KnowledgeBase) {
+  deleteKnowledgeBase(kb.id)
+    .then(() => {
+      message.success($t('common.success'));
+      loadKbList();
+    })
+    .catch(() => {});
 }
 
-async function handleCreateKb() {
-  if (!createForm.value.name.trim()) return;
-  await createKnowledgeBase(createForm.value);
-  createModalOpen.value = false;
-  createForm.value = { name: '', description: '' };
-  await loadKbList();
-}
-
-async function handleDeleteKb(id: string) {
-  await deleteKnowledgeBase(id);
-  if (activeKb.value?.id === id) drawerOpen.value = false;
-  await loadKbList();
-}
-
-async function handleDeleteDoc(docId: string) {
+function onDeleteDoc(row: AiApi.KbDocument) {
   if (!activeKb.value) return;
-  await deleteDocument(activeKb.value.id, docId);
-  docList.value = docList.value.filter((d) => d.id !== docId);
+  deleteDocument(activeKb.value.id, row.id)
+    .then(() => {
+      message.success($t('common.success'));
+      gridApi.query();
+    })
+    .catch(() => {});
 }
 
-async function handleUpload(file: File) {
+async function onUpload(file: File) {
   if (!activeKb.value) return false;
-  uploading.value = true;
+  docUploading.value = true;
   const formData = new FormData();
   formData.append('file', file);
   try {
@@ -71,18 +205,15 @@ async function handleUpload(file: File) {
       `/ai/knowledge-bases/${activeKb.value.id}/documents`,
       formData,
     );
-    const data = await listDocuments(activeKb.value.id, {
-      page: 1,
-      pageSize: 100,
-    });
-    docList.value = data.items ?? [];
+    message.success($t('common.success'));
+    gridApi.query();
   } finally {
-    uploading.value = false;
+    docUploading.value = false;
   }
-  return false; // 阻止 ant-design Upload 默认行为
+  return false;
 }
 
-async function handleTestQuery() {
+async function onTestQuery() {
   if (!activeKb.value || !testQuery.value.trim()) return;
   testLoading.value = true;
   testAnswer.value = '';
@@ -122,156 +253,136 @@ onMounted(loadKbList);
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-semibold">
-        {{ $t('page.ai.knowledge.title') }}
-      </h2>
-      <a-button type="primary" @click="createModalOpen = true">
-        + {{ $t('page.ai.knowledge.create') }}
-      </a-button>
+  <Page auto-content-height>
+    <div class="p-4">
+      <!-- 顶部 -->
+      <div class="mb-4 flex items-center justify-between">
+        <h2 class="text-lg font-semibold">
+          {{ $t('page.ai.knowledge.title') }}
+        </h2>
+        <a-button
+          v-access:code="['ai:knowledge:create']"
+          type="primary"
+          @click="createModalApi.open()"
+        >
+          <Plus class="size-4" />
+          {{ $t('page.ai.knowledge.create') }}
+        </a-button>
+      </div>
+
+      <!-- 知识库卡片 -->
+      <a-spin :spinning="loading">
+        <a-empty
+          v-if="!loading && kbList.length === 0"
+          :description="$t('common.noData')"
+        />
+        <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <a-card
+            v-for="kb in kbList"
+            :key="kb.id"
+            hoverable
+            class="cursor-pointer"
+            @click="onOpenKb(kb)"
+          >
+            <a-card-meta
+              :description="
+                kb.description || $t('page.ai.knowledge.noDescription')
+              "
+              :title="kb.name"
+            />
+            <div
+              class="mt-3 flex items-center justify-between text-sm text-gray-500"
+            >
+              <span>
+                {{ kb.docCount }} {{ $t('page.ai.knowledge.docCountSuffix') }}
+              </span>
+              <a-popconfirm
+                :title="$t('page.ai.knowledge.confirmDeleteKb')"
+                @click.stop
+                @confirm.stop="onDeleteKb(kb)"
+              >
+                <a-button danger size="small" type="link">
+                  {{ $t('page.ai.knowledge.delete') }}
+                </a-button>
+              </a-popconfirm>
+            </div>
+          </a-card>
+        </div>
+      </a-spin>
     </div>
 
-    <!-- 知识库卡片 -->
-    <a-row :gutter="[16, 16]">
-      <a-col
-        v-for="kb in kbList"
-        :key="kb.id"
-        :xs="24"
-        :sm="12"
-        :md="8"
-        :lg="6"
-      >
-        <a-card hoverable class="cursor-pointer" @click="openKb(kb)">
-          <a-card-meta
-            :title="kb.name"
-            :description="
-              kb.description || $t('page.ai.knowledge.noDescription')
-            "
-          />
-          <div
-            class="mt-3 flex items-center justify-between text-sm text-gray-500"
-          >
-            <span>
-              {{ kb.docCount }} {{ $t('page.ai.knowledge.docCountSuffix') }}
-            </span>
-            <a-popconfirm
-              :title="$t('page.ai.knowledge.confirmDeleteKb')"
-              @confirm.stop="handleDeleteKb(kb.id)"
-              @click.stop
-            >
-              <a-button size="small" danger type="link">
-                {{ $t('page.ai.knowledge.delete') }}
-              </a-button>
-            </a-popconfirm>
-          </div>
-        </a-card>
-      </a-col>
-    </a-row>
-
-    <!-- 新建知识库弹窗 -->
-    <a-modal
-      v-model:open="createModalOpen"
+    <!-- 新建知识库 -->
+    <CreateModal
       :title="$t('page.ai.knowledge.create')"
-      @ok="handleCreateKb"
+      :width="480"
     >
-      <a-form layout="vertical">
-        <a-form-item :label="$t('page.ai.knowledge.name')" required>
-          <a-input v-model:value="createForm.name" />
-        </a-form-item>
-        <a-form-item :label="$t('page.ai.knowledge.description')">
-          <a-textarea v-model:value="createForm.description" :rows="3" />
-        </a-form-item>
-      </a-form>
-    </a-modal>
+      <KbForm />
+    </CreateModal>
 
-    <!-- 文档抽屉 -->
-    <a-drawer
-      v-model:open="drawerOpen"
-      :title="activeKb?.name"
-      width="640"
-      :footer-style="{ textAlign: 'right' }"
-    >
-      <!-- 上传区 -->
-      <div class="mb-4">
+    <!-- 文档管理抽屉 -->
+    <DocDrawer :title="activeKb?.name ?? ''" :width="760">
+      <!-- 上传 + 测试问答 -->
+      <div class="mb-4 flex items-center gap-3">
         <a-upload
-          :before-upload="handleUpload"
+          :before-upload="onUpload"
           accept=".pdf,.md,.txt"
           :show-upload-list="false"
         >
-          <a-button :loading="uploading" type="primary">
+          <a-button :loading="docUploading" type="primary">
+            <Plus class="size-4" />
             {{ $t('page.ai.knowledge.upload') }}
           </a-button>
         </a-upload>
-        <div class="mt-1 text-xs text-gray-400">
+        <span class="text-xs text-gray-400">
           {{ $t('page.ai.knowledge.uploadHint') }}
-        </div>
+        </span>
       </div>
 
-      <!-- 文档列表 -->
-      <a-table
-        :data-source="docList"
-        :pagination="false"
-        row-key="id"
-        size="small"
-      >
-        <a-table-column
-          :title="$t('page.ai.knowledge.filename')"
-          data-index="filename"
-          ellipsis
-        />
-        <a-table-column :title="$t('page.ai.knowledge.size')" :width="80">
-          <template #default="{ record }">
-            {{ formatSize(record.fileSize) }}
-          </template>
-        </a-table-column>
-        <a-table-column
-          :title="$t('page.ai.knowledge.chunkCount')"
-          :width="70"
-          data-index="chunkCount"
-        />
-        <a-table-column :title="$t('page.ai.knowledge.status')" :width="90">
-          <template #default="{ record }">
-            <a-badge
-              :status="statusTag(record.status).color"
-              :text="statusTag(record.status).text"
-            />
-          </template>
-        </a-table-column>
-        <a-table-column :title="$t('page.ai.knowledge.action')" :width="80">
-          <template #default="{ record }">
-            <a-popconfirm
-              :title="$t('page.ai.knowledge.confirmDelete')"
-              @confirm="handleDeleteDoc(record.id)"
-            >
-              <a-button size="small" danger type="link">
-                {{ $t('page.ai.knowledge.delete') }}
-              </a-button>
-            </a-popconfirm>
-          </template>
-        </a-table-column>
-      </a-table>
+      <Grid :table-title="$t('page.ai.knowledge.docCount')" class="mb-4">
+        <template #size="{ row }">
+          {{ formatSize(row.fileSize) }}
+        </template>
+        <template #status="{ row }">
+          <a-badge
+            :status="statusTag(row.status).color"
+            :text="statusTag(row.status).text"
+          />
+        </template>
+        <template #action="{ row }">
+          <VbenTableAction
+            :actions="[
+              {
+                text: $t('page.ai.knowledge.delete'),
+                icon: 'lucide:trash-2',
+                danger: true,
+                popConfirm: {
+                  title: $t('page.ai.knowledge.confirmDelete'),
+                  confirm: () => onDeleteDoc(row),
+                },
+              },
+            ]"
+          />
+        </template>
+      </Grid>
 
       <!-- 测试问答 -->
-      <div class="mt-6">
-        <div class="mb-2 font-medium">
-          {{ $t('page.ai.knowledge.testQuery') }}
-        </div>
+      <a-card :title="$t('page.ai.knowledge.testQuery')" size="small">
         <a-input-search
           v-model:value="testQuery"
-          :placeholder="$t('page.ai.knowledge.testQueryPlaceholder')"
-          :loading="testLoading"
           :enter-button="$t('page.ai.knowledge.ask')"
-          @search="handleTestQuery"
+          :loading="testLoading"
+          :placeholder="$t('page.ai.knowledge.testQueryPlaceholder')"
+          class="mb-3"
+          @search="onTestQuery"
         />
         <a-alert
           v-if="testAnswer"
           :message="testAnswer"
-          type="info"
-          class="mt-2"
+          class="whitespace-pre-wrap"
           show-icon
+          type="info"
         />
-      </div>
-    </a-drawer>
-  </div>
+      </a-card>
+    </DocDrawer>
+  </Page>
 </template>

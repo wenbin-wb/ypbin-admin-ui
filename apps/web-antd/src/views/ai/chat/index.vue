@@ -3,6 +3,8 @@ import type { AiApi } from '#/api/ai';
 
 import { nextTick, onMounted, ref } from 'vue';
 
+import { Page } from '@vben/common-ui';
+
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
 import { marked } from 'marked';
@@ -26,7 +28,7 @@ markdownRenderer.code = ({ text, lang }: { lang?: string; text: string }) => {
   const highlighted = hljs.highlight(text, { language }).value;
   return `<pre class="ai-code-block"><code class="hljs language-${language}">${highlighted}</code><button type="button" class="ai-copy-btn">${$t('page.ai.chat.copy')}</button></pre>`;
 };
-marked.use({ renderer: markdownRenderer, gfm: true, breaks: true });
+marked.use({ breaks: true, gfm: true, renderer: markdownRenderer });
 
 // ===== 状态 =====
 const conversations = ref<AiApi.Conversation[]>([]);
@@ -77,28 +79,27 @@ async function handleSendWithStream() {
   }
 
   messages.value.push({
-    id: Date.now().toString(),
     conversationId: activeConvId.value,
-    role: 'user',
     content: text,
-    tokens: 0,
     createTime: new Date().toISOString(),
+    id: Date.now().toString(),
+    role: 'user',
+    tokens: 0,
   });
   inputText.value = '';
   await scrollToBottom();
 
   const assistantMsg: AiApi.Message = {
-    id: 'streaming',
     conversationId: activeConvId.value,
-    role: 'assistant',
     content: '',
-    tokens: 0,
     createTime: new Date().toISOString(),
+    id: 'streaming',
+    role: 'assistant',
+    tokens: 0,
   };
   messages.value.push(assistantMsg);
   isStreaming.value = true;
 
-  // 创建 AbortController 用于中断流
   abortController = new AbortController();
 
   try {
@@ -127,7 +128,6 @@ async function handleSendWithStream() {
   }
 }
 
-/** 中断当前流式请求 */
 function handleStop() {
   if (abortController) {
     abortController.abort();
@@ -197,125 +197,131 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="ai-chat-layout">
-    <!-- 左侧会话列表 -->
-    <div class="ai-chat-sidebar">
-      <div class="ai-chat-sidebar__header">
-        <span class="ai-chat-sidebar__title">{{
-          $t('page.ai.chat.title')
-        }}</span>
-        <a-button size="small" type="primary" @click="handleNewChat">
-          + {{ $t('page.ai.chat.newChat') }}
-        </a-button>
-      </div>
-      <div class="ai-chat-sidebar__list">
-        <div
-          v-for="conv in conversations"
-          :key="conv.id"
-          class="ai-chat-conv-item"
-          :class="{ active: conv.id === activeConvId }"
-          @click="selectConversation(conv.id)"
-        >
-          <template v-if="renaming === conv.id">
-            <a-input
-              v-model:value="renameTitle"
-              size="small"
-              @blur="commitRename(conv.id)"
-              @press-enter="commitRename(conv.id)"
-            />
-          </template>
-          <template v-else>
-            <span class="ai-chat-conv-item__title">{{ conv.title }}</span>
-            <span class="ai-chat-conv-item__actions">
-              <a-button
-                size="small"
-                type="text"
-                :title="$t('page.ai.chat.renameConv')"
-                @click.stop="startRename(conv)"
-              >
-                ✏️
-              </a-button>
-              <a-popconfirm
-                :title="$t('page.ai.chat.confirmDelete')"
-                @confirm="handleDeleteConv(conv.id)"
-                @click.stop
-              >
-                <a-button size="small" type="text" danger>🗑</a-button>
-              </a-popconfirm>
-            </span>
-          </template>
+  <Page auto-content-height class="ai-chat-page">
+    <div class="ai-chat-layout">
+      <!-- 左侧会话列表 -->
+      <div class="ai-chat-sidebar">
+        <div class="ai-chat-sidebar__header">
+          <span class="ai-chat-sidebar__title">{{
+            $t('page.ai.chat.title')
+          }}</span>
+          <a-button size="small" type="primary" @click="handleNewChat">
+            + {{ $t('page.ai.chat.newChat') }}
+          </a-button>
         </div>
-      </div>
-    </div>
-
-    <!-- 右侧对话区 -->
-    <div class="ai-chat-main">
-      <div ref="msgListRef" class="ai-chat-messages">
-        <div v-if="messages.length === 0" class="ai-chat-empty">
-          {{ $t('page.ai.chat.emptyHint') }}
-        </div>
-
-        <div
-          v-for="msg in messages"
-          :key="msg.id"
-          class="ai-chat-msg"
-          :class="`ai-chat-msg--${msg.role}`"
-        >
-          <template v-if="msg.role === 'user'">
-            <div class="ai-chat-msg__bubble ai-chat-msg__bubble--user">
-              <span>{{ msg.content }}</span>
-            </div>
-          </template>
-          <template v-else>
-            <div class="ai-chat-msg__avatar">🤖</div>
-            <div class="ai-chat-msg__bubble ai-chat-msg__bubble--assistant">
-              <!-- eslint-disable vue/no-v-html -->
-              <div
-                v-if="msg.content"
-                class="ai-chat-markdown"
-                v-html="renderMd(msg.content)"
-                @click="handleMarkdownClick"
-              ></div>
-              <!-- eslint-enable vue/no-v-html -->
-              <span v-else class="ai-chat-thinking">{{
-                $t('page.ai.chat.thinking')
-              }}</span>
-            </div>
-          </template>
-        </div>
-      </div>
-
-      <!-- 输入区 -->
-      <div class="ai-chat-input-area">
-        <a-textarea
-          v-model:value="inputText"
-          :placeholder="$t('page.ai.chat.placeholder')"
-          :auto-size="{ minRows: 2, maxRows: 6 }"
-          :disabled="isStreaming"
-          @keydown="handleKeydown"
-        />
-        <div class="ai-chat-input-actions">
-          <a-button
-            v-if="!isStreaming"
-            type="primary"
-            :disabled="!inputText.trim()"
-            @click="handleSendWithStream"
+        <div class="ai-chat-sidebar__list">
+          <div
+            v-for="conv in conversations"
+            :key="conv.id"
+            class="ai-chat-conv-item"
+            :class="{ active: conv.id === activeConvId }"
+            @click="selectConversation(conv.id)"
           >
-            {{ $t('page.ai.chat.send') }}
-          </a-button>
-          <a-button v-else danger @click="handleStop">
-            {{ $t('page.ai.chat.stop') }}
-          </a-button>
+            <template v-if="renaming === conv.id">
+              <a-input
+                v-model:value="renameTitle"
+                size="small"
+                @blur="commitRename(conv.id)"
+                @press-enter="commitRename(conv.id)"
+              />
+            </template>
+            <template v-else>
+              <span class="ai-chat-conv-item__title">{{ conv.title }}</span>
+              <span class="ai-chat-conv-item__actions">
+                <a-button
+                  size="small"
+                  type="text"
+                  :title="$t('page.ai.chat.renameConv')"
+                  @click.stop="startRename(conv)"
+                >
+                  ✏️
+                </a-button>
+                <a-popconfirm
+                  :title="$t('page.ai.chat.confirmDelete')"
+                  @click.stop
+                  @confirm="handleDeleteConv(conv.id)"
+                >
+                  <a-button size="small" danger type="text">🗑</a-button>
+                </a-popconfirm>
+              </span>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧对话区 -->
+      <div class="ai-chat-main">
+        <div ref="msgListRef" class="ai-chat-messages">
+          <div v-if="messages.length === 0" class="ai-chat-empty">
+            {{ $t('page.ai.chat.emptyHint') }}
+          </div>
+
+          <div
+            v-for="msg in messages"
+            :key="msg.id"
+            class="ai-chat-msg"
+            :class="`ai-chat-msg--${msg.role}`"
+          >
+            <template v-if="msg.role === 'user'">
+              <div class="ai-chat-msg__bubble ai-chat-msg__bubble--user">
+                <span>{{ msg.content }}</span>
+              </div>
+            </template>
+            <template v-else>
+              <div class="ai-chat-msg__avatar">🤖</div>
+              <div class="ai-chat-msg__bubble ai-chat-msg__bubble--assistant">
+                <!-- eslint-disable vue/no-v-html -->
+                <div
+                  v-if="msg.content"
+                  class="ai-chat-markdown"
+                  v-html="renderMd(msg.content)"
+                  @click="handleMarkdownClick"
+                ></div>
+                <!-- eslint-enable vue/no-v-html -->
+                <span v-else class="ai-chat-thinking">{{
+                  $t('page.ai.chat.thinking')
+                }}</span>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- 输入区 -->
+        <div class="ai-chat-input-area">
+          <a-textarea
+            v-model:value="inputText"
+            :auto-size="{ maxRows: 6, minRows: 2 }"
+            :disabled="isStreaming"
+            :placeholder="$t('page.ai.chat.placeholder')"
+            @keydown="handleKeydown"
+          />
+          <div class="ai-chat-input-actions">
+            <a-button
+              v-if="!isStreaming"
+              :disabled="!inputText.trim()"
+              type="primary"
+              @click="handleSendWithStream"
+            >
+              {{ $t('page.ai.chat.send') }}
+            </a-button>
+            <a-button v-else danger @click="handleStop">
+              {{ $t('page.ai.chat.stop') }}
+            </a-button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </Page>
 </template>
 
 <style scoped>
+.ai-chat-page {
+  overflow: hidden;
+}
+
 .ai-chat-layout {
   display: flex;
-  height: calc(100vh - 120px);
+  height: 100%;
   overflow: hidden;
   background: hsl(var(--background));
   border: 1px solid hsl(var(--border));
@@ -367,8 +373,8 @@ onMounted(async () => {
 .ai-chat-conv-item__title {
   flex: 1;
   overflow: hidden;
-  text-overflow: ellipsis;
   font-size: 13px;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -468,7 +474,7 @@ onMounted(async () => {
   }
 }
 
-/* Markdown 渲染（marked + highlight.js） */
+/* Markdown 渲染 */
 .ai-chat-markdown :deep(p) {
   margin: 0 0 8px;
 

@@ -1,10 +1,17 @@
 <script lang="ts" setup>
+import type { VbenFormSchema } from '#/adapter/form';
+import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { AiApi } from '#/api/ai';
 
-import { computed, onMounted, ref } from 'vue';
+import { computed } from 'vue';
+
+import { Page, useVbenDrawer } from '@vben/common-ui';
+import { Plus } from '@vben/icons';
 
 import { message } from 'ant-design-vue';
 
+import { useVbenForm } from '#/adapter/form';
+import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
   createModel,
   deleteModel,
@@ -17,253 +24,273 @@ import { $t } from '#/locales';
 
 defineOptions({ name: 'AiConfig' });
 
-const modelList = ref<AiApi.ModelConfig[]>([]);
-const drawerOpen = ref(false);
-const editingId = ref<string>('');
-const saving = ref(false);
-const testing = ref<string>('');
+// ===== 表单 schema =====
+function useFormSchema(): VbenFormSchema[] {
+  return [
+  {
+    component: 'Input',
+    componentProps: {
+      placeholder: $t('page.ai.config.name'),
+    },
+    fieldName: 'name',
+    label: $t('page.ai.config.name'),
+    rules: 'required',
+  },
+  {
+    component: 'Select',
+    componentProps: {
+      options: [
+        { label: $t('page.ai.config.providerOptions.deepseek'), value: 'deepseek' },
+        { label: $t('page.ai.config.providerOptions.openai'), value: 'openai' },
+        { label: $t('page.ai.config.providerOptions.ollama'), value: 'ollama' },
+        { label: $t('page.ai.config.providerOptions.custom'), value: 'custom' },
+      ],
+    },
+    fieldName: 'provider',
+    label: $t('page.ai.config.provider'),
+    rules: 'required',
+  },
+  {
+    component: 'Input',
+    componentProps: {
+      placeholder: 'deepseek-v4-flash / deepseek-v4-pro',
+    },
+    fieldName: 'modelName',
+    label: $t('page.ai.config.modelName'),
+    rules: 'required',
+  },
+  {
+    component: 'InputPassword',
+    fieldName: 'apiKey',
+    label: $t('page.ai.config.apiKey'),
+  },
+  {
+    component: 'Input',
+    fieldName: 'baseUrl',
+    label: $t('page.ai.config.baseUrl'),
+  },
+  {
+    component: 'Textarea',
+    fieldName: 'remark',
+    label: $t('page.ai.config.remark'),
+  },
+];
+}
 
-const form = ref<AiApi.ModelConfigSaveReq>({
-  name: '',
-  provider: 'deepseek',
-  apiKey: '',
-  baseUrl: '',
-  modelName: 'deepseek-v4-flash',
-  remark: '',
+const [Form, formApi] = useVbenForm({
+  layout: 'vertical',
+  schema: useFormSchema(),
+  showDefaultActions: false,
 });
 
-const providerOptions = computed(() => [
-  { value: 'deepseek', label: $t('page.ai.config.providerOptions.deepseek') },
-  { value: 'openai', label: $t('page.ai.config.providerOptions.openai') },
-  { value: 'ollama', label: $t('page.ai.config.providerOptions.ollama') },
-  { value: 'custom', label: $t('page.ai.config.providerOptions.custom') },
-]);
+// ===== 抽屉 =====
+const [Drawer, drawerApi] = useVbenDrawer<AiApi.ModelConfig | null>({
+  onConfirm: async () => {
+    const { valid } = await formApi.validate();
+    if (!valid) return;
+    const values = await formApi.getValues<AiApi.ModelConfigSaveReq>();
+    drawerApi.lock();
+    const target = drawerApi.getData();
+    (target?.id ? updateModel(target.id, values) : createModel(values))
+      .then(() => {
+        message.success($t('common.success'));
+        drawerApi.close();
+        gridApi.query();
+      })
+      .catch(() => drawerApi.unlock());
+  },
+  onOpenChange: async (isOpen) => {
+    if (!isOpen) return;
+    formApi.resetForm();
+    const data = drawerApi.getData();
+    if (data) {
+      await formApi.setValues({
+        baseUrl: data.baseUrl ?? '',
+        modelName: data.modelName,
+        name: data.name,
+        provider: data.provider,
+        remark: data.remark ?? '',
+      });
+    }
+  },
+});
 
-/** 不同提供商的默认模型名提示 */
-const defaultModelHints: Record<string, string> = {
-  deepseek: 'deepseek-v4-flash / deepseek-v4-pro',
-  openai: 'gpt-5.6 / gpt-5.6-terra / gpt-5.6-luna',
-  ollama: 'llama3 / qwen2 / mistral',
-  custom: '按模型 API 文档填写',
-};
+const drawerTitle = computed(() => {
+  const data = drawerApi.getData();
+  return data?.id
+    ? $t('page.ai.config.editModel')
+    : $t('page.ai.config.addModel');
+});
 
-async function loadModels() {
-  modelList.value = await listModels();
+// ===== 表格 =====
+const [Grid, gridApi] = useVbenVxeGrid({
+  gridOptions: {
+    columns: [
+      { field: 'name', title: $t('page.ai.config.name'), minWidth: 140 },
+      {
+        field: 'provider',
+        title: $t('page.ai.config.provider'),
+        width: 110,
+        slots: { default: 'provider' },
+      },
+      { field: 'modelName', title: $t('page.ai.config.model'), minWidth: 140 },
+      { field: 'baseUrl', title: $t('page.ai.config.baseUrl'), minWidth: 160 },
+      {
+        field: 'apiKeyMasked',
+        title: $t('page.ai.config.apiKey'),
+        width: 130,
+      },
+      {
+        field: 'status',
+        title: $t('page.ai.config.status'),
+        width: 90,
+        slots: { default: 'status' },
+      },
+      {
+        field: 'isDefault',
+        title: $t('page.ai.config.isDefault'),
+        width: 80,
+        slots: { default: 'default' },
+      },
+      {
+        field: 'action',
+        title: $t('common.action'),
+        width: 230,
+        slots: { default: 'action' },
+        fixed: 'right',
+      },
+    ],
+    proxyConfig: {
+      ajax: {
+        query: async () => {
+          const items = await listModels();
+          return { items, total: items.length };
+        },
+      },
+    },
+    rowConfig: { keyField: 'id' },
+    toolbarConfig: {
+      custom: true,
+      export: false,
+      refresh: true,
+      zoom: true,
+    },
+  } as VxeTableGridOptions<AiApi.ModelConfig>,
+});
+
+// ===== 操作 =====
+function onEdit(row: AiApi.ModelConfig) {
+  drawerApi.setData(row).open();
 }
 
-function openCreate() {
-  editingId.value = '';
-  form.value = {
-    name: '',
-    provider: 'deepseek',
-    apiKey: '',
-    baseUrl: '',
-    modelName: 'deepseek-v4-flash',
-    remark: '',
-  };
-  drawerOpen.value = true;
+function onCreate() {
+  drawerApi.setData(null).open();
 }
 
-function openEdit(model: AiApi.ModelConfig) {
-  editingId.value = model.id;
-  form.value = {
-    name: model.name,
-    provider: model.provider,
-    apiKey: '', // 不回填 apiKey（展示脱敏值，留空表示不修改）
-    baseUrl: model.baseUrl ?? '',
-    modelName: model.modelName,
-    remark: model.remark ?? '',
-  };
-  drawerOpen.value = true;
-}
-
-async function handleSave() {
-  if (!form.value.name.trim() || !form.value.modelName.trim()) return;
-  saving.value = true;
+async function onTest(row: AiApi.ModelConfig) {
   try {
-    await (editingId.value
-      ? updateModel(editingId.value, form.value)
-      : createModel(form.value));
-    drawerOpen.value = false;
-    await loadModels();
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function handleDelete(id: string) {
-  await deleteModel(id);
-  await loadModels();
-}
-
-async function handleSetDefault(id: string) {
-  await setDefaultModel(id);
-  await loadModels();
-}
-
-async function handleTest(id: string) {
-  testing.value = id;
-  try {
-    const result = await testModel(id);
+    const result = await testModel(row.id);
     message.success(
       $t('page.ai.config.testOk').replace('{ms}', String(result.latencyMs)),
     );
   } catch {
     message.error($t('page.ai.config.testFail'));
-  } finally {
-    testing.value = '';
   }
 }
 
-onMounted(loadModels);
+function onSetDefault(row: AiApi.ModelConfig) {
+  setDefaultModel(row.id).then(() => {
+    message.success($t('common.success'));
+    gridApi.query();
+  });
+}
+
+function onDelete(row: AiApi.ModelConfig) {
+  deleteModel(row.id)
+    .then(() => {
+      message.success($t('common.success'));
+      gridApi.query();
+    })
+    .catch(() => {});
+}
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-semibold">
-        {{ $t('page.ai.config.modelList') }}
-      </h2>
-      <a-button type="primary" @click="openCreate">
-        + {{ $t('page.ai.config.addModel') }}
-      </a-button>
-    </div>
-
-    <a-table :data-source="modelList" row-key="id" :pagination="false">
-      <a-table-column :title="$t('page.ai.config.name')" data-index="name" />
-      <a-table-column
-        :title="$t('page.ai.config.provider')"
-        data-index="provider"
-        :width="100"
-      >
-        <template #default="{ text }">
-          <a-tag>{{ text }}</a-tag>
-        </template>
-      </a-table-column>
-      <a-table-column
-        :title="$t('page.ai.config.model')"
-        data-index="modelName"
-      />
-      <a-table-column
-        :title="$t('page.ai.config.baseUrl')"
-        data-index="baseUrl"
-        ellipsis
-      />
-      <a-table-column
-        :title="$t('page.ai.config.apiKey')"
-        data-index="apiKeyMasked"
-        :width="120"
-      />
-      <a-table-column :title="$t('page.ai.config.status')" :width="80">
-        <template #default="{ record }">
-          <a-badge
-            :status="record.status === 1 ? 'success' : 'default'"
-            :text="
-              record.status === 1
-                ? $t('page.ai.config.enabled')
-                : $t('page.ai.config.disabled')
-            "
-          />
-        </template>
-      </a-table-column>
-      <a-table-column :title="$t('page.ai.config.isDefault')" :width="70">
-        <template #default="{ record }">
-          <a-tag v-if="record.isDefault" color="blue">
-            {{ $t('page.ai.config.default') }}
-          </a-tag>
-        </template>
-      </a-table-column>
-      <a-table-column :title="$t('page.ai.config.action')" :width="220">
-        <template #default="{ record }">
-          <a-space>
-            <a-button size="small" @click="openEdit(record)">
-              {{ $t('page.ai.config.edit') }}
-            </a-button>
-            <a-button
-              size="small"
-              :loading="testing === record.id"
-              @click="handleTest(record.id)"
-            >
-              {{ $t('page.ai.config.test') }}
-            </a-button>
-            <a-button
-              v-if="!record.isDefault"
-              size="small"
-              @click="handleSetDefault(record.id)"
-            >
-              {{ $t('page.ai.config.setDefault') }}
-            </a-button>
-            <a-popconfirm
-              :title="$t('page.ai.config.confirmDelete')"
-              @confirm="handleDelete(record.id)"
-            >
-              <a-button v-if="!record.isDefault" size="small" danger>
-                {{ $t('page.ai.config.delete') }}
-              </a-button>
-            </a-popconfirm>
-          </a-space>
-        </template>
-      </a-table-column>
-    </a-table>
-
-    <!-- 新增/编辑抽屉 -->
-    <a-drawer
-      v-model:open="drawerOpen"
-      :title="
-        editingId
-          ? $t('page.ai.config.editModel')
-          : $t('page.ai.config.addModel')
-      "
-      :width="480"
-    >
-      <a-form layout="vertical">
-        <a-form-item :label="$t('page.ai.config.name')" required>
-          <a-input v-model:value="form.name" />
-        </a-form-item>
-        <a-form-item :label="$t('page.ai.config.provider')" required>
-          <a-select v-model:value="form.provider" :options="providerOptions" />
-        </a-form-item>
-        <a-form-item :label="$t('page.ai.config.modelName')" required>
-          <a-input
-            v-model:value="form.modelName"
-            :placeholder="defaultModelHints[form.provider]"
-          />
-          <div class="mt-1 text-xs text-gray-400">
-            {{ defaultModelHints[form.provider] }}
-          </div>
-        </a-form-item>
-        <a-form-item :label="$t('page.ai.config.apiKey')">
-          <a-input-password
-            v-model:value="form.apiKey"
-            :placeholder="
-              editingId ? $t('page.ai.config.apiKeyPlaceholder') : ''
-            "
-          />
-        </a-form-item>
-        <a-form-item
-          v-if="form.provider === 'ollama' || form.provider === 'custom'"
-          :label="$t('page.ai.config.baseUrl')"
+  <Page auto-content-height>
+    <Grid :table-title="$t('page.ai.config.title')">
+      <template #toolbar-tools>
+        <a-button
+          v-access:code="['ai:model:create']"
+          type="primary"
+          @click="onCreate"
         >
-          <a-input
-            v-model:value="form.baseUrl"
-            placeholder="http://localhost:11434"
-          />
-        </a-form-item>
-        <a-form-item :label="$t('page.ai.config.remark')">
-          <a-textarea v-model:value="form.remark" :rows="2" />
-        </a-form-item>
-      </a-form>
-
-      <template #footer>
-        <a-space>
-          <a-button @click="drawerOpen = false">
-            {{ $t('page.ai.config.cancel') }}
-          </a-button>
-          <a-button type="primary" :loading="saving" @click="handleSave">
-            {{ $t('page.ai.config.save') }}
-          </a-button>
-        </a-space>
+          <Plus class="size-4" />
+          {{ $t('page.ai.config.addModel') }}
+        </a-button>
       </template>
-    </a-drawer>
-  </div>
+
+      <template #provider="{ row }">
+        <a-tag>{{ row.provider }}</a-tag>
+      </template>
+
+      <template #status="{ row }">
+        <a-badge
+          :status="row.status === 1 ? 'success' : 'default'"
+          :text="
+            row.status === 1
+              ? $t('page.ai.config.enabled')
+              : $t('page.ai.config.disabled')
+          "
+        />
+      </template>
+
+      <template #default="{ row }">
+        <a-tag v-if="row.isDefault" color="blue">
+          {{ $t('page.ai.config.default') }}
+        </a-tag>
+      </template>
+
+      <template #action="{ row }">
+        <VbenTableAction
+          :actions="[
+            {
+              text: $t('common.edit'),
+              icon: 'lucide:edit',
+              auth: 'ai:model:edit',
+              onClick: () => onEdit(row),
+            },
+            {
+              text: $t('page.ai.config.test'),
+              icon: 'lucide:plug-zap',
+              auth: 'ai:model:list',
+              onClick: () => onTest(row),
+            },
+            {
+              text: $t('page.ai.config.setDefault'),
+              icon: 'lucide:check-circle',
+              auth: 'ai:model:edit',
+              ifShow: !row.isDefault,
+              onClick: () => onSetDefault(row),
+            },
+            {
+              text: $t('common.delete'),
+              icon: 'lucide:trash-2',
+              auth: 'ai:model:delete',
+              danger: true,
+              ifShow: !row.isDefault,
+              popConfirm: {
+                title: $t('page.ai.config.confirmDelete'),
+                confirm: () => onDelete(row),
+              },
+            },
+          ]"
+          :more-text="$t('common.more')"
+        />
+      </template>
+    </Grid>
+
+    <Drawer :title="drawerTitle" :width="520">
+      <Form />
+    </Drawer>
+  </Page>
 </template>
