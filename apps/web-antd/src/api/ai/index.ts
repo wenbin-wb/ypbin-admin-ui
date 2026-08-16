@@ -92,6 +92,66 @@ export namespace AiApi {
     template: string;
     description?: string;
   }
+
+  /** 对话会话（新引擎） */
+  export interface ChatSession {
+    id: string;
+    title: string;
+    roleId?: string;
+    roleName?: string;
+    roleAvatar?: string;
+    modelId?: string;
+    messageCount: number;
+    totalTokens: number;
+    isPinned: number;
+    lastMessageAt?: string;
+    createTime: string;
+  }
+
+  /** 对话消息（新引擎） */
+  export interface ChatMessage {
+    id: string;
+    role: 'assistant' | 'system' | 'tool' | 'user';
+    content: string;
+    tokens?: number;
+    modelName?: string;
+    finishReason?: string;
+    toolCalls?: string;
+    images?: string[];
+    createTime: string;
+  }
+
+  /** 对话角色 */
+  export interface ChatRole {
+    id: string;
+    name: string;
+    description?: string;
+    avatar?: string;
+    category: string;
+    modelPreference?: string;
+    temperature?: number;
+    isBuiltin: number;
+    isFavorite: boolean;
+    sort: number;
+  }
+
+  export interface ChatRoleSaveReq {
+    name: string;
+    description?: string;
+    avatar?: string;
+    systemPrompt: string;
+    category?: string;
+    modelPreference?: string;
+    temperature?: number;
+  }
+
+  export interface ChatSendReq {
+    sessionId?: string;
+    roleId?: string;
+    modelId?: string;
+    content: string;
+    images?: string[];
+  }
 }
 export function getConversationList() {
   return requestClient.get<AiApi.Conversation[]>('/ai/chat/conversations');
@@ -327,4 +387,58 @@ export function getUsageByModel() {
   return requestClient.get<Array<{ model: string; tokens: number }>>(
     '/ai/usage/by-model',
   );
+}
+
+// 对话角色（新引擎）
+export function getRoleList() {
+  return requestClient.get<AiApi.ChatRole[]>('/ai/roles');
+}
+
+export function createRole(data: AiApi.ChatRoleSaveReq) {
+  return requestClient.post<string>('/ai/roles', data);
+}
+
+export function updateRole(id: string, data: AiApi.ChatRoleSaveReq) {
+  return requestClient.put(`/ai/roles/${id}`, data);
+}
+
+export function deleteRole(id: string) {
+  return requestClient.delete(`/ai/roles/${id}`);
+}
+
+export function toggleRoleFavorite(id: string) {
+  return requestClient.put(`/ai/roles/${id}/favorite`);
+}
+
+// 会话管理（新引擎）
+export function getSessionList() {
+  return requestClient.get<AiApi.ChatSession[]>('/ai/chat/sessions');
+}
+
+export function createSession(data?: {
+  modelId?: string;
+  roleId?: string;
+  title?: string;
+}) {
+  return requestClient.post<string>('/ai/chat/sessions', data ?? {});
+}
+
+export function deleteSession(id: string) {
+  return requestClient.delete(`/ai/chat/sessions/${id}`);
+}
+
+export function getSessionMessages(id: string) {
+  return requestClient.get<AiApi.ChatMessage[]>(
+    `/ai/chat/sessions/${id}/messages`,
+  );
+}
+
+export function updateSessionTitle(id: string, title: string) {
+  return requestClient.put(`/ai/chat/sessions/${id}/title`, null, {
+    params: { title },
+  });
+}
+
+export function toggleSessionPin(id: string) {
+  return requestClient.put(`/ai/chat/sessions/${id}/pin`);
 }
