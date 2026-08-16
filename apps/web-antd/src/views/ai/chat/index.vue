@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { AiApi } from '#/api/ai';
 
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 
 import { Copy, Menu, Plus, RotateCw, Square, X } from '@vben/icons';
 
@@ -96,14 +96,15 @@ async function handleSendWithStream() {
   inputText.value = '';
   await scrollToBottom();
 
-  const assistantMsg: AiApi.Message = {
+  // reactive 包装：流式回调里 content 逐帧追加，必须触发响应式渲染
+  const assistantMsg = reactive<AiApi.Message>({
     conversationId: activeConvId.value,
     content: '',
     createTime: new Date().toISOString(),
     id: 'streaming',
     role: 'assistant',
     tokens: 0,
-  };
+  });
   messages.value.push(assistantMsg);
   isStreaming.value = true;
 
@@ -731,12 +732,16 @@ onMounted(async () => {
   margin-bottom: 28px;
 }
 
-.ds-msg--user {
-  align-items: flex-end;
-}
-
 .ds-msg--ai {
   align-items: flex-start;
+}
+
+/* 用户消息：占满消息区宽度，气泡在内部靠右；
+   max-width: 72% 相对的是撑满后的容器，避免按内容宽度收缩导致过窄换行 */
+.ds-msg__user {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
 }
 
 .ds-msg__user-bubble {

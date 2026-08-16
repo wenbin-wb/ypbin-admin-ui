@@ -171,6 +171,16 @@ export async function chat(
         .map((line) => line.slice(5));
       if (dataLines.length > 0) {
         onMessage(dataLines.join('\n'));
+        // 等待一帧渲染：同一网络块内的多帧若同步回调，浏览器会把 DOM 更新合并成一次性输出；
+        // 附带超时兜底，避免后台标签页 rAF 暂停时流式解析被卡住
+        await Promise.race([
+          new Promise<void>((resolve) => {
+            requestAnimationFrame(() => resolve());
+          }),
+          new Promise<void>((resolve) => {
+            setTimeout(resolve, 100);
+          }),
+        ]);
       }
       sep = buffer.indexOf('\n\n');
     }
