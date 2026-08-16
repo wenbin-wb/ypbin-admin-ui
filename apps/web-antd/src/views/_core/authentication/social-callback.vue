@@ -3,11 +3,11 @@ import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { LOGIN_PATH } from '@vben/constants';
-import { $t } from '@vben/locales';
 
 import { message, Spin } from 'ant-design-vue';
 
 import { socialLoginApi } from '#/api';
+import { $t } from '#/locales';
 import { useAuthStore } from '#/store';
 
 defineOptions({ name: 'SocialCallback' });

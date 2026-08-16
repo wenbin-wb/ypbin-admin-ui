@@ -1,5 +1,4 @@
 import type { SystemCommonApi } from './common';
-import type { SystemPostApi } from './post';
 
 import { requestClient } from '#/api/request';
 
@@ -98,13 +97,6 @@ async function deleteUser(id: string) {
 }
 
 /**
- * 获取所有岗位（下拉用）
- */
-async function getPostList() {
-  return requestClient.get<SystemPostApi.PostResp[]>('/system/post/list');
-}
-
-/**
  * 重置用户密码（管理员操作）
  * @param id 用户 ID
  * @param password 新密码
@@ -126,7 +118,6 @@ export {
   assignUserRoles,
   createUser,
   deleteUser,
-  getPostList,
   getUserList,
   resetUserPassword,
   updateUser,

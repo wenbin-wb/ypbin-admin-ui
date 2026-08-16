@@ -7,8 +7,8 @@ import type { AuthApi } from '#/api/core/auth';
 import { computed, ref } from 'vue';
 
 import { AuthenticationLogin, z } from '@vben/common-ui';
-import { $t } from '@vben/locales';
 
+import { $t } from '#/locales';
 import { useAuthStore } from '#/store';
 
 import SocialLogin from './social-login.vue';

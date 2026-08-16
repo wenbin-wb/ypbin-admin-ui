@@ -4,9 +4,9 @@ import type { SystemConfigApi } from '#/api/system/config';
 import { onMounted, ref } from 'vue';
 
 import { IconifyIcon } from '@vben/icons';
-import { $t } from '@vben/locales';
 
 import { getSocialAuthorizeApi, getSocialPlatformsApi } from '#/api';
+import { $t } from '#/locales';
 import { getSocialPlatformMeta } from '#/utils/social-platform';
 
 defineOptions({ name: 'SocialLogin' });

@@ -1,14 +1,15 @@
 <script lang="ts" setup>
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+import type { SystemMenuApi } from '#/api/system/menu';
 
 import { Page, useVbenDrawer } from '@vben/common-ui';
 import { IconifyIcon, Plus } from '@vben/icons';
-import { $t } from '@vben/locales';
 
 import { Button, message } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
-import { deleteMenu, getMenuList, SystemMenuApi } from '#/api/system/menu';
+import { deleteMenu, getMenuList } from '#/api/system/menu';
+import { $t } from '#/locales';
 
 import { useColumns } from './data';
 import Form from './modules/form.vue';

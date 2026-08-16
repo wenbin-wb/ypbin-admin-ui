@@ -8,7 +8,8 @@ import { h } from 'vue';
 
 import { Tag } from 'ant-design-vue';
 
-import { getDeptList, getPostList } from '#/api';
+import { getDeptList } from '#/api/system/dept';
+import { getPostList } from '#/api/system/post';
 import { $t } from '#/locales';
 
 export function useFormSchema(): VbenFormSchema[] {

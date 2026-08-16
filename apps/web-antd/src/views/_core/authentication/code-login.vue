@@ -5,7 +5,8 @@ import type { Recordable } from '@vben/types';
 import { computed, ref } from 'vue';
 
 import { AuthenticationCodeLogin, z } from '@vben/common-ui';
-import { $t } from '@vben/locales';
+
+import { $t } from '#/locales';
 
 defineOptions({ name: 'CodeLogin' });
 
