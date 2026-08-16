@@ -30,8 +30,7 @@
       "sendButton": "发送",
       "stopButton": "停止",
       "clearContext": "清空上下文",
-      "useKb": "使用知识库",
-      "send": "发送消息"
+      "useKb": "使用知识库"
     },
     "widget": {
       "title": "AI 助手",
@@ -117,7 +116,7 @@
       "isDefault": "默认",
       "setDefault": "设为默认",
       "testConn": "测试连接",
-      "testOk": "连接成功，延迟 {ms}ms",
+      "testOk": "连接成功，延迟 {0}ms",
       "testFail": "连接失败",
       "action": "操作",
       "name": "显示名称",

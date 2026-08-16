@@ -67,9 +67,7 @@ function onCreate() {
 function onTest(row: AiApi.ModelConfig) {
   testModel(row.id)
     .then((result) => {
-      message.success(
-        $t('page.ai.config.testOk').replace('{ms}', String(result.latencyMs)),
-      );
+      message.success($t('page.ai.config.testOk', [String(result.latencyMs)]));
     })
     .catch((error: any) => {
       // 显示后端返回的具体失败原因（如 HTTP 401/404、超时等）

@@ -40,8 +40,7 @@
       "sendButton": "Send",
       "stopButton": "Stop",
       "clearContext": "Clear Context",
-      "useKb": "Use Knowledge Base",
-      "send": "Send Message"
+      "useKb": "Use Knowledge Base"
     },
     "widget": {
       "title": "AI Assistant",
@@ -127,7 +126,7 @@
       "isDefault": "Default",
       "setDefault": "Set Default",
       "testConn": "Test Connection",
-      "testOk": "Connected, latency {ms}ms",
+      "testOk": "Connected, latency {0}ms",
       "testFail": "Connection failed",
       "action": "Action",
       "name": "Display Name",
