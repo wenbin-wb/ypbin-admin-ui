@@ -17,10 +17,22 @@ export function useFormSchema(): VbenFormSchema[] {
       component: 'Select',
       componentProps: {
         options: [
-          { label: $t('page.ai.config.providerOptions.deepseek'), value: 'deepseek' },
-          { label: $t('page.ai.config.providerOptions.openai'), value: 'openai' },
-          { label: $t('page.ai.config.providerOptions.ollama'), value: 'ollama' },
-          { label: $t('page.ai.config.providerOptions.custom'), value: 'custom' },
+          {
+            label: $t('page.ai.config.providerOptions.deepseek'),
+            value: 'deepseek',
+          },
+          {
+            label: $t('page.ai.config.providerOptions.openai'),
+            value: 'openai',
+          },
+          {
+            label: $t('page.ai.config.providerOptions.ollama'),
+            value: 'ollama',
+          },
+          {
+            label: $t('page.ai.config.providerOptions.custom'),
+            value: 'custom',
+          },
         ],
       },
       fieldName: 'provider',
@@ -68,10 +80,22 @@ export function useGridFormSchema(): VbenFormSchema[] {
       componentProps: {
         allowClear: true,
         options: [
-          { label: $t('page.ai.config.providerOptions.deepseek'), value: 'deepseek' },
-          { label: $t('page.ai.config.providerOptions.openai'), value: 'openai' },
-          { label: $t('page.ai.config.providerOptions.ollama'), value: 'ollama' },
-          { label: $t('page.ai.config.providerOptions.custom'), value: 'custom' },
+          {
+            label: $t('page.ai.config.providerOptions.deepseek'),
+            value: 'deepseek',
+          },
+          {
+            label: $t('page.ai.config.providerOptions.openai'),
+            value: 'openai',
+          },
+          {
+            label: $t('page.ai.config.providerOptions.ollama'),
+            value: 'ollama',
+          },
+          {
+            label: $t('page.ai.config.providerOptions.custom'),
+            value: 'custom',
+          },
         ],
       },
       fieldName: 'provider',
@@ -132,7 +156,7 @@ export function useColumns(): VxeTableGridColumns {
       fixed: 'right',
       slots: { default: 'action' },
       title: $t('common.action'),
-      minWidth: 340,
+      minWidth: 420,
     },
   ];
 }

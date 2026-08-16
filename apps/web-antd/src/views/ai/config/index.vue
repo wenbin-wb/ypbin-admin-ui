@@ -10,9 +10,11 @@ import { Button, message, Tag } from 'ant-design-vue';
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
   deleteModel,
+  duplicateModel,
   getModelList,
   setDefaultModel,
   testModel,
+  updateModelStatus,
 } from '#/api/ai';
 import { $t } from '#/locales';
 
@@ -96,6 +98,31 @@ function onDelete(row: AiApi.ModelConfig) {
     });
 }
 
+function onToggleStatus(row: AiApi.ModelConfig) {
+  const target = row.status === 1 ? 0 : 1;
+  updateModelStatus(row.id, target)
+    .then(() => {
+      message.success($t('common.success'));
+      onRefresh();
+    })
+    .catch((error: any) => {
+      const reason = error?.message || error?.data?.message;
+      message.error(reason || $t('page.ai.config.deleteFail'));
+    });
+}
+
+function onDuplicate(row: AiApi.ModelConfig) {
+  duplicateModel(row.id)
+    .then(() => {
+      message.success($t('common.success'));
+      onRefresh();
+    })
+    .catch((error: any) => {
+      const reason = error?.message || error?.data?.message;
+      message.error(reason || $t('page.ai.config.duplicateFail'));
+    });
+}
+
 const providerTags: Record<string, string> = {
   custom: 'default',
   deepseek: 'blue',
@@ -152,6 +179,29 @@ const providerTags: Record<string, string> = {
               auth: 'ai:model:edit',
               ifShow: !row.isDefault,
               onClick: () => onSetDefault(row),
+            },
+            {
+              text:
+                row.status === 1
+                  ? $t('page.ai.config.disabled')
+                  : $t('page.ai.config.enabled'),
+              icon: 'lucide:power',
+              auth: 'ai:model:edit',
+              danger: row.status === 1,
+              popConfirm:
+                row.status === 1
+                  ? {
+                      title: $t('page.ai.config.confirmDisable'),
+                      confirm: () => onToggleStatus(row),
+                    }
+                  : undefined,
+              onClick: row.status === 1 ? undefined : () => onToggleStatus(row),
+            },
+            {
+              text: $t('page.ai.config.duplicate'),
+              icon: 'lucide:copy',
+              auth: 'ai:model:create',
+              onClick: () => onDuplicate(row),
             },
             {
               text: $t('common.delete'),

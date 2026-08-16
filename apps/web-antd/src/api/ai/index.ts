@@ -268,6 +268,14 @@ export function setDefaultModel(id: string) {
   return requestClient.put(`/ai/models/${id}/default`);
 }
 
+export function updateModelStatus(id: string, status: 0 | 1) {
+  return requestClient.put(`/ai/models/${id}/status/${status}`);
+}
+
+export function duplicateModel(id: string) {
+  return requestClient.post(`/ai/models/${id}/duplicate`);
+}
+
 export function testModel(id: string) {
   return requestClient.post<{ latencyMs: number }>(`/ai/models/${id}/test`);
 }
