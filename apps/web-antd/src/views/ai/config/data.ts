@@ -132,7 +132,7 @@ export function useColumns(): VxeTableGridColumns {
       fixed: 'right',
       slots: { default: 'action' },
       title: $t('common.action'),
-      minWidth: 230,
+      minWidth: 340,
     },
   ];
 }

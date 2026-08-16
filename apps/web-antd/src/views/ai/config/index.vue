@@ -71,8 +71,10 @@ function onTest(row: AiApi.ModelConfig) {
         $t('page.ai.config.testOk').replace('{ms}', String(result.latencyMs)),
       );
     })
-    .catch(() => {
-      message.error($t('page.ai.config.testFail'));
+    .catch((error: any) => {
+      // 显示后端返回的具体失败原因（如 HTTP 401/404、超时等）
+      const reason = error?.message || error?.data?.message;
+      message.error(reason || $t('page.ai.config.testFail'));
     });
 }
 
