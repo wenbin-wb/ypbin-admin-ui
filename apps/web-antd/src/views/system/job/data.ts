@@ -6,7 +6,7 @@ import { $t } from '#/locales';
 
 export function useColumns(): VxeTableGridColumns {
   return [
-    { field: 'name', title: $t('system.job.name'), minWidth: 150 },
+    { field: 'name', title: $t('system.job.jobName'), minWidth: 150 },
     { field: 'executor', title: $t('system.job.executor'), minWidth: 150 },
     {
       field: 'cron',
@@ -90,7 +90,7 @@ export function useLogColumns(withJobName = false): VxeTableGridColumns {
   if (withJobName) {
     cols.unshift({
       field: 'jobName',
-      title: $t('system.job.name'),
+      title: $t('system.job.jobName'),
       minWidth: 150,
     });
   }
@@ -102,7 +102,7 @@ export function useFormSchema(): FormSchema[] {
     {
       component: 'Input',
       fieldName: 'name',
-      label: $t('system.job.name'),
+      label: $t('system.job.jobName'),
       rules: 'required',
     },
     {

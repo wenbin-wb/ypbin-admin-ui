@@ -69,7 +69,7 @@ function onDelete(row: SystemAuthTemplateApi.AuthTemplateResp) {
           @click="onCreate"
         >
           <Plus class="size-5" />
-          {{ $t('ui.actionTitle.create', [$t('system.authTemplate.title')]) }}
+          {{ $t('ui.actionTitle.create', [$t('system.authTemplate.name')]) }}
         </Button>
       </template>
 

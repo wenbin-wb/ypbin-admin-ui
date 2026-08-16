@@ -7,7 +7,9 @@
     "forgetPassword": "Forget Password",
     "profile": "Profile",
     "socialCallback": "Social Callback",
-    "demoTip": "Demo account demo / Ypbin@2026 is pre-filled — just click sign in"
+    "title": "Ypbin Admin",
+    "techStack": "Spring Boot · Vue 3 · Sa-Token",
+    "demoTip": "Demo account is pre-filled — just click sign in (reset daily)"
   },
   "ai": {
     "title": "AI Assistant",

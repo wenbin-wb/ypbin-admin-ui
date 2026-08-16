@@ -5,7 +5,11 @@ import { $t } from '#/locales';
 
 export function useColumns(): VxeTableGridColumns {
   return [
-    { field: 'name', title: $t('system.authTemplate.name'), minWidth: 150 },
+    {
+      field: 'name',
+      title: $t('system.authTemplate.authTemplateName'),
+      minWidth: 150,
+    },
     { field: 'code', title: $t('system.authTemplate.code'), minWidth: 120 },
     { field: 'remark', title: $t('common.remark'), minWidth: 150 },
     { field: 'createUserName', title: $t('common.creator'), width: 120 },
@@ -25,7 +29,7 @@ export function useFormSchema(): FormSchema[] {
     {
       component: 'Input',
       fieldName: 'name',
-      label: $t('system.authTemplate.name'),
+      label: $t('system.authTemplate.authTemplateName'),
       rules: 'required',
     },
     {

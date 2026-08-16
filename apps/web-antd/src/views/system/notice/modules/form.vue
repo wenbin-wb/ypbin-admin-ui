@@ -107,8 +107,8 @@ const [Modal, modalApi] = useVbenModal<NoticeFormData>({
       formApi.reset();
       modalApi.setState({
         title: isUpdate.value
-          ? $t('ui.actionTitle.edit', [$t('system.notice.title')])
-          : $t('ui.actionTitle.create', [$t('system.notice.title')]),
+          ? $t('ui.actionTitle.edit', [$t('system.notice.name')])
+          : $t('ui.actionTitle.create', [$t('system.notice.name')]),
       });
       await nextTick();
       if (data) {

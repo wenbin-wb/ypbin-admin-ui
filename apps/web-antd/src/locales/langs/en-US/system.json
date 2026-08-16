@@ -105,7 +105,7 @@
   "role": {
     "title": "Role Management",
     "list": "Role List",
-    "name": "Role Name",
+    "name": "Role",
     "roleName": "Role Name",
     "roleCode": "Role Code",
     "dataScope": "Data Scope",
@@ -130,6 +130,7 @@
   },
   "dictItem": {
     "title": "Dict Items",
+    "name": "Dict Item",
     "label": "Label",
     "value": "Value",
     "color": "Color",
@@ -144,7 +145,8 @@
   },
   "dict": {
     "title": "Dictionary",
-    "name": "Dict Name",
+    "name": "Dict",
+    "dictName": "Dict Name",
     "code": "Dict Code",
     "status": "Status"
   },
@@ -152,7 +154,8 @@
     "title": "Parameter Configuration",
     "customTitle": "Custom Parameters",
     "configGroup": "Parameter Group",
-    "name": "Parameter Name",
+    "name": "Parameter",
+    "configName": "Parameter Name",
     "configKey": "Parameter Key",
     "configValue": "Parameter Value",
     "remark": "Remark",
@@ -223,6 +226,7 @@
   },
   "client": {
     "title": "Client Management",
+    "name": "Client",
     "clientId": "Client ID",
     "clientType": "Client Type",
     "clientSecret": "Client Secret",
@@ -239,6 +243,7 @@
   },
   "notice": {
     "title": "Notices",
+    "name": "Notice",
     "noticeType": "Notice Type",
     "typeNotice": "Notification",
     "typeAnnouncement": "Announcement",
@@ -344,7 +349,8 @@
   },
   "job": {
     "title": "Scheduled Jobs",
-    "name": "Job Name",
+    "name": "Job",
+    "jobName": "Job Name",
     "executor": "Executor",
     "scheduleRule": "Schedule Rule",
     "scheduleMode": "Schedule Mode",
@@ -366,6 +372,7 @@
   },
   "app": {
     "title": "App Management",
+    "name": "App",
     "appName": "App Name",
     "accessKey": "Access Key",
     "secretKey": "Secret Key",
@@ -375,7 +382,8 @@
   },
   "post": {
     "title": "Post Management",
-    "name": "Post Name",
+    "name": "Post",
+    "postName": "Post Name",
     "code": "Post Code",
     "sort": "Display Order",
     "status": "Status",
@@ -409,14 +417,16 @@
   },
   "authTemplate": {
     "title": "Auth Templates",
-    "name": "Template Name",
+    "name": "Auth Template",
+    "authTemplateName": "Template Name",
     "code": "Template Code",
     "menuIds": "Authorized Menus"
   },
   "tenant": {
     "title": "Tenant Management",
     "list": "Tenant List",
-    "name": "Tenant Name",
+    "name": "Tenant",
+    "tenantName": "Tenant Name",
     "code": "Tenant Code",
     "templateId": "Auth Template",
     "contactName": "Contact",

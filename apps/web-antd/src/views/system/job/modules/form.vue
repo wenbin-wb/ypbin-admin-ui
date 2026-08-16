@@ -103,8 +103,8 @@ const [Drawer, drawerApi] = useVbenDrawer<JobFormData>({
     rowId.value = data?.id ?? '';
     drawerApi.setState({
       title: rowId.value
-        ? $t('ui.actionTitle.edit', [$t('system.job.title')])
-        : $t('ui.actionTitle.create', [$t('system.job.title')]),
+        ? $t('ui.actionTitle.edit', [$t('system.job.name')])
+        : $t('ui.actionTitle.create', [$t('system.job.name')]),
     });
     formApi.reset();
     await nextTick();

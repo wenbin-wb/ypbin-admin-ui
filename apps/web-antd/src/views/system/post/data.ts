@@ -5,7 +5,7 @@ import { $t } from '#/locales';
 
 export function useColumns(): VxeTableGridColumns {
   return [
-    { field: 'name', title: $t('system.post.name'), minWidth: 120 },
+    { field: 'name', title: $t('system.post.postName'), minWidth: 120 },
     { field: 'code', title: $t('system.post.code'), minWidth: 120 },
     { field: 'sort', title: $t('system.post.sort'), width: 80 },
     {
@@ -30,7 +30,7 @@ export function useGridFormSchema(): FormSchema[] {
     {
       component: 'Input',
       fieldName: 'name',
-      label: $t('system.post.name'),
+      label: $t('system.post.postName'),
       componentProps: { allowClear: true },
     },
     {

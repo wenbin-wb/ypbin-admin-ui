@@ -91,7 +91,7 @@ function onDelete(row: SystemDictApi.DictResp) {
           @click="onCreate"
         >
           <Plus class="size-5" />
-          {{ $t('ui.actionTitle.create', [$t('system.dict.title')]) }}
+          {{ $t('ui.actionTitle.create', [$t('system.dict.name')]) }}
         </Button>
       </template>
 

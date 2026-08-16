@@ -149,7 +149,9 @@
     "forgetPassword": "忘记密码",
     "profile": "个人中心",
     "socialCallback": "第三方登录回调",
-    "demoTip": "演示账号 demo / Ypbin@2026 已自动填入，直接点击登录即可查看"
+    "title": "ypbin 管理平台",
+    "techStack": "Spring Boot · Vue 3 · Sa-Token",
+    "demoTip": "演示账号已自动填入，直接点击登录即可查看（演示环境每日重置）"
   },
   "dashboard": {
     "title": "概览",

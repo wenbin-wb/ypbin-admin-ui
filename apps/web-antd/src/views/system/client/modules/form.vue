@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { SystemClientApi } from '#/api/system/client';
 
 import { nextTick } from 'vue';
@@ -97,8 +97,8 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemClientApi.ClientResp>({
       formApi.reset();
       drawerApi.setState({
         title: isUpdate
-          ? $t('ui.actionTitle.edit', [$t('system.client.title')])
-          : $t('ui.actionTitle.create', [$t('system.client.title')]),
+          ? $t('ui.actionTitle.edit', [$t('system.client.name')])
+          : $t('ui.actionTitle.create', [$t('system.client.name')]),
       });
       await nextTick();
       if (data) {

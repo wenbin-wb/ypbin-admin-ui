@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { SystemDictApi } from '#/api/system/dict';
 
 import { nextTick } from 'vue';
@@ -18,7 +18,7 @@ const [Form, formApi] = useVbenForm({
     {
       component: 'Input',
       fieldName: 'name',
-      label: $t('system.dict.name'),
+      label: $t('system.dict.dictName'),
       rules: 'required',
     },
     {

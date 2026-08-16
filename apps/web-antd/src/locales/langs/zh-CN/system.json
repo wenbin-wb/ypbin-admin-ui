@@ -105,7 +105,7 @@
   "role": {
     "title": "角色管理",
     "list": "角色列表",
-    "name": "角色名称",
+    "name": "角色",
     "roleName": "角色名称",
     "roleCode": "角色权限字符串",
     "dataScope": "数据范围",
@@ -130,6 +130,7 @@
   },
   "dictItem": {
     "title": "字典项",
+    "name": "字典项",
     "label": "标签",
     "value": "键值",
     "color": "颜色",
@@ -144,7 +145,8 @@
   },
   "dict": {
     "title": "字典管理",
-    "name": "字典名称",
+    "name": "字典",
+    "dictName": "字典名称",
     "code": "字典编码",
     "status": "状态"
   },
@@ -152,7 +154,8 @@
     "title": "参数配置",
     "customTitle": "自定义参数",
     "configGroup": "参数分组",
-    "name": "参数名称",
+    "name": "参数",
+    "configName": "参数名称",
     "configKey": "参数键名",
     "configValue": "参数键值",
     "remark": "备注",
@@ -223,6 +226,7 @@
   },
   "client": {
     "title": "客户端管理",
+    "name": "客户端",
     "clientId": "客户端ID",
     "clientType": "客户端类型",
     "clientSecret": "客户端密钥",
@@ -239,6 +243,7 @@
   },
   "notice": {
     "title": "通知公告",
+    "name": "公告",
     "noticeType": "公告类型",
     "typeNotice": "通知",
     "typeAnnouncement": "公告",
@@ -344,7 +349,8 @@
   },
   "job": {
     "title": "定时任务",
-    "name": "任务名称",
+    "name": "任务",
+    "jobName": "任务名称",
     "executor": "执行器",
     "scheduleRule": "调度规则",
     "scheduleMode": "调度模式",
@@ -366,6 +372,7 @@
   },
   "app": {
     "title": "应用管理",
+    "name": "应用",
     "appName": "应用名称",
     "accessKey": "访问密钥",
     "secretKey": "私有密钥",
@@ -375,7 +382,8 @@
   },
   "post": {
     "title": "岗位管理",
-    "name": "岗位名称",
+    "name": "岗位",
+    "postName": "岗位名称",
     "code": "岗位编码",
     "sort": "显示排序",
     "status": "状态",
@@ -409,14 +417,16 @@
   },
   "authTemplate": {
     "title": "权限模板",
-    "name": "模板名称",
+    "name": "权限模板",
+    "authTemplateName": "模板名称",
     "code": "模板编码",
     "menuIds": "授权菜单"
   },
   "tenant": {
     "title": "租户管理",
     "list": "租户列表",
-    "name": "租户名称",
+    "name": "租户",
+    "tenantName": "租户名称",
     "code": "租户编码",
     "templateId": "权限模板",
     "contactName": "联系人",

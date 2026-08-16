@@ -81,8 +81,8 @@ const [Drawer, drawerApi] = useVbenDrawer<DictItemFormData>({
 
       drawerApi.setState({
         title: isUpdate.value
-          ? $t('ui.actionTitle.edit', [$t('system.dictItem.title')])
-          : $t('ui.actionTitle.create', [$t('system.dictItem.title')]),
+          ? $t('ui.actionTitle.edit', [$t('system.dictItem.name')])
+          : $t('ui.actionTitle.create', [$t('system.dictItem.name')]),
       });
 
       await nextTick();

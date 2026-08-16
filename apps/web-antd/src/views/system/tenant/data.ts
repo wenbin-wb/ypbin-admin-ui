@@ -6,7 +6,7 @@ import { $t } from '#/locales';
 
 export function useColumns(): VxeTableGridColumns {
   return [
-    { field: 'name', title: $t('system.tenant.name'), minWidth: 150 },
+    { field: 'name', title: $t('system.tenant.tenantName'), minWidth: 150 },
     { field: 'code', title: $t('system.tenant.code'), minWidth: 120 },
     {
       // 后端 @RefText("template") 自动输出 templateIdName（模板名称）
@@ -41,7 +41,7 @@ export function useFormSchema(): FormSchema[] {
     {
       component: 'Input',
       fieldName: 'name',
-      label: $t('system.tenant.name'),
+      label: $t('system.tenant.tenantName'),
       rules: 'required',
     },
     {

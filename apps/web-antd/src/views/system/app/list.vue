@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { SystemAppApi } from '#/api/system/app';
 
@@ -95,7 +95,7 @@ async function onStatusChange(
           @click="FormDrawerApi.setData(null).open()"
         >
           <template #icon><Plus /></template>
-          {{ $t('ui.actionTitle.create', [$t('system.app.title')]) }}
+          {{ $t('ui.actionTitle.create', [$t('system.app.name')]) }}
         </Button>
       </template>
 

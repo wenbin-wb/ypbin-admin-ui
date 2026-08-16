@@ -5,7 +5,7 @@ import { $t } from '#/locales';
 
 export function useColumns(): VxeTableGridColumns {
   return [
-    { field: 'name', title: $t('system.config.name'), minWidth: 120 },
+    { field: 'name', title: $t('system.config.configName'), minWidth: 120 },
     {
       field: 'configGroup',
       title: $t('system.config.configGroup'),
@@ -43,7 +43,7 @@ export function useGridFormSchema(): FormSchema[] {
     {
       component: 'Input',
       fieldName: 'name',
-      label: $t('system.config.name'),
+      label: $t('system.config.configName'),
       componentProps: { allowClear: true },
     },
     {

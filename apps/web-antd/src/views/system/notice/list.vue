@@ -93,7 +93,7 @@ function onPublish(row: SystemNoticeApi.NoticeResp) {
           @click="onCreate"
         >
           <Plus class="size-5" />
-          {{ $t('ui.actionTitle.create', [$t('system.notice.title')]) }}
+          {{ $t('ui.actionTitle.create', [$t('system.notice.name')]) }}
         </Button>
       </template>
 

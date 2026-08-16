@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { SystemDictItemApi } from '#/api/system/dictItem';
 
@@ -124,7 +124,7 @@ defineExpose({ drawerApi });
           @click="onCreate"
         >
           <Plus class="size-5" />
-          {{ $t('ui.actionTitle.create', [$t('system.dictItem.title')]) }}
+          {{ $t('ui.actionTitle.create', [$t('system.dictItem.name')]) }}
         </Button>
       </template>
 

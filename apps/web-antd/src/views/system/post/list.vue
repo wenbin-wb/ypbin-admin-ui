@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { SystemPostApi } from '#/api/system/post';
 
@@ -88,7 +88,7 @@ function onCreate() {
           @click="onCreate"
         >
           <Plus class="size-5" />
-          {{ $t('ui.actionTitle.create', [$t('system.post.title')]) }}
+          {{ $t('ui.actionTitle.create', [$t('system.post.name')]) }}
         </Button>
       </template>
 

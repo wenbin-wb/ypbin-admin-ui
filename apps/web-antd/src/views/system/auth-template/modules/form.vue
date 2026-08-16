@@ -95,8 +95,8 @@ const [Drawer, drawerApi] = useVbenDrawer<AuthTemplateFormData>({
       formApi.reset();
       drawerApi.setState({
         title: data?.id
-          ? $t('ui.actionTitle.edit', [$t('system.authTemplate.title')])
-          : $t('ui.actionTitle.create', [$t('system.authTemplate.title')]),
+          ? $t('ui.actionTitle.edit', [$t('system.authTemplate.name')])
+          : $t('ui.actionTitle.create', [$t('system.authTemplate.name')]),
       });
       await loadPermissions();
       await nextTick();

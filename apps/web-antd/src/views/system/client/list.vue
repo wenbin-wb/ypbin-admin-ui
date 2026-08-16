@@ -92,7 +92,7 @@ function onSecret(secret: string) {
           @click="onCreate"
         >
           <Plus class="size-5" />
-          {{ $t('ui.actionTitle.create', [$t('system.client.title')]) }}
+          {{ $t('ui.actionTitle.create', [$t('system.client.name')]) }}
         </Button>
       </template>
 

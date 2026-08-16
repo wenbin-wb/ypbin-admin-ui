@@ -107,18 +107,16 @@ function refreshCaptcha() {
         <div class="flex items-center justify-center gap-2.5">
           <img src="/ypbin-logo.svg" alt="ypbin" class="h-9 w-9 shrink-0" />
           <h2 class="text-2xl font-bold tracking-tight text-foreground">
-            ypbin 管理平台
+            {{ $t('auth.title') }}
           </h2>
         </div>
         <p class="mt-2 text-center text-sm text-muted-foreground">
-          Spring Boot 3 · Vue 3 · Sa-Token
+          {{ $t('auth.techStack') }}
         </p>
         <div
           class="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs text-muted-foreground"
         >
-          管理员账号 <code class="font-semibold text-foreground">admin</code> /
-          <code class="font-semibold text-foreground">pt5aQ5E6t8dkVkMp</code>
-          已自动填入，直接点击登录即可查看（演示环境每日重置）
+          {{ $t('auth.demoTip') }}
         </div>
       </div>
     </template>

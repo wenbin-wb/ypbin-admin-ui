@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { SystemConfigApi } from '#/api/system/config';
 
 import { nextTick } from 'vue';
@@ -24,7 +24,7 @@ const [Form, formApi] = useVbenForm({
     {
       component: 'Input',
       fieldName: 'name',
-      label: $t('system.config.name'),
+      label: $t('system.config.configName'),
       rules: 'required',
     },
     {
@@ -93,8 +93,8 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemConfigApi.ConfigResp>({
       formApi.reset();
       drawerApi.setState({
         title: isUpdate
-          ? $t('ui.actionTitle.edit', [$t('system.config.title')])
-          : $t('ui.actionTitle.create', [$t('system.config.title')]),
+          ? $t('ui.actionTitle.edit', [$t('system.config.name')])
+          : $t('ui.actionTitle.create', [$t('system.config.name')]),
       });
       await nextTick();
       if (data) {

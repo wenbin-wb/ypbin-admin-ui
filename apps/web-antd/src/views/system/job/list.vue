@@ -103,7 +103,7 @@ function onViewLog(row: SystemJobApi.JobResp) {
           @click="onCreate"
         >
           <Plus class="size-5" />
-          {{ $t('ui.actionTitle.create', [$t('system.job.title')]) }}
+          {{ $t('ui.actionTitle.create', [$t('system.job.name')]) }}
         </Button>
       </template>
 

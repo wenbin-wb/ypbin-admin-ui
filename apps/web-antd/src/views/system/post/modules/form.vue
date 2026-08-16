@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { SystemPostApi } from '#/api/system/post';
 
 import { nextTick } from 'vue';
@@ -18,7 +18,7 @@ const [Form, formApi] = useVbenForm({
     {
       component: 'Input',
       fieldName: 'name',
-      label: $t('system.post.name'),
+      label: $t('system.post.postName'),
       rules: 'required',
     },
     {

@@ -5,7 +5,7 @@ import { $t } from '#/locales';
 
 export function useColumns(): VxeTableGridColumns {
   return [
-    { field: 'name', title: $t('system.dict.name'), minWidth: 120 },
+    { field: 'name', title: $t('system.dict.dictName'), minWidth: 120 },
     { field: 'code', title: $t('system.dict.code'), minWidth: 120 },
     {
       field: 'status',
@@ -39,7 +39,7 @@ export function useGridFormSchema(): FormSchema[] {
     {
       component: 'Input',
       fieldName: 'name',
-      label: $t('system.dict.name'),
+      label: $t('system.dict.dictName'),
       componentProps: { allowClear: true },
     },
     {
