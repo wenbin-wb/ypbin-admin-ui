@@ -25,6 +25,7 @@ import { getProfile } from '#/api/system/profile';
 import { $t } from '#/locales';
 import { useAuthStore, useMessageStore } from '#/store';
 import LoginForm from '#/views/_core/authentication/login.vue';
+import AssistantWidget from '#/views/ai/widgets/assistant-widget.vue';
 import MessagePreview from '#/views/system/_shared/message-preview.vue';
 
 const messageStore = useMessageStore();
@@ -240,6 +241,7 @@ watch(
   </BasicLayout>
 
   <!-- 注意：BasicLayout 无默认插槽（页面内容由内部 RouterView 渲染），
-       放在 BasicLayout 内部的普通元素不会挂载；故消息预览弹窗作为兄弟节点渲染 -->
+       放在 BasicLayout 内部的普通元素不会挂载；故消息预览弹窗、AI 悬浮助手作为兄弟节点渲染 -->
   <MessagePreview v-model:open="previewVisible" :data="previewData" />
+  <AssistantWidget />
 </template>

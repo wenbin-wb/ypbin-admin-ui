@@ -3,7 +3,9 @@
     "title": "AI 助手",
     "chat": {
       "title": "AI 对话",
+      "history": "会话历史",
       "newChat": "新建对话",
+      "regenerate": "重新生成",
       "placeholder": "按 Enter 发送，Shift+Enter 换行",
       "thinking": "正在思考…",
       "send": "发送",
@@ -25,6 +27,11 @@
       "clearContext": "清空上下文",
       "useKb": "使用知识库",
       "send": "发送消息"
+    },
+    "widget": {
+      "title": "AI 助手",
+      "hint": "有什么可以帮你的吗？",
+      "placeholder": "输入问题，Enter 发送"
     },
     "knowledge": {
       "title": "知识库",

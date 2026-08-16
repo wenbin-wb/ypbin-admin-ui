@@ -1,10 +1,10 @@
 <script lang="ts" setup>
 import type { AiApi } from '#/api/ai';
 
-import { nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
-import { CornerDownLeft, Plus, Square } from '@vben/icons';
+import { Plus, RotateCw, Square } from '@vben/icons';
 
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
@@ -22,7 +22,7 @@ import { $t } from '#/locales';
 
 defineOptions({ name: 'AiChat' });
 
-// marked + highlight.js 全局配置（模块级只执行一次）
+// ===== marked + highlight.js（模块级配置一次）=====
 const markdownRenderer = new marked.Renderer();
 markdownRenderer.code = ({ text, lang }: { lang?: string; text: string }) => {
   const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
@@ -37,8 +37,12 @@ const activeConvId = ref<string>('');
 const messages = ref<AiApi.Message[]>([]);
 const inputText = ref('');
 const isStreaming = ref(false);
+const showSidebar = ref(true);
 const msgListRef = ref<HTMLElement>();
 let abortController: AbortController | null = null;
+
+// 模型选择（新建会话时生效）
+const modelId = ref<string>('');
 
 // ===== 会话 =====
 async function loadConversations() {
@@ -46,13 +50,13 @@ async function loadConversations() {
 }
 
 async function handleNewChat() {
-  const conv = await createConversation();
+  const conv = await createConversation(modelId.value || undefined);
   conversations.value.unshift(conv);
   await selectConversation(conv.id);
 }
 
 async function selectConversation(id: string) {
-  if (!id) return;
+  if (!id || id === activeConvId.value) return;
   activeConvId.value = id;
   const data = await listMessages(id, { page: 1, pageSize: 100 });
   messages.value = data.items ?? [];
@@ -74,7 +78,7 @@ async function handleSendWithStream() {
   if (!text || isStreaming.value) return;
 
   if (!activeConvId.value) {
-    const conv = await createConversation();
+    const conv = await createConversation(modelId.value || undefined);
     conversations.value.unshift(conv);
     activeConvId.value = conv.id;
   }
@@ -119,7 +123,6 @@ async function handleSendWithStream() {
       abortController.signal,
     );
   } catch (error: unknown) {
-    // AbortError 是用户主动中断，不报错
     if (!(error instanceof Error && error.name === 'AbortError')) {
       assistantMsg.content =
         assistantMsg.content || $t('page.ai.chat.requestError');
@@ -166,14 +169,40 @@ async function commitRename(id: string) {
   renaming.value = '';
 }
 
-// ===== Markdown 渲染（DOMPurify 消毒，防 XSS）=====
+// ===== 消息操作 =====
+async function copyMessage(content: string) {
+  try {
+    await navigator.clipboard.writeText(content);
+  } catch {
+    // 忽略剪贴板失败
+  }
+}
+
+/** 重新生成：删除最后一条助手消息，重发最后一条用户消息 */
+async function regenerate() {
+  if (isStreaming.value) return;
+  const lastUser = [...messages.value].reverse().find((m) => m.role === 'user');
+  if (!lastUser) return;
+  // 移除最后的助手回复（若有）
+  while (messages.value.length > 0) {
+    const lastMsg = messages.value[messages.value.length - 1];
+    if (lastMsg && lastMsg.role === 'assistant') {
+      messages.value.pop();
+    } else {
+      break;
+    }
+  }
+  await scrollToBottom();
+  await handleSendWithStream();
+}
+
+// ===== Markdown 渲染（DOMPurify 消毒）=====
 function renderMd(content: string): string {
   if (!content) return '';
   try {
     const raw = marked.parse(content) as string;
     return DOMPurify.sanitize(raw, { ADD_ATTR: ['class'] });
   } catch {
-    // 渲染失败兜底为纯文本
     return content
       .replaceAll('&', '&amp;')
       .replaceAll('<', '&lt;')
@@ -181,13 +210,18 @@ function renderMd(content: string): string {
   }
 }
 
-/** 复制代码块：事件委托处理 .ai-copy-btn 点击 */
 function handleMarkdownClick(e: MouseEvent) {
   const target = (e.target as HTMLElement).closest('.ai-copy-btn');
   if (!target) return;
   const code = target.previousElementSibling?.textContent ?? '';
   navigator.clipboard.writeText(code);
 }
+
+// ===== 当前会话标题 =====
+const activeTitle = computed(() => {
+  const conv = conversations.value.find((c) => c.id === activeConvId.value);
+  return conv?.title ?? $t('page.ai.chat.title');
+});
 
 onMounted(async () => {
   await loadConversations();
@@ -200,22 +234,21 @@ onMounted(async () => {
 <template>
   <Page auto-content-height class="ai-chat-page">
     <div class="ai-chat-layout">
-      <!-- 左侧会话列表 -->
-      <aside class="ai-chat-sidebar">
+      <!-- ===== 左侧会话栏 ===== -->
+      <aside v-show="showSidebar" class="ai-chat-sidebar">
         <div class="ai-chat-sidebar__header">
           <span class="ai-chat-sidebar__title">{{
-            $t('page.ai.chat.title')
+            $t('page.ai.chat.history')
           }}</span>
+          <a-button
+            type="primary"
+            size="small"
+            @click="handleNewChat"
+          >
+            <Plus class="size-4" />
+            {{ $t('page.ai.chat.newChat') }}
+          </a-button>
         </div>
-        <a-button
-          block
-          class="ai-chat-sidebar__new"
-          type="primary"
-          @click="handleNewChat"
-        >
-          <Plus class="size-4" />
-          {{ $t('page.ai.chat.newChat') }}
-        </a-button>
         <div class="ai-chat-sidebar__list">
           <div
             v-for="conv in conversations"
@@ -256,17 +289,43 @@ onMounted(async () => {
         </div>
       </aside>
 
-      <!-- 右侧对话区 -->
+      <!-- ===== 主对话区 ===== -->
       <main class="ai-chat-main">
-        <!-- 空状态（无会话/无消息） -->
-        <div
-          v-if="!activeConvId || messages.length === 0"
-          class="ai-chat-welcome"
-        >
-          <div class="ai-chat-welcome__icon">🤖</div>
-          <h2 class="ai-chat-welcome__title">
+        <!-- 顶部工具栏 -->
+        <header class="ai-chat-topbar">
+          <a-button
+            class="ai-chat-topbar__toggle"
+            size="small"
+            type="text"
+            @click="showSidebar = !showSidebar"
+          >
+            ☰
+          </a-button>
+          <span class="ai-chat-topbar__title">{{ activeTitle }}</span>
+          <div class="ai-chat-topbar__actions">
+            <a-select
+              v-model:value="modelId"
+              :placeholder="$t('page.ai.chat.selectModel')"
+              class="ai-chat-topbar__model"
+              size="small"
+              allow-clear
+            >
+              <a-select-option value="deepseek-v4-flash">
+                DeepSeek V4 Flash
+              </a-select-option>
+              <a-select-option value="deepseek-v4-pro">
+                DeepSeek V4 Pro
+              </a-select-option>
+            </a-select>
+          </div>
+        </header>
+
+        <!-- 欢迎页（无消息时） -->
+        <div v-if="messages.length === 0" class="ai-chat-welcome">
+          <div class="ai-chat-welcome__logo">🤖</div>
+          <h1 class="ai-chat-welcome__title">
             {{ $t('page.ai.chat.welcomeTitle') }}
-          </h2>
+          </h1>
           <p class="ai-chat-welcome__desc">
             {{ $t('page.ai.chat.emptyHint') }}
           </p>
@@ -282,34 +341,54 @@ onMounted(async () => {
           >
             <template v-if="msg.role === 'user'">
               <div class="ai-chat-msg__bubble ai-chat-msg__bubble--user">
-                <span>{{ msg.content }}</span>
+                <span class="ai-chat-msg__content">{{ msg.content }}</span>
               </div>
             </template>
             <template v-else>
               <div class="ai-chat-msg__avatar">🤖</div>
-              <div class="ai-chat-msg__bubble ai-chat-msg__bubble--assistant">
-                <!-- eslint-disable vue/no-v-html -->
-                <div
-                  v-if="msg.content"
-                  class="ai-chat-markdown"
-                  v-html="renderMd(msg.content)"
-                  @click="handleMarkdownClick"
-                ></div>
-                <!-- eslint-enable vue/no-v-html -->
-                <span v-else class="ai-chat-thinking">{{
-                  $t('page.ai.chat.thinking')
-                }}</span>
+              <div class="ai-chat-msg__body">
+                <div class="ai-chat-msg__bubble ai-chat-msg__bubble--assistant">
+                  <!-- eslint-disable vue/no-v-html -->
+                  <div
+                    v-if="msg.content"
+                    class="ai-chat-markdown"
+                    v-html="renderMd(msg.content)"
+                    @click="handleMarkdownClick"
+                  ></div>
+                  <!-- eslint-enable vue/no-v-html -->
+                  <span v-else class="ai-chat-thinking">{{
+                    $t('page.ai.chat.thinking')
+                  }}</span>
+                </div>
+                <div class="ai-chat-msg__actions">
+                  <a-button
+                    size="small"
+                    type="text"
+                    :title="$t('page.ai.chat.copy')"
+                    @click="copyMessage(msg.content)"
+                  >
+                    📋
+                  </a-button>
+                  <a-button
+                    size="small"
+                    type="text"
+                    :title="$t('page.ai.chat.regenerate')"
+                    @click="regenerate"
+                  >
+                    <RotateCw class="size-4" />
+                  </a-button>
+                </div>
               </div>
             </template>
           </div>
         </div>
 
-        <!-- 输入区 -->
+        <!-- 底部输入区 -->
         <div class="ai-chat-input-area">
           <div class="ai-chat-input-box">
             <a-textarea
               v-model:value="inputText"
-              :auto-size="{ maxRows: 8, minRows: 1 }"
+              :auto-size="{ maxRows: 10, minRows: 1 }"
               :disabled="isStreaming"
               :placeholder="$t('page.ai.chat.placeholder')"
               class="ai-chat-input-box__textarea"
@@ -326,7 +405,19 @@ onMounted(async () => {
                 type="primary"
                 @click="handleSendWithStream"
               >
-                <CornerDownLeft class="size-4" />
+                <svg
+                  class="size-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
               </a-button>
               <a-button v-else danger shape="circle" @click="handleStop">
                 <Square class="size-4" />
@@ -349,11 +440,9 @@ onMounted(async () => {
   height: 100%;
   overflow: hidden;
   background: hsl(var(--background));
-  border: 1px solid hsl(var(--border));
-  border-radius: 8px;
 }
 
-/* ===== 左侧会话列表 ===== */
+/* ===== 左侧会话栏 ===== */
 .ai-chat-sidebar {
   display: flex;
   flex-direction: column;
@@ -365,22 +454,21 @@ onMounted(async () => {
 
 .ai-chat-sidebar__header {
   display: flex;
+  gap: 8px;
   align-items: center;
-  height: 52px;
-  padding: 0 16px;
-  font-size: 15px;
-  font-weight: 600;
+  justify-content: space-between;
+  padding: 12px;
   border-bottom: 1px solid hsl(var(--border));
 }
 
-.ai-chat-sidebar__new {
-  margin: 12px;
-  width: calc(100% - 24px);
+.ai-chat-sidebar__title {
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .ai-chat-sidebar__list {
   flex: 1;
-  padding: 0 8px 12px;
+  padding: 8px;
   overflow-y: auto;
 }
 
@@ -421,7 +509,7 @@ onMounted(async () => {
   opacity: 1;
 }
 
-/* ===== 右侧对话区 ===== */
+/* ===== 主区 ===== */
 .ai-chat-main {
   display: flex;
   flex: 1;
@@ -429,24 +517,52 @@ onMounted(async () => {
   min-width: 0;
 }
 
-/* 欢迎/空状态 */
+/* 顶栏 */
+.ai-chat-topbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  height: 52px;
+  padding: 0 20px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.ai-chat-topbar__toggle {
+  font-size: 16px;
+}
+
+.ai-chat-topbar__title {
+  flex: 1;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-chat-topbar__model {
+  width: 180px;
+}
+
+/* 欢迎页 */
 .ai-chat-welcome {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
   justify-content: center;
   padding: 40px;
+  text-align: center;
 }
 
-.ai-chat-welcome__icon {
-  font-size: 48px;
+.ai-chat-welcome__logo {
+  font-size: 56px;
 }
 
 .ai-chat-welcome__title {
   margin: 0;
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 600;
   color: hsl(var(--foreground));
 }
@@ -462,25 +578,22 @@ onMounted(async () => {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 20px;
-  padding: 24px 32px;
+  gap: 24px;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 20px;
   overflow-y: auto;
 }
 
 .ai-chat-msg {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: flex-start;
-  max-width: 88%;
 }
 
 .ai-chat-msg--user {
-  flex-direction: row-reverse;
-  align-self: flex-end;
-}
-
-.ai-chat-msg--assistant {
-  align-self: flex-start;
+  justify-content: flex-end;
 }
 
 .ai-chat-msg__avatar {
@@ -495,25 +608,44 @@ onMounted(async () => {
   border-radius: 8px;
 }
 
+.ai-chat-msg__body {
+  max-width: calc(100% - 44px);
+}
+
 .ai-chat-msg__bubble {
-  max-width: 100%;
-  padding: 10px 14px;
+  padding: 2px 2px;
   font-size: 14px;
-  line-height: 1.7;
+  line-height: 1.75;
   word-break: break-word;
-  border-radius: 10px;
 }
 
 .ai-chat-msg__bubble--user {
+  max-width: 70%;
+  padding: 10px 16px;
   color: hsl(var(--primary-foreground));
   background: hsl(var(--primary));
-  border-top-right-radius: 2px;
+  border-radius: 12px;
+  border-bottom-right-radius: 4px;
 }
 
 .ai-chat-msg__bubble--assistant {
-  background: hsl(var(--background));
-  border: 1px solid hsl(var(--border));
-  border-top-left-radius: 2px;
+  background: transparent;
+}
+
+.ai-chat-msg__content {
+  white-space: pre-wrap;
+}
+
+.ai-chat-msg__actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.ai-chat-msg:hover .ai-chat-msg__actions {
+  opacity: 1;
 }
 
 .ai-chat-thinking {
@@ -532,20 +664,20 @@ onMounted(async () => {
   }
 }
 
-/* ===== 输入区 ===== */
+/* ===== 底部输入区 ===== */
 .ai-chat-input-area {
-  padding: 16px 24px 20px;
+  padding: 12px 24px 20px;
   border-top: 1px solid hsl(var(--border));
 }
 
 .ai-chat-input-box {
   max-width: 860px;
   margin: 0 auto;
-  padding: 8px 8px 6px 14px;
+  padding: 10px 10px 8px 16px;
   background: hsl(var(--background));
   border: 1px solid hsl(var(--border));
-  border-radius: 12px;
-  box-shadow: 0 2px 12px hsl(var(--foreground) / 6%);
+  border-radius: 14px;
+  box-shadow: 0 2px 16px hsl(var(--foreground) / 8%);
   transition:
     border-color 0.2s,
     box-shadow 0.2s;
@@ -553,7 +685,7 @@ onMounted(async () => {
 
 .ai-chat-input-box:focus-within {
   border-color: hsl(var(--primary) / 50%);
-  box-shadow: 0 2px 16px hsl(var(--primary) / 12%);
+  box-shadow: 0 4px 24px hsl(var(--primary) / 14%);
 }
 
 .ai-chat-input-box__textarea {
@@ -568,7 +700,7 @@ onMounted(async () => {
   gap: 8px;
   align-items: center;
   justify-content: flex-end;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .ai-chat-input-box__tip {
@@ -577,7 +709,7 @@ onMounted(async () => {
   color: hsl(var(--muted-foreground));
 }
 
-/* ===== Markdown 渲染 ===== */
+/* ===== Markdown ===== */
 .ai-chat-markdown :deep(p) {
   margin: 0 0 8px;
 

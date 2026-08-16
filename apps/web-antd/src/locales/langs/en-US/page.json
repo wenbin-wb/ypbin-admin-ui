@@ -13,7 +13,9 @@
     "title": "AI Assistant",
     "chat": {
       "title": "AI Chat",
+      "history": "Chat History",
       "newChat": "New Chat",
+      "regenerate": "Regenerate",
       "placeholder": "Enter to send, Shift+Enter for new line",
       "thinking": "Thinking…",
       "send": "Send",
@@ -35,6 +37,11 @@
       "clearContext": "Clear Context",
       "useKb": "Use Knowledge Base",
       "send": "Send Message"
+    },
+    "widget": {
+      "title": "AI Assistant",
+      "hint": "How can I help you?",
+      "placeholder": "Ask a question, Enter to send"
     },
     "knowledge": {
       "title": "Knowledge Base",
