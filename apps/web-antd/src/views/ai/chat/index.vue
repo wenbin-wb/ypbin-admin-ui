@@ -801,12 +801,13 @@ onMounted(async () => {
   display: flex;
   gap: 8px;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-top: 6px;
 }
 
 .ds-chat__kb-select {
   width: 200px;
+  margin-right: auto;
 }
 
 .ds-chat__input-tools-right {

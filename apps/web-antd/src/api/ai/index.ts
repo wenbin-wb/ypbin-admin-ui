@@ -1,3 +1,6 @@
+import { useAppConfig } from '@vben/hooks';
+import { useAccessStore } from '@vben/stores';
+
 import { requestClient } from '#/api/request';
 
 export namespace AiApi {
@@ -121,19 +124,58 @@ export function listMessages(
   );
 }
 
-/** 流式对话，复用 requestClient.postSSE，支持 AbortController 中断 */
-export function chat(
+/**
+ * 流式对话（SSE）。vben 的 postSSE 只做原始分块转发、不解析 SSE 帧，
+ * 这里直接用 fetch 按标准 SSE 帧格式解析（剥离 data: 前缀），支持 AbortController 中断。
+ */
+export async function chat(
   data: AiApi.ChatReq,
   onMessage: (token: string) => void,
   onEnd?: () => void,
   signal?: AbortSignal,
 ) {
-  return requestClient.postSSE('/ai/chat', data, {
-    headers: { 'Content-Type': 'application/json' },
-    onMessage,
-    onEnd,
+  const accessStore = useAccessStore();
+  const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
+  const response = await fetch(apiURL + '/ai/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + accessStore.accessToken,
+    },
+    body: JSON.stringify(data),
     signal,
   });
+  if (!response.ok) {
+    throw new Error('HTTP error! status: ' + response.status);
+  }
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('No reader');
+  }
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    buffer += decoder.decode(value, { stream: true });
+    // SSE 帧以空行分隔；一帧可能跨多个 chunk，缓冲后统一切分
+    let sep = buffer.indexOf('\n\n');
+    while (sep >= 0) {
+      const frame = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+      const dataLines = frame
+        .split('\n')
+        .filter((line) => line.startsWith('data:'))
+        .map((line) => line.slice(5));
+      if (dataLines.length > 0) {
+        onMessage(dataLines.join('\n'));
+      }
+      sep = buffer.indexOf('\n\n');
+    }
+  }
+  onEnd?.();
 }
 
 // 知识库
