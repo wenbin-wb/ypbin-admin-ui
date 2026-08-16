@@ -94,7 +94,7 @@ async function handleSendWithStream() {
     tokens: 0,
   });
   inputText.value = '';
-  await scrollToBottom();
+  await scrollToBottom(true);
 
   // reactive 包装：流式回调里 content 逐帧追加，必须触发响应式渲染
   const assistantMsg = reactive<AiApi.Message>({
@@ -163,10 +163,15 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
-async function scrollToBottom() {
+async function scrollToBottom(force = false) {
   await nextTick();
-  if (msgListRef.value) {
-    msgListRef.value.scrollTop = msgListRef.value.scrollHeight;
+  const el = msgListRef.value;
+  if (!el) return;
+  // 流式高频回调时仅在接近底部时钉底，避免用户上翻阅读历史被打断
+  const nearBottom =
+    el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  if (force || nearBottom) {
+    el.scrollTop = el.scrollHeight;
   }
 }
 
@@ -222,8 +227,10 @@ async function regenerate() {
 function renderMd(content: string): string {
   if (!content) return '';
   try {
+    // marked 可能返回 Promise（引入 async 扩展时）；当前同步渲染器下为字符串
     const raw = marked.parse(content) as string;
-    return DOMPurify.sanitize(raw, { ADD_ATTR: ['class'] });
+    const html = typeof raw === 'string' ? raw : String(raw);
+    return DOMPurify.sanitize(html, { ADD_ATTR: ['class'] });
   } catch {
     return content
       .replaceAll('&', '&amp;')
@@ -241,7 +248,9 @@ function handleMarkdownClick(e: MouseEvent) {
   const target = (e.target as HTMLElement).closest('.ai-copy-btn');
   if (!target) return;
   const code = target.previousElementSibling?.textContent ?? '';
-  navigator.clipboard.writeText(code);
+  navigator.clipboard.writeText(code).catch(() => {
+    // 剪贴板权限被拒时静默失败，不影响页面
+  });
 }
 
 const activeTitle = computed(() => {
@@ -935,10 +944,10 @@ onUnmounted(() => {
 /* ===== Markdown ===== */
 .ds-msg__markdown :deep(p) {
   margin: 0 0 10px;
+}
 
-  &:last-child {
-    margin-bottom: 0;
-  }
+.ds-msg__markdown :deep(p:last-child) {
+  margin-bottom: 0;
 }
 
 .ds-msg__markdown :deep(h1),

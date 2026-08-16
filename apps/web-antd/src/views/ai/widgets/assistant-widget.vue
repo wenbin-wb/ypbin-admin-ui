@@ -34,10 +34,15 @@ let abortController: AbortController | null = null;
 function renderMd(content: string): string {
   if (!content) return '';
   try {
+    // marked 可能返回 Promise（引入 async 扩展时）；当前同步渲染器下为字符串
     const raw = marked.parse(content) as string;
-    return DOMPurify.sanitize(raw, { ADD_ATTR: ['class'] });
+    const html = typeof raw === 'string' ? raw : String(raw);
+    return DOMPurify.sanitize(html, { ADD_ATTR: ['class'] });
   } catch {
-    return content.replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+    return content
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
   }
 }
 
