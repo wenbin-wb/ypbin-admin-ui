@@ -3,6 +3,7 @@ import type { AiApi } from '#/api/ai';
 
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
 
+import { Page } from '@vben/common-ui';
 import { Menu, Plus, RotateCw, Search, Square, X } from '@vben/icons';
 
 import {
@@ -471,445 +472,451 @@ async function scrollToBottom(force = false) {
 </script>
 
 <template>
-  <div class="ym-ai">
-    <!-- 左侧栏 -->
-    <aside class="ym-ai__sidebar" :class="{ collapsed: !sidebarOpen }">
-      <div class="ym-ai__sidebar-header">
-        <div class="ym-ai__logo">
-          <span class="ym-ai__logo-mark">AI</span>
-          <span v-if="sidebarOpen" class="ym-ai__logo-text">Ypbin AI</span>
+  <Page auto-content-height content-class="p-0">
+    <div class="ym-ai">
+      <!-- 左侧栏 -->
+      <aside class="ym-ai__sidebar" :class="{ collapsed: !sidebarOpen }">
+        <div class="ym-ai__sidebar-header">
+          <div class="ym-ai__logo">
+            <span class="ym-ai__logo-mark">AI</span>
+            <span v-if="sidebarOpen" class="ym-ai__logo-text">Ypbin AI</span>
+          </div>
+          <Button
+            v-access:code="['ai:chat:create']"
+            class="ym-ai__new-btn"
+            type="primary"
+            block
+            @click="createNewSession()"
+          >
+            <template v-if="sidebarOpen">
+              <Plus class="size-4" />
+              {{ $t('page.ai.chat.newChat') }}
+            </template>
+            <Plus v-else class="size-4 mx-auto" />
+          </Button>
         </div>
-        <Button
-          v-access:code="['ai:chat:create']"
-          class="ym-ai__new-btn"
-          type="primary"
-          block
-          @click="createNewSession()"
-        >
-          <template v-if="sidebarOpen">
-            <Plus class="size-4" />
-            {{ $t('page.ai.chat.newChat') }}
-          </template>
-          <Plus v-else class="size-4 mx-auto" />
-        </Button>
-      </div>
 
-      <!-- 会话列表 -->
-      <div v-if="sidebarOpen" class="ym-ai__session-list">
-        <div class="ym-ai__section-label">{{ $t('page.ai.chat.history') }}</div>
-        <div
-          v-for="session in sessions"
-          :key="session.id"
-          class="ym-ai__session-item"
-          :class="{ active: session.id === activeSessionId }"
-          @click="selectSession(session.id)"
-        >
-          <template v-if="renamingId === session.id">
-            <Input
-              v-model:value="renameTitle"
-              size="small"
-              autofocus
-              @blur="commitRename(session.id)"
-              @press-enter="commitRename(session.id)"
-            />
-          </template>
-          <template v-else>
-            <span class="ym-ai__session-title">{{ session.title }}</span>
-            <div class="ym-ai__session-actions">
-              <Tooltip :title="$t('page.ai.chat.pinSession')">
-                <Button
-                  :class="{ pinned: session.isPinned === 1 }"
-                  size="small"
-                  type="text"
-                  @click.stop="handlePinSession(session.id)"
-                >
-                  <svg
-                    class="size-3.5"
-                    :fill="session.isPinned === 1 ? 'currentColor' : 'none'"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+        <!-- 会话列表 -->
+        <div v-if="sidebarOpen" class="ym-ai__session-list">
+          <div class="ym-ai__section-label">
+            {{ $t('page.ai.chat.history') }}
+          </div>
+          <div
+            v-for="session in sessions"
+            :key="session.id"
+            class="ym-ai__session-item"
+            :class="{ active: session.id === activeSessionId }"
+            @click="selectSession(session.id)"
+          >
+            <template v-if="renamingId === session.id">
+              <Input
+                v-model:value="renameTitle"
+                size="small"
+                autofocus
+                @blur="commitRename(session.id)"
+                @press-enter="commitRename(session.id)"
+              />
+            </template>
+            <template v-else>
+              <span class="ym-ai__session-title">{{ session.title }}</span>
+              <div class="ym-ai__session-actions">
+                <Tooltip :title="$t('page.ai.chat.pinSession')">
+                  <Button
+                    :class="{ pinned: session.isPinned === 1 }"
+                    size="small"
+                    type="text"
+                    @click.stop="handlePinSession(session.id)"
                   >
-                    <line x1="12" x2="12" y1="17" y2="22" />
-                    <path
-                      d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"
-                    />
-                  </svg>
-                </Button>
-              </Tooltip>
-              <Tooltip :title="$t('page.ai.chat.renameSession')">
-                <Button
-                  size="small"
-                  type="text"
-                  @click.stop="startRename(session.id, session.title)"
-                >
-                  <svg
-                    class="size-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                    stroke-linecap="round"
+                    <svg
+                      class="size-3.5"
+                      :fill="session.isPinned === 1 ? 'currentColor' : 'none'"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <line x1="12" x2="12" y1="17" y2="22" />
+                      <path
+                        d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"
+                      />
+                    </svg>
+                  </Button>
+                </Tooltip>
+                <Tooltip :title="$t('page.ai.chat.renameSession')">
+                  <Button
+                    size="small"
+                    type="text"
+                    @click.stop="startRename(session.id, session.title)"
                   >
-                    <path
-                      d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"
-                    />
-                  </svg>
-                </Button>
-              </Tooltip>
-              <Popconfirm
-                :title="$t('page.ai.chat.confirmDelete')"
-                @confirm="handleDeleteSession(session.id)"
-              >
-                <Button size="small" danger type="text">
-                  <svg
-                    class="size-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                    stroke-linecap="round"
-                  >
-                    <path
-                      d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                    />
-                  </svg>
-                </Button>
-              </Popconfirm>
-            </div>
-          </template>
-        </div>
-        <div v-if="sessions.length === 0" class="ym-ai__empty-session">
-          {{ $t('page.ai.chat.emptyHint') }}
-        </div>
-      </div>
-
-      <!-- 底部：角色选择 + 模型 -->
-      <div v-if="sidebarOpen" class="ym-ai__sidebar-footer">
-        <div class="ym-ai__role-indicator" @click="roleDrawerOpen = true">
-          <span
-            class="ym-badge"
-            :class="pickRoleMark(activeRole?.category).color"
-            >{{ pickRoleMark(activeRole?.category).char }}</span>
-          <span class="ym-ai__role-name">{{
-            activeRole ? activeRole.name : $t('page.ai.chat.selectRole')
-          }}</span>
-        </div>
-        <Select
-          v-model:value="activeModelId"
-          :placeholder="$t('page.ai.chat.modelSelect')"
-          size="small"
-          class="ym-ai__model-select"
-          allow-clear
-        >
-          <Select.Option v-for="m in models" :key="m.id" :value="m.id">
-            {{ m.name }}
-          </Select.Option>
-        </Select>
-      </div>
-    </aside>
-
-    <!-- 主区域 -->
-    <main class="ym-ai__main">
-      <!-- 顶部栏 -->
-      <header class="ym-ai__topbar">
-        <Button
-          class="ym-ai__menu-toggle"
-          type="text"
-          @click="handleSidebarToggle"
-        >
-          <Menu class="size-4" />
-        </Button>
-        <span v-if="activeTitle" class="ym-ai__topbar-title">{{
-          activeTitle
-        }}</span>
-      </header>
-
-      <!-- 欢迎页 -->
-      <div v-if="welcomeShown" ref="welcomeRef" class="ym-ai__welcome">
-        <div class="ym-ai__welcome-inner">
-          <h1 class="ym-ai__welcome-title">
-            {{ $t('page.ai.chat.welcomeTitle') }}
-          </h1>
-          <p class="ym-ai__welcome-subtitle">
-            {{ $t('page.ai.chat.welcomeSubtitle') }}
-          </p>
-
-          <!-- 角色卡片 -->
-          <div class="ym-ai__welcome-roles">
-            <div
-              v-for="role in featuredRoles"
-              :key="role.id"
-              class="ym-ai__role-card"
-              @click="handleNewChatWithRole(role.id)"
-            >
-              <span
-                class="ym-badge"
-                :class="pickRoleMark(role.category).color"
-                >{{ pickRoleMark(role.category).char }}</span>
-              <span class="ym-ai__role-card-name">{{ role.name }}</span>
-              <span class="ym-ai__role-card-desc">{{ role.description }}</span>
-            </div>
-          </div>
-
-          <!-- 快捷问题 -->
-          <div class="ym-ai__quick-questions">
-            <button
-              v-for="q in quickQuestions"
-              :key="q.key"
-              class="ym-ai__quick-q"
-              @click="handleQuickQuestion(q.key)"
-            >
-              {{ $t(`page.ai.chat.${q.key}`) }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 消息列表 -->
-      <div v-else ref="msgListRef" class="ym-ai__messages">
-        <div
-          v-for="msg in messages"
-          :key="msg.id"
-          :class="`ym-ai__msg ym-ai__msg--${msg.role}`"
-        >
-          <!-- AI 消息 -->
-          <div v-if="msg.role === 'assistant'" class="ym-ai__msg-content">
-            <!-- eslint-disable vue/no-v-html -->
-            <div
-              v-if="msg.content"
-              class="ym-ai__markdown"
-              :class="{ 'ym-ai__markdown--error': isErrorText(msg.content) }"
-              v-html="renderMd(msg.content)"
-              @click="handleMarkdownClick"
-            ></div>
-            <!-- eslint-enable vue/no-v-html -->
-            <span v-else class="ym-ai__thinking">{{
-              $t('page.ai.chat.thinking')
-            }}</span>
-
-            <div
-              v-if="!isStreaming || msg.id !== 'streaming'"
-              class="ym-ai__msg-actions"
-            >
-              <button
-                class="ym-ai__action"
-                :title="$t('page.ai.chat.copy')"
-                @click="copyMessage(msg.content)"
-              >
-                <svg
-                  class="size-4"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                  stroke-linecap="round"
+                    <svg
+                      class="size-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      stroke-linecap="round"
+                    >
+                      <path
+                        d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"
+                      />
+                    </svg>
+                  </Button>
+                </Tooltip>
+                <Popconfirm
+                  :title="$t('page.ai.chat.confirmDelete')"
+                  @confirm="handleDeleteSession(session.id)"
                 >
-                  <rect width="14" height="14" x="8" y="8" rx="2" />
-                  <path
-                    d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
-                  />
-                </svg>
-              </button>
-              <button
-                class="ym-ai__action"
-                :class="{ active: liked[msg.id] === 'up' }"
-                :title="$t('page.ai.chat.thumbUp')"
-                @click="toggleLike(msg.id, 'up')"
-              >
-                <svg
-                  class="size-4"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M7 10v12" />
-                  <path
-                    d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"
-                  />
-                </svg>
-              </button>
-              <button
-                class="ym-ai__action"
-                :class="{ active: liked[msg.id] === 'down' }"
-                :title="$t('page.ai.chat.thumbDown')"
-                @click="toggleLike(msg.id, 'down')"
-              >
-                <svg
-                  class="size-4"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M17 14V2" />
-                  <path
-                    d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"
-                  />
-                </svg>
-              </button>
-              <button
-                class="ym-ai__action"
-                :title="$t('page.ai.chat.regenerate')"
-                @click="regenerate"
-              >
-                <RotateCw class="size-4" />
-              </button>
-            </div>
-          </div>
-
-          <!-- 用户消息 -->
-          <div v-else class="ym-ai__user-bubble">
-            <span class="ym-ai__plain">{{ msg.content }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 输入区 -->
-      <div class="ym-ai__input-area">
-        <div class="ym-ai__input-box">
-          <Input.TextArea
-            v-model:value="inputText"
-            :auto-size="{ maxRows: 10, minRows: 1 }"
-            :disabled="isStreaming"
-            :placeholder="$t('page.ai.chat.placeholder')"
-            class="ym-ai__textarea"
-            @keydown="handleKeydown"
-          />
-          <div class="ym-ai__input-tools">
-            <Select
-              v-if="knowledgeBases.length > 0"
-              v-model:value="activeKbId"
-              :placeholder="$t('page.ai.chat.attachKb')"
-              class="ym-ai__kb-select"
-              size="small"
-              allow-clear
-            >
-              <Select.Option
-                v-for="kb in knowledgeBases"
-                :key="kb.id"
-                :value="kb.id"
-              >
-                {{ kb.name }}
-              </Select.Option>
-            </Select>
-
-            <div v-if="activeRole" class="ym-ai__active-role-chip">
-              <span>{{ pickRoleMark(activeRole.category).char }}</span>
-              {{ activeRole.name }}
-              <button @click="activeRole = null">×</button>
-            </div>
-
-            <div class="ym-ai__input-tools-right">
-              <button
-                v-if="!isStreaming"
-                class="ym-ai__send"
-                :disabled="!inputText.trim()"
-                @click="handleSend"
-              >
-                <svg
-                  class="size-4"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                  stroke-linecap="round"
-                >
-                  <path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z" />
-                </svg>
-              </button>
-              <button
-                v-else
-                class="ym-ai__send ym-ai__send--stop"
-                @click="handleStop"
-              >
-                <Square class="size-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-        <p class="ym-ai__input-tip">{{ $t('page.ai.chat.enterTip') }}</p>
-      </div>
-    </main>
-
-    <!-- 角色选择抽屉 -->
-    <Transition name="ym-role">
-      <div v-if="roleDrawerOpen" class="ym-role-drawer">
-        <div class="ym-role-mask" @click="roleDrawerOpen = false"></div>
-        <div class="ym-role-panel">
-          <div class="ym-role-header">
-            <h3>{{ $t('page.ai.chat.selectRole') }}</h3>
-            <button class="ym-role-close" @click="roleDrawerOpen = false">
-              <X class="size-4" />
-            </button>
-          </div>
-          <div class="ym-role-search">
-            <Search class="size-4" />
-            <Input
-              v-model:value="roleSearch"
-              :placeholder="$t('page.ai.chat.rolePlaceholder')"
-              size="small"
-            />
-          </div>
-          <div class="ym-role-cats">
-            <button
-              v-for="cat in roleCategories"
-              :key="cat"
-              class="ym-role-cat"
-              :class="{ active: roleCategory === cat }"
-              @click="roleCategory = cat"
-            >
-              {{
-                cat === 'all'
-                  ? $t('page.ai.chat.roleAll')
-                  : $t(`page.ai.chat.roleCategory_${cat}`)
-              }}
-            </button>
-          </div>
-          <div class="ym-role-list">
-            <div
-              v-for="role in filteredRoles"
-              :key="role.id"
-              class="ym-role-item"
-              @click="selectRole(role)"
-            >
-              <span
-                class="ym-badge"
-                :class="pickRoleMark(role.category).color"
-                >{{ pickRoleMark(role.category).char }}</span>
-              <div class="ym-role-info">
-                <span class="ym-role-name">{{ role.name }}</span>
-                <span class="ym-role-desc">{{ role.description }}</span>
+                  <Button size="small" danger type="text">
+                    <svg
+                      class="size-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      stroke-linecap="round"
+                    >
+                      <path
+                        d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                      />
+                    </svg>
+                  </Button>
+                </Popconfirm>
               </div>
-              <button
-                class="ym-role-fav"
-                :class="{ active: role.isFavorite }"
-                @click.stop="toggleFavorite(role)"
+            </template>
+          </div>
+          <div v-if="sessions.length === 0" class="ym-ai__empty-session">
+            {{ $t('page.ai.chat.emptyHint') }}
+          </div>
+        </div>
+
+        <!-- 底部：角色选择 + 模型 -->
+        <div v-if="sidebarOpen" class="ym-ai__sidebar-footer">
+          <div class="ym-ai__role-indicator" @click="roleDrawerOpen = true">
+            <span
+              class="ym-badge"
+              :class="pickRoleMark(activeRole?.category).color"
+              >{{ pickRoleMark(activeRole?.category).char }}</span>
+            <span class="ym-ai__role-name">{{
+              activeRole ? activeRole.name : $t('page.ai.chat.selectRole')
+            }}</span>
+          </div>
+          <Select
+            v-model:value="activeModelId"
+            :placeholder="$t('page.ai.chat.modelSelect')"
+            size="small"
+            class="ym-ai__model-select"
+            allow-clear
+          >
+            <Select.Option v-for="m in models" :key="m.id" :value="m.id">
+              {{ m.name }}
+            </Select.Option>
+          </Select>
+        </div>
+      </aside>
+
+      <!-- 主区域 -->
+      <main class="ym-ai__main">
+        <!-- 顶部栏 -->
+        <header class="ym-ai__topbar">
+          <Button
+            class="ym-ai__menu-toggle"
+            type="text"
+            @click="handleSidebarToggle"
+          >
+            <Menu class="size-4" />
+          </Button>
+          <span v-if="activeTitle" class="ym-ai__topbar-title">{{
+            activeTitle
+          }}</span>
+        </header>
+
+        <!-- 欢迎页 -->
+        <div v-if="welcomeShown" ref="welcomeRef" class="ym-ai__welcome">
+          <div class="ym-ai__welcome-inner">
+            <h1 class="ym-ai__welcome-title">
+              {{ $t('page.ai.chat.welcomeTitle') }}
+            </h1>
+            <p class="ym-ai__welcome-subtitle">
+              {{ $t('page.ai.chat.welcomeSubtitle') }}
+            </p>
+
+            <!-- 角色卡片 -->
+            <div class="ym-ai__welcome-roles">
+              <div
+                v-for="role in featuredRoles"
+                :key="role.id"
+                class="ym-ai__role-card"
+                @click="handleNewChatWithRole(role.id)"
               >
-                <svg
-                  class="size-4"
-                  :fill="role.isFavorite ? 'currentColor' : 'none'"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
-                  <polygon
-                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-                  />
-                </svg>
-              </button>
+                <span
+                  class="ym-badge"
+                  :class="pickRoleMark(role.category).color"
+                  >{{ pickRoleMark(role.category).char }}</span>
+                <span class="ym-ai__role-card-name">{{ role.name }}</span>
+                <span class="ym-ai__role-card-desc">{{
+                  role.description
+                }}</span>
+              </div>
             </div>
-            <div v-if="filteredRoles.length === 0" class="ym-role-empty">
-              {{ $t('page.ai.chat.roleAll') }} 暂无角色
+
+            <!-- 快捷问题 -->
+            <div class="ym-ai__quick-questions">
+              <button
+                v-for="q in quickQuestions"
+                :key="q.key"
+                class="ym-ai__quick-q"
+                @click="handleQuickQuestion(q.key)"
+              >
+                {{ $t(`page.ai.chat.${q.key}`) }}
+              </button>
             </div>
           </div>
         </div>
-      </div>
-    </Transition>
-  </div>
+
+        <!-- 消息列表 -->
+        <div v-else ref="msgListRef" class="ym-ai__messages">
+          <div
+            v-for="msg in messages"
+            :key="msg.id"
+            :class="`ym-ai__msg ym-ai__msg--${msg.role}`"
+          >
+            <!-- AI 消息 -->
+            <div v-if="msg.role === 'assistant'" class="ym-ai__msg-content">
+              <!-- eslint-disable vue/no-v-html -->
+              <div
+                v-if="msg.content"
+                class="ym-ai__markdown"
+                :class="{ 'ym-ai__markdown--error': isErrorText(msg.content) }"
+                v-html="renderMd(msg.content)"
+                @click="handleMarkdownClick"
+              ></div>
+              <!-- eslint-enable vue/no-v-html -->
+              <span v-else class="ym-ai__thinking">{{
+                $t('page.ai.chat.thinking')
+              }}</span>
+
+              <div
+                v-if="!isStreaming || msg.id !== 'streaming'"
+                class="ym-ai__msg-actions"
+              >
+                <button
+                  class="ym-ai__action"
+                  :title="$t('page.ai.chat.copy')"
+                  @click="copyMessage(msg.content)"
+                >
+                  <svg
+                    class="size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    stroke-linecap="round"
+                  >
+                    <rect width="14" height="14" x="8" y="8" rx="2" />
+                    <path
+                      d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+                    />
+                  </svg>
+                </button>
+                <button
+                  class="ym-ai__action"
+                  :class="{ active: liked[msg.id] === 'up' }"
+                  :title="$t('page.ai.chat.thumbUp')"
+                  @click="toggleLike(msg.id, 'up')"
+                >
+                  <svg
+                    class="size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M7 10v12" />
+                    <path
+                      d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"
+                    />
+                  </svg>
+                </button>
+                <button
+                  class="ym-ai__action"
+                  :class="{ active: liked[msg.id] === 'down' }"
+                  :title="$t('page.ai.chat.thumbDown')"
+                  @click="toggleLike(msg.id, 'down')"
+                >
+                  <svg
+                    class="size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M17 14V2" />
+                    <path
+                      d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"
+                    />
+                  </svg>
+                </button>
+                <button
+                  class="ym-ai__action"
+                  :title="$t('page.ai.chat.regenerate')"
+                  @click="regenerate"
+                >
+                  <RotateCw class="size-4" />
+                </button>
+              </div>
+            </div>
+
+            <!-- 用户消息 -->
+            <div v-else class="ym-ai__user-bubble">
+              <span class="ym-ai__plain">{{ msg.content }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 输入区 -->
+        <div class="ym-ai__input-area">
+          <div class="ym-ai__input-box">
+            <Input.TextArea
+              v-model:value="inputText"
+              :auto-size="{ maxRows: 10, minRows: 1 }"
+              :disabled="isStreaming"
+              :placeholder="$t('page.ai.chat.placeholder')"
+              class="ym-ai__textarea"
+              @keydown="handleKeydown"
+            />
+            <div class="ym-ai__input-tools">
+              <Select
+                v-if="knowledgeBases.length > 0"
+                v-model:value="activeKbId"
+                :placeholder="$t('page.ai.chat.attachKb')"
+                class="ym-ai__kb-select"
+                size="small"
+                allow-clear
+              >
+                <Select.Option
+                  v-for="kb in knowledgeBases"
+                  :key="kb.id"
+                  :value="kb.id"
+                >
+                  {{ kb.name }}
+                </Select.Option>
+              </Select>
+
+              <div v-if="activeRole" class="ym-ai__active-role-chip">
+                <span>{{ pickRoleMark(activeRole.category).char }}</span>
+                {{ activeRole.name }}
+                <button @click="activeRole = null">×</button>
+              </div>
+
+              <div class="ym-ai__input-tools-right">
+                <button
+                  v-if="!isStreaming"
+                  class="ym-ai__send"
+                  :disabled="!inputText.trim()"
+                  @click="handleSend"
+                >
+                  <svg
+                    class="size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    stroke-linecap="round"
+                  >
+                    <path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z" />
+                  </svg>
+                </button>
+                <button
+                  v-else
+                  class="ym-ai__send ym-ai__send--stop"
+                  @click="handleStop"
+                >
+                  <Square class="size-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+          <p class="ym-ai__input-tip">{{ $t('page.ai.chat.enterTip') }}</p>
+        </div>
+      </main>
+
+      <!-- 角色选择抽屉 -->
+      <Transition name="ym-role">
+        <div v-if="roleDrawerOpen" class="ym-role-drawer">
+          <div class="ym-role-mask" @click="roleDrawerOpen = false"></div>
+          <div class="ym-role-panel">
+            <div class="ym-role-header">
+              <h3>{{ $t('page.ai.chat.selectRole') }}</h3>
+              <button class="ym-role-close" @click="roleDrawerOpen = false">
+                <X class="size-4" />
+              </button>
+            </div>
+            <div class="ym-role-search">
+              <Search class="size-4" />
+              <Input
+                v-model:value="roleSearch"
+                :placeholder="$t('page.ai.chat.rolePlaceholder')"
+                size="small"
+              />
+            </div>
+            <div class="ym-role-cats">
+              <button
+                v-for="cat in roleCategories"
+                :key="cat"
+                class="ym-role-cat"
+                :class="{ active: roleCategory === cat }"
+                @click="roleCategory = cat"
+              >
+                {{
+                  cat === 'all'
+                    ? $t('page.ai.chat.roleAll')
+                    : $t(`page.ai.chat.roleCategory_${cat}`)
+                }}
+              </button>
+            </div>
+            <div class="ym-role-list">
+              <div
+                v-for="role in filteredRoles"
+                :key="role.id"
+                class="ym-role-item"
+                @click="selectRole(role)"
+              >
+                <span
+                  class="ym-badge"
+                  :class="pickRoleMark(role.category).color"
+                  >{{ pickRoleMark(role.category).char }}</span>
+                <div class="ym-role-info">
+                  <span class="ym-role-name">{{ role.name }}</span>
+                  <span class="ym-role-desc">{{ role.description }}</span>
+                </div>
+                <button
+                  class="ym-role-fav"
+                  :class="{ active: role.isFavorite }"
+                  @click.stop="toggleFavorite(role)"
+                >
+                  <svg
+                    class="size-4"
+                    :fill="role.isFavorite ? 'currentColor' : 'none'"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <polygon
+                      points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div v-if="filteredRoles.length === 0" class="ym-role-empty">
+                {{ $t('page.ai.chat.roleAll') }} 暂无角色
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </div>
+  </Page>
 </template>
 
 <style scoped>
