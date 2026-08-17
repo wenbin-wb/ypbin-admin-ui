@@ -61,6 +61,8 @@
       "ready": "就绪",
       "failed": "处理失败",
       "deleteDoc": "删除文档",
+      "retry": "重试向量化",
+      "retryFail": "重试失败",
       "testQuery": "测试问答",
       "testQueryPlaceholder": "输入问题测试检索效果",
       "chunkCount": "切片数",

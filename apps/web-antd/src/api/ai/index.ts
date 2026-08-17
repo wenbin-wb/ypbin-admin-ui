@@ -308,6 +308,12 @@ export function getDocumentList(kbId: string, params?: Record<string, any>) {
   );
 }
 
+export function retryDocument(kbId: string, docId: string) {
+  return requestClient.post(
+    `/ai/knowledge-bases/${kbId}/documents/${docId}/retry`,
+  );
+}
+
 export function deleteDocument(kbId: string, docId: string) {
   return requestClient.delete(`/ai/knowledge-bases/${kbId}/documents/${docId}`);
 }

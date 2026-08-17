@@ -73,6 +73,8 @@
       "ready": "Ready",
       "failed": "Failed",
       "deleteDoc": "Delete Document",
+      "retry": "Retry Vectorize",
+      "retryFail": "Retry failed",
       "testQuery": "Test Query",
       "testQueryPlaceholder": "Ask a question to test retrieval",
       "chunkCount": "Chunks",

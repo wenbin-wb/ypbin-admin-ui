@@ -14,6 +14,7 @@ import {
   Card,
   Input,
   message,
+  Tooltip,
   Upload,
 } from 'ant-design-vue';
 
@@ -22,6 +23,7 @@ import {
   deleteDocument,
   getDocumentList,
   queryKnowledgeBase,
+  retryDocument,
   searchKnowledgeBaseMultiple,
   searchKnowledgeBaseRerank,
   searchKnowledgeBaseTest,
@@ -142,6 +144,20 @@ function onDeleteDoc(row: AiApi.KbDocument) {
   });
 }
 
+function onRetryDoc(row: AiApi.KbDocument) {
+  const kb = modalApi.getData();
+  if (!kb) return;
+  retryDocument(kb.id, row.id)
+    .then(() => {
+      message.success($t('common.success'));
+      gridApi.query();
+    })
+    .catch((error: any) => {
+      const reason = error?.message || error?.data?.message;
+      message.error(reason || $t('page.ai.knowledge.retryFail'));
+    });
+}
+
 async function onTestQuery() {
   if (!testQuery.value.trim()) return;
   const kb = modalApi.getData();
@@ -236,15 +252,29 @@ defineExpose({ modalApi });
       </template>
 
       <template #status="{ row }">
-        <Badge
-          :status="statusTag(row.status).color"
-          :text="statusTag(row.status).text"
-        />
+        <Tooltip
+          :title="row.status === 2 && row.errorMsg ? row.errorMsg : undefined"
+        >
+          <Badge
+            :status="statusTag(row.status).color"
+            :text="statusTag(row.status).text"
+          />
+        </Tooltip>
       </template>
 
       <template #action="{ row }">
         <VbenTableAction
           :actions="[
+            ...(row.status === 2
+              ? [
+                  {
+                    text: $t('page.ai.knowledge.retry'),
+                    icon: 'lucide:rotate-ccw',
+                    auth: 'ai:document:upload',
+                    onClick: () => onRetryDoc(row),
+                  },
+                ]
+              : []),
             {
               text: $t('page.ai.knowledge.delete'),
               icon: 'lucide:trash-2',
