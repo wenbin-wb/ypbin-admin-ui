@@ -671,97 +671,91 @@ async function scrollToBottom(force = false) {
           :class="`ym-ai__msg--${msg.role}`"
         >
           <!-- AI 消息 -->
-          <div v-if="msg.role === 'assistant'" class="ym-ai__msg-ai">
+          <div
+            v-if="msg.role === 'assistant'"
+            class="ym-ai__msg-content ym-ai__msg-content--ai"
+          >
+            <!-- eslint-disable vue/no-v-html -->
             <div
-              class="ym-ai__avatar ym-ai__avatar--ai"
-              :class="pickRoleMark(activeRole?.category).color"
-            >
-              {{ pickRoleMark(activeRole?.category).char }}
-            </div>
-            <div class="ym-ai__msg-content">
-              <div class="ym-ai__msg-name">Ypbin AI</div>
-              <!-- eslint-disable vue/no-v-html -->
-              <div
-                v-if="msg.content"
-                class="ym-ai__markdown"
-                :class="{ 'ym-ai__markdown--error': isErrorText(msg.content) }"
-                v-html="renderMd(msg.content)"
-                @click="handleMarkdownClick"
-              ></div>
-              <!-- eslint-enable vue/no-v-html -->
-              <span v-else class="ym-ai__thinking">{{
-                $t('page.ai.chat.thinking')
-              }}</span>
+              v-if="msg.content"
+              class="ym-ai__markdown"
+              :class="{ 'ym-ai__markdown--error': isErrorText(msg.content) }"
+              v-html="renderMd(msg.content)"
+              @click="handleMarkdownClick"
+            ></div>
+            <!-- eslint-enable vue/no-v-html -->
+            <span v-else class="ym-ai__thinking">{{
+              $t('page.ai.chat.thinking')
+            }}</span>
 
-              <div
-                v-if="!isStreaming || msg.id !== 'streaming'"
-                class="ym-ai__msg-actions"
+            <div
+              v-if="!isStreaming || msg.id !== 'streaming'"
+              class="ym-ai__msg-actions"
+            >
+              <button
+                class="ym-ai__action"
+                :title="$t('page.ai.chat.copy')"
+                @click="copyMessage(msg.content)"
               >
-                <button
-                  class="ym-ai__action"
-                  :title="$t('page.ai.chat.copy')"
-                  @click="copyMessage(msg.content)"
+                <svg
+                  class="size-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
                 >
-                  <svg
-                    class="size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                    stroke-linecap="round"
-                  >
-                    <rect width="14" height="14" x="8" y="8" rx="2" />
-                    <path
-                      d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
-                    />
-                  </svg>
-                </button>
-                <button
-                  class="ym-ai__action"
-                  :class="{ active: liked[msg.id] === 'up' }"
-                  :title="$t('page.ai.chat.thumbUp')"
-                  @click="toggleLike(msg.id, 'up')"
+                  <rect width="14" height="14" x="8" y="8" rx="2" />
+                  <path
+                    d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+                  />
+                </svg>
+              </button>
+              <button
+                class="ym-ai__action"
+                :class="{ active: liked[msg.id] === 'up' }"
+                :title="$t('page.ai.chat.thumbUp')"
+                @click="toggleLike(msg.id, 'up')"
+              >
+                <svg
+                  class="size-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    class="size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M7 10v12" />
-                    <path
-                      d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"
-                    />
-                  </svg>
-                </button>
-                <button
-                  class="ym-ai__action"
-                  :class="{ active: liked[msg.id] === 'down' }"
-                  :title="$t('page.ai.chat.thumbDown')"
-                  @click="toggleLike(msg.id, 'down')"
+                  <path d="M7 10v12" />
+                  <path
+                    d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"
+                  />
+                </svg>
+              </button>
+              <button
+                class="ym-ai__action"
+                :class="{ active: liked[msg.id] === 'down' }"
+                :title="$t('page.ai.chat.thumbDown')"
+                @click="toggleLike(msg.id, 'down')"
+              >
+                <svg
+                  class="size-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    class="size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M17 14V2" />
-                    <path
-                      d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"
-                    />
-                  </svg>
-                </button>
-                <button
-                  class="ym-ai__action"
-                  :title="$t('page.ai.chat.regenerate')"
-                  @click="regenerate"
-                >
-                  <RotateCw class="size-4" />
-                </button>
-              </div>
+                  <path d="M17 14V2" />
+                  <path
+                    d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"
+                  />
+                </svg>
+              </button>
+              <button
+                class="ym-ai__action"
+                :title="$t('page.ai.chat.regenerate')"
+                @click="regenerate"
+              >
+                <RotateCw class="size-4" />
+              </button>
             </div>
           </div>
 
@@ -770,7 +764,6 @@ async function scrollToBottom(force = false) {
             <div class="ym-ai__user-bubble">
               <span class="ym-ai__plain">{{ msg.content }}</span>
             </div>
-            <div class="ym-ai__avatar ym-ai__avatar--user">我</div>
           </div>
         </div>
       </div>
@@ -1247,11 +1240,10 @@ async function scrollToBottom(force = false) {
 }
 
 .ym-ai__msg--ai {
-  flex-direction: row;
   align-items: flex-start;
 }
 
-.ym-ai__msg-user {
+.ym-ai__msg--user {
   display: flex;
   flex-direction: row-reverse;
   align-items: flex-start;
