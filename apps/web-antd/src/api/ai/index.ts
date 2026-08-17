@@ -233,6 +233,7 @@ export async function chat(
     sessionId: data.conversationId,
     content: data.message,
     roleId: data.promptTemplateId,
+    knowledgeBaseId: data.knowledgeBaseId,
   };
   const response = await fetch(`${apiURL}/ai/chat/stream`, {
     method: 'POST',

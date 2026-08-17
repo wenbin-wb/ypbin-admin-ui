@@ -950,6 +950,7 @@ async function scrollToBottom(force = false) {
 
               <!-- 用户消息 -->
               <template v-else-if="msg.role === 'user'">
+                <div class="ym-ai__msg-avatar ym-ai__msg-avatar--user">我</div>
                 <div class="ym-ai__msg-body ym-ai__msg-body--user">
                   <div class="ym-ai__user-bubble">{{ msg.content }}</div>
                   <div class="ym-ai__msg-actions ym-ai__msg-actions--user">
@@ -977,7 +978,6 @@ async function scrollToBottom(force = false) {
                     }}</span>
                   </div>
                 </div>
-                <div class="ym-ai__msg-avatar ym-ai__msg-avatar--user">我</div>
               </template>
             </div>
           </template>
@@ -1079,7 +1079,7 @@ async function scrollToBottom(force = false) {
                   @click="handleSend"
                 >
                   {{ $t('page.ai.chat.send') }}
-                </Button>
+</Button>
               </div>
             </div>
           </div>
@@ -1191,6 +1191,7 @@ async function scrollToBottom(force = false) {
    整体容器
 ================================================================ */
 .ym-ai {
+  position: relative;
   display: flex;
   height: 100%;
   overflow: hidden;
@@ -1656,8 +1657,7 @@ async function scrollToBottom(force = false) {
 }
 
 .ym-ai__msg--user {
-  flex-direction: row-reverse;
-  justify-content: flex-start;
+  justify-content: flex-end;
 }
 
 /* 头像 */
@@ -1689,9 +1689,12 @@ async function scrollToBottom(force = false) {
 
 /* 消息体 */
 .ym-ai__msg-body {
-  flex: 1;
   min-width: 0;
   max-width: min(680px, calc(100% - 42px));
+}
+
+.ym-ai__msg--assistant .ym-ai__msg-body {
+  flex: 1;
 }
 
 .ym-ai__msg-body--user {
