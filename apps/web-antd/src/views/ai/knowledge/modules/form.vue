@@ -1,8 +1,10 @@
 <script lang="ts" setup>
+import type { AiApi } from '#/api/ai';
+
 import { useVbenDrawer } from '@vben/common-ui';
 
 import { useVbenForm } from '#/adapter/form';
-import { createKnowledgeBase } from '#/api/ai';
+import { createKnowledgeBase, updateKnowledgeBase } from '#/api/ai';
 import { $t } from '#/locales';
 
 import { useFormSchema } from '../data';
@@ -18,13 +20,13 @@ const [Drawer, drawerApi] = useVbenDrawer({
   onConfirm: async () => {
     const { valid } = await formApi.validate();
     if (!valid) return;
-    const values = await formApi.getValues<{
-      description?: string;
-      name: string;
-      remark?: string;
-    }>();
+    const values = await formApi.getValues<AiApi.KnowledgeBaseSaveReq>();
     drawerApi.lock();
-    createKnowledgeBase(values)
+    const existing = drawerApi.getData() as AiApi.KnowledgeBase | null;
+    const req = existing
+      ? updateKnowledgeBase(existing.id, values as AiApi.KnowledgeBaseUpdateReq)
+      : createKnowledgeBase(values);
+    req
       .then(() => {
         drawerApi.close();
         emits('reload');
@@ -35,7 +37,17 @@ const [Drawer, drawerApi] = useVbenDrawer({
   },
   onOpenChange: (isOpen) => {
     if (isOpen) {
-      formApi.reset();
+      const kb = drawerApi.getData() as AiApi.KnowledgeBase | null;
+      if (kb) {
+        formApi.setValues({
+          name: kb.name,
+          description: kb.description ?? '',
+          icon: kb.icon ?? '',
+          remark: '',
+        });
+      } else {
+        formApi.reset();
+      }
     }
   },
 });
@@ -44,7 +56,14 @@ defineExpose({ drawerApi });
 </script>
 
 <template>
-  <Drawer :title="$t('page.ai.knowledge.create')" :width="480">
+  <Drawer
+    :title="
+      (drawerApi.getData() as AiApi.KnowledgeBase | null)
+        ? `${$t('common.edit')} · ${(drawerApi.getData() as AiApi.KnowledgeBase).name}`
+        : $t('page.ai.knowledge.create')
+    "
+    :width="480"
+  >
     <Form />
   </Drawer>
 </template>

@@ -4,7 +4,7 @@ import type { AiApi } from '#/api/ai';
 
 import { $t } from '#/locales';
 
-/** 新建知识库表单 */
+/** 新建/编辑知识库表单 */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -12,10 +12,25 @@ export function useFormSchema(): VbenFormSchema[] {
       fieldName: 'name',
       label: $t('page.ai.knowledge.name'),
       rules: 'required',
+      componentProps: { placeholder: $t('page.ai.knowledge.namePlaceholder') },
+    },
+    {
+      component: 'Input',
+      fieldName: 'icon',
+      label: $t('page.ai.knowledge.icon'),
+      componentProps: {
+        placeholder: $t('page.ai.knowledge.iconPlaceholder'),
+        maxlength: 8,
+        showCount: true,
+      },
+      help: $t('page.ai.knowledge.iconHint'),
     },
     {
       component: 'Textarea',
-      componentProps: { rows: 3 },
+      componentProps: {
+        rows: 3,
+        placeholder: $t('page.ai.knowledge.descriptionPlaceholder'),
+      },
       fieldName: 'description',
       label: $t('page.ai.knowledge.description'),
     },

@@ -6,7 +6,15 @@ import { computed, onMounted, ref } from 'vue';
 import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
-import { Button, Empty, message, Popconfirm } from 'ant-design-vue';
+import {
+  Button,
+  Empty,
+  Input,
+  message,
+  Popconfirm,
+  Skeleton,
+  Tooltip,
+} from 'ant-design-vue';
 
 import { deleteKnowledgeBase, getKnowledgeBaseList } from '#/api/ai';
 import { $t } from '#/locales';
@@ -16,7 +24,7 @@ import Form from './modules/form.vue';
 
 const [FormDrawer, formDrawerApi] = useVbenDrawer({
   connectedComponent: Form,
-  destroyOnClose: false,
+  destroyOnClose: true,
 });
 
 const [DocumentsModal, documentsModalApi] = useVbenModal({
@@ -51,6 +59,11 @@ function onCreate() {
   formDrawerApi.setData(null).open();
 }
 
+function onEdit(kb: AiApi.KnowledgeBase, e: Event) {
+  e.stopPropagation();
+  formDrawerApi.setData(kb).open();
+}
+
 function onManageDocs(row: AiApi.KnowledgeBase) {
   documentsModalApi.setData(row).open();
 }
@@ -59,6 +72,29 @@ async function onDelete(row: AiApi.KnowledgeBase) {
   await deleteKnowledgeBase(row.id);
   message.success($t('common.success'));
   await loadKbs();
+}
+
+/** 取知识库默认展示图标：优先 icon 字段，否则取名称首字 */
+function kbIcon(kb: AiApi.KnowledgeBase) {
+  if (kb.icon && kb.icon.trim()) return kb.icon.trim();
+  return kb.name.charAt(0).toUpperCase();
+}
+
+/** 根据知识库 ID 生成一个稳定的背景色（从预设色盘中取） */
+const COLOR_PALETTE = [
+  'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+  'bg-violet-500/15 text-violet-600 dark:text-violet-400',
+  'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+  'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+  'bg-rose-500/15 text-rose-600 dark:text-rose-400',
+  'bg-teal-500/15 text-teal-600 dark:text-teal-400',
+  'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+  'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400',
+];
+function kbColor(kb: AiApi.KnowledgeBase) {
+  // 用 id 末两位数值取色
+  const n = Number.parseInt(kb.id.slice(-2), 16) || 0;
+  return COLOR_PALETTE[n % COLOR_PALETTE.length];
 }
 
 onMounted(loadKbs);
@@ -70,29 +106,67 @@ onMounted(loadKbs);
     <DocumentsModal @reload="loadKbs" />
 
     <div class="flex h-full flex-col rounded-lg bg-background p-5 shadow-sm">
-      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <Input
-          v-model:value="keyword"
-          :placeholder="$t('page.ai.knowledge.searchPlaceholder')"
-          allow-clear
-          class="max-w-56"
+      <!-- 顶栏 -->
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <h2 class="text-base font-semibold leading-none">
+            {{ $t('page.ai.knowledge.title') }}
+          </h2>
+          <span class="text-sm text-muted-foreground">（{{ knowledgeBases.length }}）</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <Input
+            v-model:value="keyword"
+            :placeholder="$t('page.ai.knowledge.searchPlaceholder')"
+            allow-clear
+            class="w-44"
+          />
+          <Button
+            v-access:code="['ai:knowledge:create']"
+            type="primary"
+            @click="onCreate"
+          >
+            <Plus class="size-4" />
+            {{ $t('page.ai.knowledge.create') }}
+          </Button>
+        </div>
+      </div>
+
+      <!-- 骨架屏 -->
+      <div
+        v-if="loading"
+        class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      >
+        <Skeleton
+          v-for="i in 4"
+          :key="i"
+          :active="true"
+          :paragraph="{ rows: 3 }"
+          class="rounded-lg border border-border p-5"
         />
-        <Button
-          v-access:code="['ai:knowledge:create']"
-          type="primary"
-          @click="onCreate"
-        >
-          <Plus class="size-5" />
-          {{ $t('page.ai.knowledge.create') }}
-        </Button>
       </div>
 
       <!-- 空态 -->
       <div
-        v-if="!loading && filteredKbs.length === 0"
-        class="flex justify-center py-24"
+        v-else-if="filteredKbs.length === 0"
+        class="flex flex-1 flex-col items-center justify-center gap-4 py-24"
       >
-        <Empty :description="$t('page.ai.knowledge.empty')" />
+        <Empty
+          :description="
+            keyword
+              ? $t('page.ai.knowledge.noSearchResult')
+              : $t('page.ai.knowledge.empty')
+          "
+        />
+        <Button
+          v-if="!keyword"
+          v-access:code="['ai:knowledge:create']"
+          type="primary"
+          @click="onCreate"
+        >
+          <Plus class="size-4" />
+          {{ $t('page.ai.knowledge.create') }}
+        </Button>
       </div>
 
       <!-- 知识库卡片网格 -->
@@ -103,49 +177,83 @@ onMounted(loadKbs);
         <div
           v-for="kb in filteredKbs"
           :key="kb.id"
-          class="group flex cursor-pointer flex-col rounded-lg border border-border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md"
+          class="group relative flex cursor-pointer flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
           @click="onManageDocs(kb)"
         >
-          <div class="mb-2 flex items-start justify-between">
-            <div class="flex items-center gap-2">
-              <span
-                class="flex size-8 items-center justify-center rounded-md bg-primary/10 text-xs font-semibold text-primary"
-                >KB</span>
-              <span class="truncate text-base font-semibold">{{
-                kb.name
-              }}</span>
+          <!-- 操作按钮（hover 时显示） -->
+          <div
+            class="absolute right-3 top-3 hidden items-center gap-1 group-hover:flex"
+          >
+            <Tooltip :title="$t('common.edit')">
+              <Button
+                v-access:code="['ai:knowledge:create']"
+                size="small"
+                type="text"
+                class="size-7 p-0 text-muted-foreground hover:text-foreground"
+                @click="onEdit(kb, $event)"
+              >
+                <span class="i-lucide-pencil size-3.5"></span>
+              </Button>
+            </Tooltip>
+            <Popconfirm
+              :title="$t('page.ai.knowledge.confirmDeleteKb')"
+              @confirm.stop="onDelete(kb)"
+            >
+              <Tooltip :title="$t('common.delete')">
+                <Button
+                  size="small"
+                  type="text"
+                  danger
+                  class="size-7 p-0"
+                  @click.stop
+                >
+                  <span class="i-lucide-trash-2 size-3.5"></span>
+                </Button>
+              </Tooltip>
+            </Popconfirm>
+          </div>
+
+          <!-- 图标 + 名称 -->
+          <div class="mb-3 flex items-center gap-3">
+            <div
+              :class="kbColor(kb)"
+              class="flex size-10 shrink-0 items-center justify-center rounded-lg text-lg font-bold"
+            >
+              {{ kbIcon(kb) }}
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-semibold leading-tight">
+                {{ kb.name }}
+              </p>
+              <p class="mt-0.5 text-xs text-muted-foreground">
+                {{ kb.docCount }}
+                {{ $t('page.ai.knowledge.docCountSuffix') }}
+              </p>
             </div>
           </div>
 
-          <p class="mb-3 line-clamp-2 flex-1 text-sm text-muted-foreground">
+          <!-- 描述 -->
+          <p
+            class="mb-4 line-clamp-2 flex-1 text-xs leading-relaxed text-muted-foreground"
+          >
             {{ kb.description || $t('page.ai.knowledge.noDescription') }}
           </p>
 
+          <!-- 底部操作条 -->
           <div
-            class="mb-3 flex items-center gap-4 text-xs text-muted-foreground"
+            class="flex items-center justify-between border-t border-border pt-3"
           >
-            <span class="flex items-center gap-1">
-              <span
-                class="inline-block size-1.5 rounded-full bg-primary"
-              ></span>
-              {{ kb.docCount }} {{ $t('page.ai.knowledge.docCountSuffix') }}
+            <span class="text-xs text-muted-foreground">
+              {{ kb.createTime?.slice(0, 10) }}
             </span>
-          </div>
-
-          <div
-            class="flex items-center justify-end gap-2 border-t border-border pt-3"
-          >
-            <Button size="small" @click.stop="onManageDocs(kb)">
-              {{ $t('page.ai.knowledge.manageDocs') }}
-            </Button>
-            <Popconfirm
-              :title="$t('page.ai.knowledge.confirmDeleteKb')"
-              @confirm="onDelete(kb)"
+            <Button
+              size="small"
+              type="link"
+              class="h-auto p-0 text-xs"
+              @click.stop="onManageDocs(kb)"
             >
-              <Button size="small" danger type="text" @click.stop>
-                {{ $t('common.delete') }}
-              </Button>
-            </Popconfirm>
+              {{ $t('page.ai.knowledge.manageDocs') }} →
+            </Button>
           </div>
         </div>
       </div>

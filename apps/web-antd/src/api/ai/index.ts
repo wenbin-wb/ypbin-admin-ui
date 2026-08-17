@@ -59,14 +59,23 @@ export namespace AiApi {
     id: string;
     name: string;
     description?: string;
+    /** emoji 或图标名，供卡片展示 */
+    icon?: string;
     docCount: number;
-    status: number;
     createTime: string;
   }
 
   export interface KnowledgeBaseSaveReq {
     name: string;
     description?: string;
+    icon?: string;
+    remark?: string;
+  }
+
+  export interface KnowledgeBaseUpdateReq {
+    name: string;
+    description?: string;
+    icon?: string;
     remark?: string;
   }
 
@@ -76,10 +85,11 @@ export namespace AiApi {
     filename: string;
     fileSize: number;
     chunkCount: number;
-    status: number; // 0处理中 1就绪 2失败
+    /** 0 处理中 | 1 就绪 | 2 失败 */
+    status: number;
     errorMsg?: string;
-    filePath?: string;
     createTime: string;
+    updateTime?: string;
   }
 
   export interface KbSourceFragment {
@@ -307,6 +317,13 @@ export function getKnowledgeBaseList() {
 
 export function createKnowledgeBase(data: AiApi.KnowledgeBaseSaveReq) {
   return requestClient.post<AiApi.KnowledgeBase>('/ai/knowledge-bases', data);
+}
+
+export function updateKnowledgeBase(
+  id: string,
+  data: AiApi.KnowledgeBaseUpdateReq,
+) {
+  return requestClient.put(`/ai/knowledge-bases/${id}`, data);
 }
 
 export function deleteKnowledgeBase(id: string) {

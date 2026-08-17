@@ -5,20 +5,19 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
-import { Search } from '@vben/icons';
 
 import {
-  Alert,
-  Badge,
   Button,
   Drawer,
   Empty,
   Input,
   message,
   Skeleton,
-  Tooltip,
+  Spin,
+  Tag,
 } from 'ant-design-vue';
 import hljs from 'highlight.js';
+// ===== Markdown 渲染 =====
 import { marked } from 'marked';
 
 import {
@@ -30,74 +29,65 @@ import {
 import { $t } from '#/locales';
 import { sanitizeHtml } from '#/views/system/_shared/sanitize';
 
-defineOptions({ name: 'AiWiki' });
-
-const route = useRoute();
-
-// ===== Markdown 渲染 =====
-const markdownRenderer = new marked.Renderer();
-markdownRenderer.code = ({ text, lang }: { lang?: string; text: string }) => {
-  const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
-  const highlighted = hljs.highlight(text, { language }).value;
-  return `<pre class="wiki-code-block"><code class="hljs language-${language}">${highlighted}</code></pre>`;
-};
-marked.use({
-  async: false,
+marked.setOptions({
   breaks: true,
   gfm: true,
-  renderer: markdownRenderer,
 });
 
-function renderMd(content: string): string {
-  if (!content) return '';
-  try {
-    const raw = marked.parse(content);
-    return typeof raw === 'string' ? sanitizeHtml(raw) : content;
-  } catch {
-    return content;
-  }
+const renderer = new marked.Renderer();
+renderer.code = function ({ text, lang }) {
+  const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
+  const highlighted = hljs.highlight(text, { language }).value;
+  return `<pre class="hljs-pre"><code class="hljs language-${language}">${highlighted}</code></pre>`;
+};
+marked.use({ renderer });
+
+function renderMarkdown(md: string): string {
+  if (!md) return '';
+  return sanitizeHtml(marked.parse(md) as string);
 }
 
 // ===== 状态 =====
+const route = useRoute();
+
 const kbs = ref<AiApi.KnowledgeBase[]>([]);
-const activeKbId = ref<string>('');
-const docs = ref<AiApi.KbDocument[]>([]);
-const activeDocId = ref<string>('');
-const docContent = ref<string>('');
-const docLoading = ref(false);
 const kbLoading = ref(false);
 
-// 全文搜索
-const searchKeyword = ref('');
-const searchResults = ref<AiApi.KbDocument[]>([]);
+const activeKbId = ref<string>('');
+const docs = ref<AiApi.KbDocument[]>([]);
+const docsLoading = ref(false);
 
-// AI 问答浮窗
+const activeDocId = ref<string>('');
+const docContent = ref('');
+const docLoading = ref(false);
+const docError = ref('');
+
+const searchKeyword = ref('');
+
 const aiDrawerOpen = ref(false);
 const aiQuestion = ref('');
-const aiLoading = ref(false);
 const aiResult = ref<AiApi.KbQueryResult | null>(null);
+const aiLoading = ref(false);
 
-const activeKb = computed(() =>
-  kbs.value.find((k) => k.id === activeKbId.value),
-);
+// ===== 计算属性 =====
+const filteredDocs = computed(() => {
+  const kw = searchKeyword.value.trim().toLowerCase();
+  if (!kw) return docs.value;
+  return docs.value.filter((d) => d.filename.toLowerCase().includes(kw));
+});
+
 const activeDoc = computed(() =>
   docs.value.find((d) => d.id === activeDocId.value),
 );
 
-const filteredDocs = computed(() => {
-  const kw = searchKeyword.value.trim().toLowerCase();
-  if (!kw) return docs.value.filter((d) => d.status === 1);
-  return docs.value.filter(
-    (d) => d.status === 1 && d.filename.toLowerCase().includes(kw),
-  );
-});
+const renderedContent = computed(() => renderMarkdown(docContent.value));
 
-// ===== 加载 =====
+// ===== 知识库列表 =====
 async function loadKbs() {
   kbLoading.value = true;
   try {
     kbs.value = await getKnowledgeBaseList();
-    const routeKbId = route.params.kbId as string;
+    const routeKbId = route.params.kbId as string | undefined;
     if (routeKbId && kbs.value.some((k) => k.id === routeKbId)) {
       activeKbId.value = routeKbId;
     } else if (kbs.value.length > 0) {
@@ -106,33 +96,53 @@ async function loadKbs() {
   } finally {
     kbLoading.value = false;
   }
-  // 文档加载由 watch(activeKbId) 统一处理，避免与 watch 竞态清空 docs
 }
 
+// ===== 文档列表 =====
 async function loadDocs(kbId: string) {
-  if (!kbId) return;
-  const res = await getDocumentList(kbId, { page: 1, pageSize: 200 });
-  docs.value = res.items ?? [];
-  // 默认打开第一个就绪文档
-  const first = docs.value.find((d) => d.status === 1);
-  if (first) await openDoc(first.id);
+  docsLoading.value = true;
+  docs.value = [];
+  activeDocId.value = '';
+  docContent.value = '';
+  docError.value = '';
+  try {
+    const res = await getDocumentList(kbId, { page: 1, pageSize: 200 });
+    // 只展示就绪文档
+    docs.value = (res.items ?? []).filter((d) => d.status === 1);
+    // 自动加载第一篇
+    if (docs.value.length > 0) {
+      await openDoc(docs.value[0]?.id ?? '');
+    }
+  } finally {
+    docsLoading.value = false;
+  }
 }
 
+// ===== 打开文档 =====
 async function openDoc(docId: string) {
   if (activeDocId.value === docId) return;
   activeDocId.value = docId;
   docContent.value = '';
+  docError.value = '';
   docLoading.value = true;
   try {
     docContent.value = await getDocumentContent(activeKbId.value, docId);
+  } catch (error: any) {
+    docError.value = error?.message || $t('common.requestFailed');
   } finally {
     docLoading.value = false;
   }
 }
 
 // ===== AI 问答 =====
-async function onAskAi() {
-  if (!aiQuestion.value.trim() || aiLoading.value) return;
+function openAiDrawer() {
+  aiDrawerOpen.value = true;
+  aiQuestion.value = '';
+  aiResult.value = null;
+}
+
+async function onAsk() {
+  if (!aiQuestion.value.trim() || !activeKbId.value) return;
   aiLoading.value = true;
   aiResult.value = null;
   try {
@@ -140,34 +150,18 @@ async function onAskAi() {
       activeKbId.value,
       aiQuestion.value,
     );
-  } catch {
-    message.error($t('common.requestFailed'));
+  } catch (error: any) {
+    message.error(error?.message || $t('common.requestFailed'));
   } finally {
     aiLoading.value = false;
   }
 }
 
-function openAiDrawer() {
-  aiDrawerOpen.value = true;
-  aiQuestion.value = '';
-  aiResult.value = null;
-}
-
-// ===== 全文搜索（前端过滤文档名，后续可改为向量检索） =====
-watch(searchKeyword, () => {
-  searchResults.value = [];
-});
-
-// ===== 监听知识库切换（immediate:true 保证初始化也触发） =====
+// ===== 知识库切换 watch =====
 watch(
   activeKbId,
-  async (id) => {
-    if (id) {
-      docs.value = [];
-      activeDocId.value = '';
-      docContent.value = '';
-      await loadDocs(id);
-    }
+  (id) => {
+    if (id) loadDocs(id);
   },
   { immediate: true },
 );
@@ -177,440 +171,357 @@ onMounted(loadKbs);
 
 <template>
   <Page auto-content-height content-class="p-0">
-    <div class="wiki-layout">
-      <!-- 左侧：知识库切换 + 文档树 -->
-      <aside class="wiki-sidebar">
-        <div class="wiki-sidebar-header">
-          <span class="wiki-logo-text">📚 Wiki</span>
-          <Tooltip :title="$t('page.ai.wiki.askAi')">
-            <Button size="small" type="primary" @click="openAiDrawer">
-              AI
-            </Button>
-          </Tooltip>
+    <div class="wiki-layout h-full">
+      <!-- ===== 左侧：知识库切换 + 文档树 ===== -->
+      <aside
+        class="wiki-sidebar flex h-full flex-col border-r border-border bg-card"
+      >
+        <!-- 头部 -->
+        <div class="flex items-center gap-2 border-b border-border px-4 py-3">
+          <span class="text-base font-bold">📚 Wiki</span>
         </div>
 
         <!-- 知识库切换 -->
-        <div v-if="kbs.length > 1" class="wiki-kb-tabs">
-          <div
-            v-for="kb in kbs"
-            :key="kb.id"
-            class="wiki-kb-tab"
-            :class="{ active: kb.id === activeKbId }"
-            @click="activeKbId = kb.id"
-          >
-            {{ kb.name }}
-          </div>
+        <div class="border-b border-border px-3 py-2">
+          <Skeleton
+            v-if="kbLoading"
+            :active="true"
+            :paragraph="{ rows: 1 }"
+            class="px-1 py-1"
+          />
+          <template v-else>
+            <div
+              v-for="kb in kbs"
+              :key="kb.id"
+              class="flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors"
+              :class="[
+                activeKbId === kb.id
+                  ? 'bg-primary/10 font-medium text-primary'
+                  : 'text-foreground/70 hover:bg-accent',
+              ]"
+              @click="activeKbId = kb.id"
+            >
+              <span class="text-base leading-none">{{ kb.icon || '📖' }}</span>
+              <span class="truncate">{{ kb.name }}</span>
+            </div>
+          </template>
         </div>
 
-        <!-- 搜索框 -->
-        <div class="wiki-search">
+        <!-- 搜索 -->
+        <div class="px-3 py-2">
           <Input
             v-model:value="searchKeyword"
             :placeholder="$t('page.ai.wiki.searchPlaceholder')"
             allow-clear
             size="small"
-          >
-            <template #prefix>
-              <Search class="size-3.5 text-muted-foreground" />
-            </template>
-          </Input>
+          />
         </div>
 
         <!-- 文档列表 -->
-        <div class="wiki-doc-list">
-          <div v-if="kbLoading" class="wiki-doc-skeleton">
-            <Skeleton active :paragraph="{ rows: 4 }" />
-          </div>
-          <template v-else-if="filteredDocs.length > 0">
-            <div
-              v-for="doc in filteredDocs"
-              :key="doc.id"
-              class="wiki-doc-item"
-              :class="{ active: doc.id === activeDocId }"
-              @click="openDoc(doc.id)"
-            >
-              <span class="wiki-doc-icon">📄</span>
-              <span class="wiki-doc-name">{{ doc.filename }}</span>
-            </div>
+        <div class="flex-1 overflow-y-auto px-2 py-1">
+          <template v-if="docsLoading">
+            <Skeleton
+              v-for="i in 5"
+              :key="i"
+              :active="true"
+              :title="{ width: '80%' }"
+              :paragraph="false"
+              class="my-1 px-2"
+            />
           </template>
-          <div v-else class="wiki-empty-tip">
-            {{
+          <Empty
+            v-else-if="filteredDocs.length === 0 && !docsLoading"
+            :description="
               searchKeyword
                 ? $t('page.ai.wiki.noSearchResult')
                 : $t('page.ai.wiki.noDocs')
-            }}
+            "
+            class="py-8"
+          />
+          <div
+            v-else
+            v-for="doc in filteredDocs"
+            :key="doc.id"
+            class="group flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors"
+            :class="[
+              activeDocId === doc.id
+                ? 'bg-primary/10 font-medium text-primary'
+                : 'text-foreground/70 hover:bg-accent',
+            ]"
+            @click="openDoc(doc.id)"
+          >
+            <span
+              class="i-lucide-file-text size-3.5 shrink-0 opacity-60"
+            ></span>
+            <span class="truncate">{{ doc.filename }}</span>
           </div>
+        </div>
+
+        <!-- 底部：AI 问答按钮 -->
+        <div class="border-t border-border p-3">
+          <Button
+            block
+            type="primary"
+            :disabled="!activeKbId"
+            class="gap-1"
+            @click="openAiDrawer"
+          >
+            💬 {{ $t('page.ai.wiki.askAi') }}
+          </Button>
         </div>
       </aside>
 
-      <!-- 主区域：文档阅读 -->
-      <main class="wiki-main">
-        <!-- 顶部面包屑 -->
-        <header class="wiki-topbar">
-          <span class="wiki-breadcrumb">
-            <span class="text-muted-foreground">{{ activeKb?.name }}</span>
-            <template v-if="activeDoc">
-              <span class="mx-2 text-muted-foreground">/</span>
-              <span>{{ activeDoc.filename }}</span>
-            </template>
-          </span>
-          <Button size="small" @click="openAiDrawer">
-            💬 {{ $t('page.ai.wiki.askAi') }}
-          </Button>
-        </header>
+      <!-- ===== 主区域：文档内容 ===== -->
+      <main
+        class="wiki-content flex h-full flex-col overflow-hidden bg-background"
+      >
+        <!-- 面包屑 / 文档标题 -->
+        <div
+          v-if="activeDoc"
+          class="flex items-center gap-3 border-b border-border px-6 py-3"
+        >
+          <span class="i-lucide-file-text size-4 text-muted-foreground"></span>
+          <span class="text-sm font-medium">{{ activeDoc.filename }}</span>
+          <Tag color="success" class="ml-auto">
+            {{ $t('page.ai.knowledge.ready') }}
+          </Tag>
+        </div>
 
-        <!-- 文档内容 -->
-        <div class="wiki-content">
-          <Skeleton v-if="docLoading" active :paragraph="{ rows: 12 }" />
+        <!-- 骨架屏（加载中） -->
+        <div v-if="docLoading" class="flex-1 overflow-y-auto px-8 py-6">
+          <Skeleton :active="true" :paragraph="{ rows: 12 }" />
+        </div>
+
+        <!-- 错误提示 -->
+        <div
+          v-else-if="docError"
+          class="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground"
+        >
+          <span
+            class="i-lucide-alert-circle size-10 text-destructive/60"
+          ></span>
+          <p class="text-sm">{{ docError }}</p>
+          <Button @click="openDoc(activeDocId)">重新加载</Button>
+        </div>
+
+        <!-- 无文档 -->
+        <div
+          v-else-if="!activeDocId || !docContent"
+          class="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground"
+        >
+          <span class="i-lucide-book-open size-12 opacity-20"></span>
+          <p class="text-sm">{{ $t('page.ai.wiki.selectDoc') }}</p>
+        </div>
+
+        <!-- Markdown 内容 -->
+        <div v-else class="wiki-article flex-1 overflow-y-auto px-8 py-6">
+          <!-- eslint-disable-next-line vue/no-v-html -->
           <div
-            v-else-if="docContent"
-            class="wiki-markdown"
-            v-html="renderMd(docContent)"
+            class="prose prose-sm dark:prose-invert max-w-none"
+            v-html="renderedContent"
           ></div>
-          <div v-else class="wiki-welcome">
-            <Empty :description="$t('page.ai.wiki.selectDoc')" class="pt-24" />
-          </div>
         </div>
       </main>
+    </div>
 
-      <!-- AI 问答浮窗（Drawer） -->
-      <Drawer
-        v-model:open="aiDrawerOpen"
-        :title="$t('page.ai.wiki.aiDrawerTitle')"
-        placement="right"
-        :width="420"
-        :body-style="{
-          padding: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-        }"
-      >
-        <Input.Search
-          v-model:value="aiQuestion"
-          :enter-button="$t('page.ai.wiki.ask')"
-          :loading="aiLoading"
-          :placeholder="$t('page.ai.wiki.askPlaceholder')"
-          class="mb-4"
-          @search="onAskAi"
-        />
-
-        <template v-if="aiResult">
-          <!-- 答案 -->
-          <Alert
-            :message="aiResult.answer"
-            class="mb-4 whitespace-pre-wrap"
-            show-icon
-            type="info"
+    <!-- ===== AI 问答 Drawer ===== -->
+    <Drawer
+      v-model:open="aiDrawerOpen"
+      :title="$t('page.ai.wiki.aiDrawerTitle')"
+      :width="400"
+      placement="right"
+    >
+      <div class="flex h-full flex-col gap-4">
+        <!-- 输入区 -->
+        <div class="flex gap-2">
+          <Input
+            v-model:value="aiQuestion"
+            :placeholder="$t('page.ai.wiki.askPlaceholder')"
+            class="flex-1"
+            @keydown.enter="onAsk"
           />
+          <Button :loading="aiLoading" type="primary" @click="onAsk">
+            {{ $t('page.ai.wiki.ask') }}
+          </Button>
+        </div>
+
+        <Spin :spinning="aiLoading">
+          <!-- 答案 -->
+          <div
+            v-if="aiResult?.answer"
+            class="mb-4 rounded-lg border border-border bg-muted/40 p-4"
+          >
+            <p class="mb-1.5 text-xs font-semibold text-primary">AI</p>
+            <p class="whitespace-pre-wrap text-sm leading-relaxed">
+              {{ aiResult.answer }}
+            </p>
+          </div>
 
           <!-- 溯源片段 -->
-          <template v-if="aiResult.sources?.length">
-            <div class="mb-2 flex items-center gap-2 text-sm font-medium">
+          <div v-if="aiResult?.sources?.length" class="flex flex-col gap-2">
+            <p class="text-xs font-medium text-muted-foreground">
               {{ $t('page.ai.wiki.sources') }}（{{ aiResult.sources.length }}）
-            </div>
-            <div class="flex flex-col gap-2 overflow-y-auto">
-              <div
-                v-for="(frag, idx) in aiResult.sources"
-                :key="idx"
-                class="rounded-md border border-border bg-muted/40 p-3"
-              >
-                <div class="mb-1 flex items-center gap-2">
-                  <Badge
-                    :count="idx + 1"
-                    :number-style="{ backgroundColor: 'hsl(var(--primary))' }"
-                  />
-                  <span class="truncate text-xs text-muted-foreground">
-                    {{ frag.source }}
-                  </span>
-                </div>
-                <p class="m-0 text-[13px] leading-relaxed">
-                  {{ frag.content }}
-                </p>
+            </p>
+            <div
+              v-for="(src, idx) in aiResult.sources"
+              :key="idx"
+              class="rounded-lg border border-border bg-card p-3"
+            >
+              <div class="mb-1.5 flex items-center gap-2">
+                <span
+                  class="inline-flex size-4 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary"
+                  >#{{ idx + 1 }}</span>
+                <span class="truncate text-xs text-muted-foreground">{{
+                  src.source
+                }}</span>
               </div>
+              <p class="m-0 text-xs leading-relaxed text-foreground/80">
+                {{ src.content }}
+              </p>
             </div>
-          </template>
-        </template>
+          </div>
 
-        <div
-          v-else-if="!aiLoading"
-          class="flex flex-1 items-center justify-center text-sm text-muted-foreground"
-        >
-          {{ $t('page.ai.wiki.askHint') }}
-        </div>
-      </Drawer>
-    </div>
+          <!-- 空态 -->
+          <Empty
+            v-else-if="!aiLoading && !aiResult"
+            :description="$t('page.ai.wiki.askHint')"
+            class="py-12"
+          />
+        </Spin>
+      </div>
+    </Drawer>
   </Page>
 </template>
 
 <style scoped>
 .wiki-layout {
-  display: flex;
-  height: 100%;
-  overflow: hidden;
-  background: hsl(var(--background));
+  display: grid;
+  grid-template-columns: 240px 1fr;
 }
 
-/* ===== 左侧栏 ===== */
 .wiki-sidebar {
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: column;
-  width: 260px;
-  height: 100%;
-  overflow: hidden;
-  background: hsl(var(--card));
-  border-right: 1px solid hsl(var(--border));
-}
-
-.wiki-sidebar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid hsl(var(--border));
-}
-
-.wiki-logo-text {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.wiki-kb-tabs {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px;
-  border-bottom: 1px solid hsl(var(--border));
-}
-
-.wiki-kb-tab {
-  padding: 6px 10px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 13px;
-  white-space: nowrap;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.15s;
-}
-
-.wiki-kb-tab:hover {
-  background: hsl(var(--muted));
-}
-
-.wiki-kb-tab.active {
-  font-weight: 500;
-  color: hsl(var(--primary));
-  background: hsl(var(--primary) / 10%);
-}
-
-.wiki-search {
-  padding: 10px 12px 8px;
-}
-
-.wiki-doc-list {
-  flex: 1;
-  padding: 4px 8px 16px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-}
-
-.wiki-doc-skeleton {
-  padding: 16px;
-}
-
-.wiki-doc-item {
-  display: flex;
-  gap: 7px;
-  align-items: center;
-  padding: 7px 10px;
-  cursor: pointer;
-  user-select: none;
-  border-radius: 6px;
-  transition: background 0.15s;
-}
-
-.wiki-doc-item:hover {
-  background: hsl(var(--muted));
-}
-
-.wiki-doc-item.active {
-  font-weight: 500;
-  color: hsl(var(--primary));
-  background: hsl(var(--primary) / 10%);
-}
-
-.wiki-doc-icon {
-  flex-shrink: 0;
-  font-size: 14px;
-}
-
-.wiki-doc-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.wiki-empty-tip {
-  padding: 24px 12px;
-  font-size: 13px;
-  color: hsl(var(--muted-foreground));
-  text-align: center;
-}
-
-/* ===== 主区域 ===== */
-.wiki-main {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  height: 100%;
-  overflow: hidden;
-}
-
-.wiki-topbar {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 24px;
-  background: hsl(var(--card));
-  border-bottom: 1px solid hsl(var(--border));
-}
-
-.wiki-breadcrumb {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 14px;
-  white-space: nowrap;
+  min-height: 0;
 }
 
 .wiki-content {
-  flex: 1;
-  padding: 32px min(10vw, 80px);
-  overflow-y: auto;
-  scrollbar-width: thin;
+  min-height: 0;
 }
 
-.wiki-welcome {
-  padding-top: 60px;
-}
+/* Markdown prose 样式 */
+.wiki-article :deep(.prose) {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.4;
+  }
 
-/* ===== Markdown 排版 ===== */
-.wiki-markdown {
-  max-width: 820px;
-  margin: 0 auto;
-  font-size: 15px;
-  line-height: 1.8;
-  color: hsl(var(--foreground));
-  overflow-wrap: break-word;
-}
+  h1 {
+    padding-bottom: 0.3em;
+    font-size: 1.6em;
+    border-bottom: 1px solid var(--border);
+  }
 
-.wiki-markdown :deep(h1) {
-  padding-bottom: 12px;
-  margin: 0 0 24px;
-  font-size: 28px;
-  font-weight: 700;
-  border-bottom: 2px solid hsl(var(--border));
-}
+  h2 {
+    padding-bottom: 0.2em;
+    font-size: 1.35em;
+    border-bottom: 1px solid var(--border);
+  }
 
-.wiki-markdown :deep(h2) {
-  margin: 32px 0 12px;
-  font-size: 20px;
-  font-weight: 600;
-}
+  h3 {
+    font-size: 1.1em;
+  }
 
-.wiki-markdown :deep(h3) {
-  margin: 24px 0 8px;
-  font-size: 17px;
-  font-weight: 600;
-}
+  p {
+    margin: 0.75em 0;
+    line-height: 1.75;
+  }
 
-.wiki-markdown :deep(p) {
-  margin: 0 0 14px;
-}
+  a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
 
-.wiki-markdown :deep(ul),
-.wiki-markdown :deep(ol) {
-  padding-left: 24px;
-  margin: 8px 0 14px;
-}
+  code {
+    padding: 0.1em 0.35em;
+    font-family: 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+    background: hsl(var(--muted));
+    border-radius: 3px;
+  }
 
-.wiki-markdown :deep(li) {
-  margin: 5px 0;
-}
+  .hljs-pre {
+    margin: 1em 0;
+    overflow: hidden;
+    border-radius: 8px;
+  }
 
-.wiki-markdown :deep(blockquote) {
-  padding: 10px 16px;
-  margin: 14px 0;
-  color: hsl(var(--muted-foreground));
-  background: hsl(var(--muted) / 50%);
-  border-left: 4px solid hsl(var(--primary) / 60%);
-  border-radius: 0 6px 6px 0;
-}
+  .hljs-pre code {
+    display: block;
+    padding: 1em 1.2em;
+    overflow-x: auto;
+    font-size: 0.82em;
+    line-height: 1.6;
+    background: hsl(var(--muted));
+  }
 
-.wiki-markdown :deep(a) {
-  color: hsl(var(--primary));
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
+  blockquote {
+    padding: 0.25em 1em;
+    margin: 1em 0;
+    color: hsl(var(--muted-foreground));
+    background: hsl(var(--muted) / 30%);
+    border-left: 3px solid hsl(var(--primary) / 40%);
+    border-radius: 0 4px 4px 0;
+  }
 
-.wiki-markdown :deep(code:not(.hljs)) {
-  padding: 2px 6px;
-  font-family:
-    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 13px;
-  background: hsl(var(--secondary));
-  border-radius: 4px;
-}
+  ul,
+  ol {
+    padding-left: 1.5em;
+    margin: 0.75em 0;
+  }
 
-.wiki-markdown :deep(.wiki-code-block) {
-  margin: 16px 0;
-  overflow-x: auto;
-  background: hsl(var(--secondary));
-  border: 1px solid hsl(var(--border));
-  border-radius: 8px;
-}
+  li {
+    margin: 0.25em 0;
+  }
 
-.wiki-markdown :deep(.wiki-code-block code) {
-  display: block;
-  padding: 16px;
-  font-family:
-    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 13px;
-  line-height: 1.7;
-  color: hsl(var(--foreground));
-}
+  table {
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.9em;
+    border-collapse: collapse;
+  }
 
-.wiki-markdown :deep(table) {
-  width: 100%;
-  margin: 14px 0;
-  font-size: 14px;
-  border-collapse: collapse;
-}
+  th,
+  td {
+    padding: 0.5em 0.75em;
+    text-align: left;
+    border: 1px solid hsl(var(--border));
+  }
 
-.wiki-markdown :deep(th),
-.wiki-markdown :deep(td) {
-  padding: 8px 12px;
-  text-align: left;
-  border: 1px solid hsl(var(--border));
-}
+  th {
+    font-weight: 600;
+    background: hsl(var(--muted));
+  }
 
-.wiki-markdown :deep(th) {
-  font-weight: 600;
-  background: hsl(var(--secondary));
-}
+  tr:hover td {
+    background: hsl(var(--accent) / 30%);
+  }
 
-.wiki-markdown :deep(hr) {
-  margin: 24px 0;
-  border: none;
-  border-top: 1px solid hsl(var(--border));
-}
+  hr {
+    margin: 1.5em 0;
+    border: none;
+    border-top: 1px solid hsl(var(--border));
+  }
 
-.wiki-markdown :deep(img) {
-  max-width: 100%;
-  border-radius: 6px;
+  img {
+    max-width: 100%;
+    border-radius: 6px;
+  }
 }
 </style>
