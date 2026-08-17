@@ -116,15 +116,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
 
 async function onUpload(file: File) {
   docUploading.value = true;
-  const formData = new FormData();
-  formData.append('file', file);
   const kb = modalApi.getData();
   if (!kb) return false;
   try {
-    await requestClient.post(
-      `/ai/knowledge-bases/${kb.id}/documents`,
-      formData,
-    );
+    // requestClient.upload 会自动构造 mulipart/form-data 并正确设置 Content-Type
+    await requestClient.upload(`/ai/knowledge-bases/${kb.id}/documents`, {
+      file,
+    });
     message.success($t('common.success'));
     gridApi.query();
     emits('reload');
