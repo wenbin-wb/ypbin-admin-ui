@@ -948,9 +948,8 @@ async function scrollToBottom(force = false) {
                 </div>
               </template>
 
-              <!-- 用户消息 -->
+              <!-- 用户消息：body 在前 avatar 在后，配合 justify-content:flex-end 实现「气泡｜头像」右对齐 -->
               <template v-else-if="msg.role === 'user'">
-                <div class="ym-ai__msg-avatar ym-ai__msg-avatar--user">我</div>
                 <div class="ym-ai__msg-body ym-ai__msg-body--user">
                   <div class="ym-ai__user-bubble">{{ msg.content }}</div>
                   <div class="ym-ai__msg-actions ym-ai__msg-actions--user">
@@ -978,6 +977,7 @@ async function scrollToBottom(force = false) {
                     }}</span>
                   </div>
                 </div>
+                <div class="ym-ai__msg-avatar ym-ai__msg-avatar--user">我</div>
               </template>
             </div>
           </template>
@@ -1079,7 +1079,7 @@ async function scrollToBottom(force = false) {
                   @click="handleSend"
                 >
                   {{ $t('page.ai.chat.send') }}
-</Button>
+                </Button>
               </div>
             </div>
           </div>
