@@ -4,7 +4,7 @@ import type { AiApi } from '#/api/ai';
 
 import { ref } from 'vue';
 
-import { useVbenDrawer } from '@vben/common-ui';
+import { useVbenModal } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
 import {
@@ -40,7 +40,7 @@ const recallList = ref<
 >([]);
 const testMode = ref<'multiple' | 'rerank' | 'single'>('single');
 
-const [Drawer, drawerApi] = useVbenDrawer<AiApi.KnowledgeBase | null>({
+const [Modal, modalApi] = useVbenModal<AiApi.KnowledgeBase | null>({
   onOpenChange: (isOpen) => {
     if (isOpen) {
       testQuery.value = '';
@@ -94,7 +94,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     proxyConfig: {
       ajax: {
         query: async ({ page }) => {
-          const kb = drawerApi.getData();
+          const kb = modalApi.getData();
           if (!kb) return { items: [], total: 0 };
           const res = await getDocumentList(kb.id, {
             page: page.currentPage,
@@ -118,7 +118,7 @@ async function onUpload(file: File) {
   docUploading.value = true;
   const formData = new FormData();
   formData.append('file', file);
-  const kb = drawerApi.getData();
+  const kb = modalApi.getData();
   if (!kb) return false;
   try {
     await requestClient.post(
@@ -135,7 +135,7 @@ async function onUpload(file: File) {
 }
 
 function onDeleteDoc(row: AiApi.KbDocument) {
-  const kb = drawerApi.getData();
+  const kb = modalApi.getData();
   if (!kb) return;
   deleteDocument(kb.id, row.id).then(() => {
     message.success($t('common.success'));
@@ -146,7 +146,7 @@ function onDeleteDoc(row: AiApi.KbDocument) {
 
 async function onTestQuery() {
   if (!testQuery.value.trim()) return;
-  const kb = drawerApi.getData();
+  const kb = modalApi.getData();
   if (!kb) return;
   testLoading.value = true;
   testAnswer.value = '';
@@ -207,11 +207,15 @@ function formatSize(bytes: number) {
   return `${(bytes / k ** i).toFixed(1)} ${units[i]}`;
 }
 
-defineExpose({ drawerApi });
+defineExpose({ modalApi });
 </script>
 
 <template>
-  <Drawer :title="drawerApi.getData()?.name ?? ''" :width="760">
+  <Modal
+    :title="modalApi.getData()?.name ?? ''"
+    width="min(92vw, 1200px)"
+    class="ai-doc-modal"
+  >
     <div class="mb-4 flex items-center gap-3">
       <Upload
         :before-upload="onUpload"
@@ -320,5 +324,5 @@ defineExpose({ drawerApi });
         </div>
       </template>
     </Card>
-  </Drawer>
+  </Modal>
 </template>

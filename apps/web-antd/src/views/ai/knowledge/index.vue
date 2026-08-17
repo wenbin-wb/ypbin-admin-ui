@@ -3,7 +3,7 @@ import type { AiApi } from '#/api/ai';
 
 import { computed, onMounted, ref } from 'vue';
 
-import { Page, useVbenDrawer } from '@vben/common-ui';
+import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
 import { Button, Empty, message, Popconfirm } from 'ant-design-vue';
@@ -19,7 +19,7 @@ const [FormDrawer, formDrawerApi] = useVbenDrawer({
   destroyOnClose: false,
 });
 
-const [DocumentsDrawer, documentsDrawerApi] = useVbenDrawer({
+const [DocumentsModal, documentsModalApi] = useVbenModal({
   connectedComponent: Documents,
   destroyOnClose: false,
 });
@@ -52,7 +52,7 @@ function onCreate() {
 }
 
 function onManageDocs(row: AiApi.KnowledgeBase) {
-  documentsDrawerApi.setData(row).open();
+  documentsModalApi.setData(row).open();
 }
 
 async function onDelete(row: AiApi.KnowledgeBase) {
@@ -67,7 +67,7 @@ onMounted(loadKbs);
 <template>
   <Page auto-content-height>
     <FormDrawer @reload="loadKbs" />
-    <DocumentsDrawer @reload="loadKbs" />
+    <DocumentsModal @reload="loadKbs" />
 
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
       <Input
