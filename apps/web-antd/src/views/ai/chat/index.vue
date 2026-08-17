@@ -1850,3 +1850,26 @@ async function scrollToBottom(force = false) {
   transform: translateX(100%);
 }
 </style>
+
+<style>
+/* 隐藏 AI 对话页滚动条（保留滚动功能），视觉更简洁 */
+.ym-ai__messages,
+.ym-ai__session-list,
+.ym-ai__welcome,
+.ym-role-list,
+.ym-ai__msg-content,
+.ym-ai__markdown .ai-code-block {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.ym-ai__messages::-webkit-scrollbar,
+.ym-ai__session-list::-webkit-scrollbar,
+.ym-ai__welcome::-webkit-scrollbar,
+.ym-role-list::-webkit-scrollbar,
+.ym-ai__markdown .ai-code-block::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+</style>
