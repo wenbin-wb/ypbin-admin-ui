@@ -87,6 +87,8 @@
       "action": "Action",
       "ask": "Ask",
       "recallHint": "Recalled Chunks",
+      "searchPlaceholder": "Search knowledge bases…",
+      "empty": "No knowledge bases yet, click create to add one",
       "testModeSingle": "Single KB",
       "testModeRerank": "Rerank",
       "testModeMultiple": "Multi-KB"

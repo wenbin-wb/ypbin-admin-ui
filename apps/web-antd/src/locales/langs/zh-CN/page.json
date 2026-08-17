@@ -75,6 +75,8 @@
       "action": "操作",
       "ask": "问",
       "recallHint": "召回片段",
+      "searchPlaceholder": "搜索知识库…",
+      "empty": "暂无知识库，点击右上角创建",
       "testModeSingle": "单库检索",
       "testModeRerank": "重排对比",
       "testModeMultiple": "多库联合"
