@@ -106,10 +106,7 @@ async function loadKbs() {
   } finally {
     kbLoading.value = false;
   }
-  // 初次加载后直接拉文档，不依赖 watch 异步触发
-  if (activeKbId.value) {
-    await loadDocs(activeKbId.value);
-  }
+  // 文档加载由 watch(activeKbId) 统一处理，避免与 watch 竞态清空 docs
 }
 
 async function loadDocs(kbId: string) {
@@ -161,15 +158,19 @@ watch(searchKeyword, () => {
   searchResults.value = [];
 });
 
-// ===== 监听知识库切换 =====
-watch(activeKbId, (id) => {
-  if (id) {
-    docs.value = [];
-    activeDocId.value = '';
-    docContent.value = '';
-    loadDocs(id);
-  }
-});
+// ===== 监听知识库切换（immediate:true 保证初始化也触发） =====
+watch(
+  activeKbId,
+  async (id) => {
+    if (id) {
+      docs.value = [];
+      activeDocId.value = '';
+      docContent.value = '';
+      await loadDocs(id);
+    }
+  },
+  { immediate: true },
+);
 
 onMounted(loadKbs);
 </script>
