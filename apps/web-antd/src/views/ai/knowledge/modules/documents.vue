@@ -121,7 +121,7 @@ async function onUpload(file: File) {
   const kb = modalApi.getData();
   if (!kb) return false;
   try {
-    // requestClient.upload 会自动构造 mulipart/form-data 并正确设置 Content-Type
+    // requestClient.upload 会自动构造 multipart/form-data 并正确设置 Content-Type
     await requestClient.upload(`/ai/knowledge-bases/${kb.id}/documents`, {
       file,
     });
@@ -225,10 +225,10 @@ defineExpose({ modalApi });
 </script>
 
 <template>
+  <!-- class="w-[1100px]" 覆盖 vben Modal 默认的 w-130（520px），由 cn() 合并生效 -->
   <Modal
     :title="modalApi.getData()?.name ?? ''"
-    :width="1200"
-    class="ai-doc-modal"
+    class="w-[1100px] max-w-[calc(100vw-40px)]"
   >
     <div class="mb-4 flex items-center gap-3">
       <Upload
