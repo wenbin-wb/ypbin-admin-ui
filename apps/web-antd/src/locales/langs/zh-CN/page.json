@@ -83,6 +83,19 @@
       "testModeRerank": "重排对比",
       "testModeMultiple": "多库联合"
     },
+    "wiki": {
+      "title": "Wiki 阅读",
+      "askAi": "问 AI",
+      "askPlaceholder": "输入问题，AI 会结合知识库回答…",
+      "ask": "提问",
+      "askHint": "输入问题后点击提问，AI 将基于当前知识库内容作答并显示引用来源",
+      "aiDrawerTitle": "AI 知识库问答",
+      "sources": "引用来源",
+      "searchPlaceholder": "搜索文档…",
+      "selectDoc": "在左侧选择一篇文档开始阅读",
+      "noDocs": "该知识库暂无就绪文档",
+      "noSearchResult": "没有匹配的文档"
+    },
     "prompt": {
       "title": "Prompt 模板",
       "create": "新增模板",

@@ -78,7 +78,19 @@ export namespace AiApi {
     chunkCount: number;
     status: number; // 0处理中 1就绪 2失败
     errorMsg?: string;
+    filePath?: string;
     createTime: string;
+  }
+
+  export interface KbSourceFragment {
+    source?: string;
+    content: string;
+    metadata?: Record<string, any>;
+  }
+
+  export interface KbQueryResult {
+    answer: string;
+    sources: KbSourceFragment[];
   }
   export interface PromptTemplate {
     id: string;
@@ -505,4 +517,18 @@ export function updateSessionTitle(id: string, title: string) {
 
 export function toggleSessionPin(id: string) {
   return requestClient.put(`/ai/chat/sessions/${id}/pin`);
+}
+
+// Wiki 阅读页
+export function queryKnowledgeBaseWithSources(kbId: string, question: string) {
+  return requestClient.post<AiApi.KbQueryResult>(
+    `/ai/knowledge-bases/${kbId}/query-with-sources`,
+    { question },
+  );
+}
+
+export function getDocumentContent(kbId: string, docId: string) {
+  return requestClient.get<string>(
+    `/ai/knowledge-bases/${kbId}/documents/${docId}/content`,
+  );
 }

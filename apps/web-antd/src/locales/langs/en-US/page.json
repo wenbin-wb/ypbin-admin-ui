@@ -95,6 +95,19 @@
       "testModeRerank": "Rerank",
       "testModeMultiple": "Multi-KB"
     },
+    "wiki": {
+      "title": "Wiki Reader",
+      "askAi": "Ask AI",
+      "askPlaceholder": "Ask a question, AI will answer based on the knowledge base…",
+      "ask": "Ask",
+      "askHint": "Enter a question and click Ask. AI will answer based on the current knowledge base and show source references.",
+      "aiDrawerTitle": "AI Knowledge Q&A",
+      "sources": "Source References",
+      "searchPlaceholder": "Search documents…",
+      "selectDoc": "Select a document on the left to start reading",
+      "noDocs": "No ready documents in this knowledge base",
+      "noSearchResult": "No matching documents"
+    },
     "prompt": {
       "title": "Prompt Templates",
       "create": "New Template",
