@@ -1098,9 +1098,9 @@ async function scrollToBottom(force = false) {
                   type="primary"
                   :disabled="!inputText.trim()"
                   @click="handleSend"
-                  >
-{{ $t('page.ai.chat.send') }}
-</Button>
+                >
+                  {{ $t('page.ai.chat.send') }}
+                </Button>
               </div>
             </div>
           </div>
@@ -1425,11 +1425,16 @@ async function scrollToBottom(force = false) {
   display: flex;
   flex-shrink: 0;
   gap: 1px;
+  max-width: 0;
+  overflow: hidden;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition:
+    max-width 0.18s ease,
+    opacity 0.15s;
 }
 
 .ym-ai__session-item:hover .ym-ai__session-actions {
+  max-width: 100px;
   opacity: 1;
 }
 
