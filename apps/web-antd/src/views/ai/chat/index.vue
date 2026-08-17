@@ -472,7 +472,7 @@ async function scrollToBottom(force = false) {
 </script>
 
 <template>
-  <Page auto-content-height content-class="p-0">
+  <Page auto-content-height content-class="p-4">
     <div class="ym-ai">
       <!-- 左侧栏 -->
       <aside class="ym-ai__sidebar" :class="{ collapsed: !sidebarOpen }">
@@ -925,7 +925,10 @@ async function scrollToBottom(force = false) {
   display: flex;
   height: 100%;
   overflow: hidden;
-  background: hsl(var(--background));
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 5%);
 }
 
 /* ===== 侧边栏 ===== */
