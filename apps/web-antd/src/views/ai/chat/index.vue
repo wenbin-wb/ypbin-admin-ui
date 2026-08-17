@@ -35,13 +35,12 @@ import { sanitizeHtml } from '#/views/system/_shared/sanitize';
 
 defineOptions({ name: 'AiChat' });
 
-// ===== marked + highlight.js（流式增量渲染，代码块在流式结束后再高亮） =====
+// ===== Markdown 渲染（流式增量，代码块即时高亮） =====
 const markdownRenderer = new marked.Renderer();
 markdownRenderer.code = ({ text, lang }: { lang?: string; text: string }) => {
   const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
-  const safeCode = text;
-  const highlighted = hljs.highlight(safeCode, { language }).value;
-  return `<pre class="ai-code-block"><code class="hljs language-${language}">${highlighted}</code><button type="button" class="ai-copy-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>${$t('page.ai.chat.copy')}</button></pre>`;
+  const highlighted = hljs.highlight(text, { language }).value;
+  return `<pre class="ai-code-block" data-lang="${language}"><button type="button" class="ai-copy-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>${$t('page.ai.chat.copy')}</button><code class="hljs language-${language}">${highlighted}</code></pre>`;
 };
 marked.use({
   async: false,
@@ -53,33 +52,103 @@ marked.use({
 // ===== 状态 =====
 const sidebarOpen = ref(true);
 const sessions = ref<AiApi.ChatSession[]>([]);
-const activeSessionId = ref<string>('');
+const activeSessionId = ref('');
 const messages = ref<AiApi.ChatMessage[]>([]);
 const inputText = ref('');
 const isStreaming = ref(false);
+const sessionsLoading = ref(false);
+const messagesLoading = ref(false);
+const sessionSearch = ref('');
 
 // 角色
 const roles = ref<AiApi.ChatRole[]>([]);
 const activeRole = ref<AiApi.ChatRole | null>(null);
 const roleDrawerOpen = ref(false);
 const roleSearch = ref('');
-const roleCategory = ref('all');
+const roleCategory = ref<string>('all');
 
 // 模型
 const models = ref<AiApi.ModelConfig[]>([]);
-const activeModelId = ref<string>('');
+const activeModelId = ref('');
 
 // 知识库（RAG）
 const knowledgeBases = ref<AiApi.KnowledgeBase[]>([]);
-const activeKbId = ref<string>('');
+const activeKbId = ref('');
 
 const msgListRef = ref<HTMLElement>();
 const welcomeRef = ref<HTMLElement>();
 let abortController: AbortController | null = null;
 
-// ===== 角色筛选 =====
+// ===== 会话搜索 + 时间分组 =====
+const filteredSessions = computed(() => {
+  const kw = sessionSearch.value.trim().toLowerCase();
+  if (!kw) return sessions.value;
+  return sessions.value.filter((s) => s.title.toLowerCase().includes(kw));
+});
+
+type SessionGroup = { items: AiApi.ChatSession[]; key: string; label: string };
+
+const sessionGroups = computed((): SessionGroup[] => {
+  const pinned: AiApi.ChatSession[] = [];
+  const today: AiApi.ChatSession[] = [];
+  const week: AiApi.ChatSession[] = [];
+  const month: AiApi.ChatSession[] = [];
+  const older: AiApi.ChatSession[] = [];
+
+  const now = Date.now();
+  const DAY = 86_400_000;
+
+  for (const s of filteredSessions.value) {
+    if (s.isPinned === 1) {
+      pinned.push(s);
+      continue;
+    }
+    const t = new Date(s.lastMessageAt ?? s.createTime).getTime();
+    const diff = now - t;
+    if (diff < DAY) today.push(s);
+    else if (diff < 7 * DAY) week.push(s);
+    else if (diff < 30 * DAY) month.push(s);
+    else older.push(s);
+  }
+
+  const groups: SessionGroup[] = [];
+  if (pinned.length > 0)
+    groups.push({
+      label: $t('page.ai.chat.groupPinned'),
+      key: 'pinned',
+      items: pinned,
+    });
+  if (today.length > 0)
+    groups.push({
+      label: $t('page.ai.chat.groupToday'),
+      key: 'today',
+      items: today,
+    });
+  if (week.length > 0)
+    groups.push({
+      label: $t('page.ai.chat.group7Days'),
+      key: 'week',
+      items: week,
+    });
+  if (month.length > 0)
+    groups.push({
+      label: $t('page.ai.chat.group30Days'),
+      key: 'month',
+      items: month,
+    });
+  if (older.length > 0)
+    groups.push({
+      label: $t('page.ai.chat.groupOlder'),
+      key: 'older',
+      items: older,
+    });
+  return groups;
+});
+
+// ===== 角色筛选（修复分类逻辑） =====
 const roleCategories = [
   'all',
+  'favorite',
   'assistant',
   'translator',
   'coder',
@@ -91,13 +160,12 @@ const roleCategories = [
 const filteredRoles = computed(() => {
   const kw = roleSearch.value.trim().toLowerCase();
   return roles.value.filter((role) => {
-    const matchesCategory =
-      roleCategory.value === 'all' || roleCategory.value === 'custom'
-        ? role.isBuiltin === 0
-        : (roleCategory.value === 'assistant' &&
-            role.isBuiltin === 1 &&
-            role.category === 'assistant') ||
-          role.category === roleCategory.value;
+    const cat = roleCategory.value;
+    let matchesCategory: boolean;
+    if (cat === 'all') matchesCategory = true;
+    else if (cat === 'favorite') matchesCategory = Boolean(role.isFavorite);
+    else if (cat === 'custom') matchesCategory = role.isBuiltin === 0;
+    else matchesCategory = role.category === cat;
     const matchesSearch =
       !kw ||
       role.name.toLowerCase().includes(kw) ||
@@ -106,10 +174,9 @@ const filteredRoles = computed(() => {
   });
 });
 
-const featuredRoles = computed(() => {
-  // 欢迎页展示前 4 个内置角色
-  return roles.value.filter((r) => r.isBuiltin === 1).slice(0, 4);
-});
+const featuredRoles = computed(() =>
+  roles.value.filter((r) => r.isBuiltin === 1).slice(0, 4),
+);
 
 const quickQuestions = [
   { key: 'quickQuestion_1', icon: 'lucide:file-text' },
@@ -120,12 +187,15 @@ const quickQuestions = [
 
 // ===== 会话 =====
 async function loadSessions() {
-  sessions.value = await getSessionList();
+  sessionsLoading.value = true;
+  try {
+    sessions.value = await getSessionList();
+  } finally {
+    sessionsLoading.value = false;
+  }
 }
 
 async function createNewSession(roleId?: string) {
-  // 只重置客户端为空会话状态，暂不落库（避免一点"新对话"就生成一堆废会话）；
-  // 真正发送首条消息时才由 handleSend 创建会话。
   if (roleId) {
     activeRole.value = roles.value.find((r) => r.id === roleId) ?? null;
   }
@@ -136,20 +206,17 @@ async function createNewSession(roleId?: string) {
 }
 
 async function selectSession(id: string) {
-  if (isStreaming.value) return;
-  if (activeSessionId.value === id) return;
+  if (isStreaming.value || activeSessionId.value === id) return;
   activeSessionId.value = id;
   roleDrawerOpen.value = false;
-  activeRole.value = null; // 会话自带角色由后端 memory 维护
+  messages.value = [];
+  messagesLoading.value = true;
   try {
     messages.value = await getSessionMessages(id);
-    // 从会话恢复知识库关联
-    const session = sessions.value.find((s) => s.id === id);
-    if (session) {
-      // 角色留在会话记录中
-    }
   } catch {
     messages.value = [];
+  } finally {
+    messagesLoading.value = false;
   }
   await scrollToBottom(true);
 }
@@ -161,34 +228,36 @@ async function handleDeleteSession(id: string) {
     activeSessionId.value = '';
     messages.value = [];
   }
-  await scrollToBottom(true);
 }
 
 async function handlePinSession(id: string) {
   await toggleSessionPin(id);
+  // 本地切换置顶状态，不重载消息
   const session = sessions.value.find((s) => s.id === id);
   if (session) session.isPinned = session.isPinned === 1 ? 0 : 1;
-  await loadSessions();
-  const target = sessions.value.find((s) => s.id === id);
-  if (target) {
-    // 重新选中以保持高亮
-    activeSessionId.value = id;
-    messages.value = await getSessionMessages(id);
-  }
+  // 排序：置顶的浮到顶
+  sessions.value = [
+    ...sessions.value.filter((s) => s.isPinned === 1),
+    ...sessions.value.filter((s) => s.isPinned !== 1),
+  ];
 }
 
 // 重命名
-const renamingId = ref<string>('');
+const renamingId = ref('');
 const renameTitle = ref('');
 function startRename(id: string, title: string) {
   renamingId.value = id;
   renameTitle.value = title;
 }
 async function commitRename(id: string) {
-  if (!renameTitle.value.trim()) return;
-  await updateSessionTitle(id, renameTitle.value.trim());
+  const t = renameTitle.value.trim();
+  if (!t) {
+    renamingId.value = '';
+    return;
+  }
+  await updateSessionTitle(id, t);
   const session = sessions.value.find((s) => s.id === id);
-  if (session) session.title = renameTitle.value.trim();
+  if (session) session.title = t;
   renamingId.value = '';
 }
 
@@ -197,67 +266,60 @@ async function loadRoles() {
   roles.value = await getRoleList();
 }
 
-async function selectRole(role: AiApi.ChatRole) {
+function selectRole(role: AiApi.ChatRole) {
   activeRole.value = role;
-  // 使用角色的推荐模型（如果有）
-  if (role.modelPreference && !activeRole.value) {
+  // 应用角色偏好模型
+  if (role.modelPreference) {
     const m = models.value.find((x) => x.modelName === role.modelPreference);
     if (m) activeModelId.value = m.id;
   }
   roleDrawerOpen.value = false;
 }
 
-async function handleNewChatWithRole(roleId?: string) {
+async function handleNewChatWithRole(roleId: string) {
   roleDrawerOpen.value = false;
   await createNewSession(roleId);
 }
 
-async function toggleFavorite(role: AiApi.ChatRole) {
+async function toggleFavorite(role: AiApi.ChatRole, e: Event) {
+  e.stopPropagation();
   await toggleRoleFavorite(role.id);
   role.isFavorite = !role.isFavorite;
-  message.success(
-    role.isFavorite ? $t('common.success') : $t('common.success'),
-  );
 }
 
 // ===== 模型 =====
 async function loadModels() {
   try {
     models.value = await getModelList();
-    // 默认选中默认模型
     const def = models.value.find((m) => m.isDefault === 1);
     if (def) activeModelId.value = def.id;
   } catch {
-    // 模型未配置时不展示，不影响对话页
+    // 模型未配置时不展示选择器
   }
 }
 
-// ===== 发送（会话自带上下文 memory，纯 SSE）=====
+// ===== 发送 =====
 async function handleSend() {
   const text = inputText.value.trim();
   if (!text || isStreaming.value) return;
 
   let sessionId = activeSessionId.value;
   if (!sessionId) {
-    // 没有会话时创建（带当前角色）
-    sessionId = activeRole.value?.id
-      ? await createSession({
-          roleId: activeRole.value.id,
-          modelId: activeModelId.value || undefined,
-        })
-      : await createSession({ modelId: activeModelId.value || undefined });
+    sessionId = await createSession({
+      roleId: activeRole.value?.id || undefined,
+      modelId: activeModelId.value || undefined,
+    });
     await loadSessions();
+    activeSessionId.value = sessionId;
   }
 
-  // 追加用户消息（本地乐观呈现）
   messages.value.push({
     content: text,
     createTime: new Date().toISOString(),
-    id: Date.now().toString(),
+    id: `u-${Date.now()}`,
     role: 'user',
   });
 
-  // reactive 包装 assistant 消息流式追加
   const assistantMsg = reactive<AiApi.ChatMessage>({
     content: '',
     createTime: new Date().toISOString(),
@@ -286,16 +348,15 @@ async function handleSend() {
       async () => {
         isStreaming.value = false;
         abortController = null;
-        assistantMsg.id = Date.now().toString();
-        // 首条消息后后端会生成标题，刷新会话列表以同步
+        assistantMsg.id = `a-${Date.now()}`;
         await loadSessions();
       },
       abortController.signal,
       (error: Error) => {
         assistantMsg.content = error.message || $t('page.ai.chat.requestError');
+        assistantMsg.id = `a-${Date.now()}`;
         isStreaming.value = false;
         abortController = null;
-        assistantMsg.id = Date.now().toString();
       },
     );
   } catch (error: unknown) {
@@ -303,17 +364,15 @@ async function handleSend() {
       assistantMsg.content =
         assistantMsg.content || $t('page.ai.chat.requestError');
     }
+    assistantMsg.id = `a-${Date.now()}`;
     isStreaming.value = false;
     abortController = null;
-    assistantMsg.id = Date.now().toString();
   }
 }
 
 function handleStop() {
-  if (abortController) {
-    abortController.abort();
-    abortController = null;
-  }
+  abortController?.abort();
+  abortController = null;
   isStreaming.value = false;
 }
 
@@ -332,9 +391,9 @@ function handleQuickQuestion(key: string) {
 async function copyMessage(content: string) {
   try {
     await navigator.clipboard.writeText(content);
-    message.success($t('common.success'));
+    message.success($t('page.ai.chat.copied'));
   } catch {
-    // 忽略剪贴板失败
+    message.warning($t('common.requestFailed'));
   }
 }
 
@@ -349,13 +408,13 @@ async function regenerate() {
     .toReversed()
     .find((m) => m.role === 'user');
   if (!lastUser) return;
-  // 移除尾部助手 + 最后一条用户消息
   while (messages.value.length > 0) {
-    const lastMsg = messages.value[messages.value.length - 1];
+    const last = messages.value.at(-1);
     messages.value.pop();
-    if (lastMsg && lastMsg.role === 'user') break;
+    if (last?.role === 'user') break;
   }
   await scrollToBottom(true);
+  inputText.value = lastUser.content;
   await handleSend();
 }
 
@@ -364,67 +423,62 @@ function renderMd(content: string): string {
   if (!content) return '';
   try {
     const raw = marked.parse(content);
-    if (typeof raw !== 'string') {
-      console.error('[ypbin-ai] marked 返回非字符串，疑似异步渲染异常', raw);
-      return content;
-    }
+    if (typeof raw !== 'string') return content;
     return sanitizeHtml(raw);
-  } catch (error) {
-    console.error('[ypbin-ai] markdown 渲染失败，不静默降级', error);
+  } catch {
     return content;
   }
 }
 
 function isErrorText(content: string): boolean {
-  return content.startsWith('对话出错：');
+  return (
+    content.startsWith('对话出错：') || content.startsWith('Request failed')
+  );
 }
 
 function handleMarkdownClick(e: MouseEvent) {
   const target = (e.target as HTMLElement).closest('.ai-copy-btn');
   if (!target) return;
-  const code = target.previousElementSibling?.textContent ?? '';
-  navigator.clipboard.writeText(code).catch(() => {});
+  const code = target.nextElementSibling?.textContent ?? '';
+  navigator.clipboard
+    .writeText(code)
+    .then(() => {
+      message.success($t('page.ai.chat.copied'));
+    })
+    .catch(() => {});
 }
 
-const activeTitle = computed(() => {
-  const session = sessions.value.find((s) => s.id === activeSessionId.value);
-  return session?.title ?? '';
-});
+// ===== 工具函数 =====
+const activeTitle = computed(
+  () => sessions.value.find((s) => s.id === activeSessionId.value)?.title ?? '',
+);
 
-const welcomeShown = computed(() => messages.value.length === 0);
+const welcomeShown = computed(
+  () => messages.value.length === 0 && !messagesLoading.value,
+);
 
-/**
- * 角色分类的中性视觉标记：返回短字符 + 渐变底色类（企业级头像，不用 emoji）。
- * 首字母用分类关键词的文案，保证可读、稳重、不花哨。
- */
-function pickRoleMark(category: string | undefined): {
-  char: string;
-  color: string;
-} {
-  switch (category) {
-    case 'analyst': {
-      return { char: '析', color: 'ym-badge--analyst' };
-    }
-    case 'coder': {
-      return { char: '码', color: 'ym-badge--coder' };
-    }
-    case 'custom': {
-      return { char: '自', color: 'ym-badge--custom' };
-    }
-    case 'translator': {
-      return { char: '译', color: 'ym-badge--translator' };
-    }
-    case 'writer': {
-      return { char: '写', color: 'ym-badge--writer' };
-    }
-    default: {
-      return { char: 'AI', color: 'ym-badge--assistant' };
-    }
-  }
+const ROLE_MARKS: Record<string, { char: string; cls: string }> = {
+  analyst: { char: '析', cls: 'role-analyst' },
+  coder: { char: '码', cls: 'role-coder' },
+  custom: { char: '自', cls: 'role-custom' },
+  translator: { char: '译', cls: 'role-translator' },
+  writer: { char: '写', cls: 'role-writer' },
+};
+
+function roleMark(category?: string): { char: string; cls: string } {
+  return ROLE_MARKS[category ?? ''] ?? { char: 'AI', cls: 'role-assistant' };
 }
 
-function handleSidebarToggle() {
-  sidebarOpen.value = !sidebarOpen.value;
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay)
+    return d.toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
 }
 
 // ===== 生命周期 =====
@@ -433,54 +487,63 @@ onMounted(async () => {
   try {
     knowledgeBases.value = await getKnowledgeBaseList();
   } catch {
-    // 知识库不可用时仅隐藏关联选择
+    /* optional */
   }
-  // 默认选中第一个会话
   if (sessions.value.length > 0) {
     await selectSession(sessions.value[0]?.id ?? '');
   }
 });
 
-// 键盘快捷键：Ctrl/Cmd + N 新建对话
 function onGlobalKeydown(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
     e.preventDefault();
     createNewSession();
   }
 }
-
-onMounted(() => {
-  window.addEventListener('keydown', onGlobalKeydown);
-});
+onMounted(() => window.addEventListener('keydown', onGlobalKeydown));
 onUnmounted(() => {
   window.removeEventListener('keydown', onGlobalKeydown);
-  if (abortController) {
-    abortController.abort();
-    abortController = null;
-  }
+  abortController?.abort();
 });
 
 async function scrollToBottom(force = false) {
   await nextTick();
-  const el = msgListRef.value || welcomeRef.value;
+  const el = msgListRef.value ?? welcomeRef.value;
   if (!el) return;
-  const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-  if (force || nearBottom) {
-    el.scrollTop = el.scrollHeight;
-  }
+  const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  if (force || nearBottom) el.scrollTop = el.scrollHeight;
 }
 </script>
 
 <template>
   <Page auto-content-height content-class="p-4">
     <div class="ym-ai">
-      <!-- 左侧栏 -->
-      <aside class="ym-ai__sidebar" :class="{ collapsed: !sidebarOpen }">
-        <div class="ym-ai__sidebar-header">
+      <!-- ======================================================
+           左侧侧边栏
+      ====================================================== -->
+      <aside
+        class="ym-ai__sidebar"
+        :class="{ 'ym-ai__sidebar--collapsed': !sidebarOpen }"
+      >
+        <!-- 头部：Logo + 展开/收起 -->
+        <div class="ym-ai__sidebar-top">
           <div class="ym-ai__logo">
-            <span class="ym-ai__logo-mark">AI</span>
-            <span v-if="sidebarOpen" class="ym-ai__logo-text">Ypbin AI</span>
+            <span class="ym-ai__logo-icon">✦</span>
+            <span v-show="sidebarOpen" class="ym-ai__logo-text">Ypbin AI</span>
           </div>
+          <Button
+            size="small"
+            type="text"
+            class="ym-ai__collapse-btn"
+            :title="sidebarOpen ? '收起' : '展开'"
+            @click="sidebarOpen = !sidebarOpen"
+          >
+            <Menu class="size-4" />
+          </Button>
+        </div>
+
+        <!-- 新建对话按钮 -->
+        <div class="ym-ai__sidebar-new">
           <Button
             v-access:code="['ai:chat:create']"
             class="ym-ai__new-btn"
@@ -488,160 +551,245 @@ async function scrollToBottom(force = false) {
             block
             @click="createNewSession()"
           >
-            <template v-if="sidebarOpen">
-              <Plus class="size-4" />
-              {{ $t('page.ai.chat.newChat') }}
-            </template>
-            <Plus v-else class="size-4 mx-auto" />
+            <Plus class="size-4" />
+            <span v-show="sidebarOpen">{{ $t('page.ai.chat.newChat') }}</span>
           </Button>
         </div>
 
-        <!-- 会话列表 -->
-        <div v-if="sidebarOpen" class="ym-ai__session-list">
-          <div class="ym-ai__section-label">
-            {{ $t('page.ai.chat.history') }}
-          </div>
-          <div
-            v-for="session in sessions"
-            :key="session.id"
-            class="ym-ai__session-item"
-            :class="{ active: session.id === activeSessionId }"
-            @click="selectSession(session.id)"
+        <!-- 搜索框（仅展开态） -->
+        <div v-show="sidebarOpen" class="ym-ai__sidebar-search">
+          <Input
+            v-model:value="sessionSearch"
+            :placeholder="$t('page.ai.chat.searchSessions')"
+            allow-clear
+            size="small"
           >
-            <template v-if="renamingId === session.id">
-              <Input
-                v-model:value="renameTitle"
-                size="small"
-                autofocus
-                @blur="commitRename(session.id)"
-                @press-enter="commitRename(session.id)"
-              />
+            <template #prefix>
+              <Search class="size-3.5 text-muted-foreground" />
             </template>
-            <template v-else>
-              <span class="ym-ai__session-title">{{ session.title }}</span>
-              <div class="ym-ai__session-actions">
-                <Tooltip :title="$t('page.ai.chat.pinSession')">
-                  <Button
-                    :class="{ pinned: session.isPinned === 1 }"
-                    size="small"
-                    type="text"
-                    @click.stop="handlePinSession(session.id)"
-                  >
-                    <svg
-                      class="size-3.5"
-                      :fill="session.isPinned === 1 ? 'currentColor' : 'none'"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <line x1="12" x2="12" y1="17" y2="22" />
-                      <path
-                        d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"
-                      />
-                    </svg>
-                  </Button>
-                </Tooltip>
-                <Tooltip :title="$t('page.ai.chat.renameSession')">
-                  <Button
-                    size="small"
-                    type="text"
-                    @click.stop="startRename(session.id, session.title)"
-                  >
-                    <svg
-                      class="size-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                      stroke-linecap="round"
-                    >
-                      <path
-                        d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"
-                      />
-                    </svg>
-                  </Button>
-                </Tooltip>
-                <Popconfirm
-                  :title="$t('page.ai.chat.confirmDelete')"
-                  @confirm="handleDeleteSession(session.id)"
-                >
-                  <Button size="small" danger type="text">
-                    <svg
-                      class="size-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                      stroke-linecap="round"
-                    >
-                      <path
-                        d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                      />
-                    </svg>
-                  </Button>
-                </Popconfirm>
-              </div>
-            </template>
-          </div>
-          <div v-if="sessions.length === 0" class="ym-ai__empty-session">
-            {{ $t('page.ai.chat.emptyHint') }}
-          </div>
+          </Input>
         </div>
 
-        <!-- 底部：角色选择 + 模型 -->
-        <div v-if="sidebarOpen" class="ym-ai__sidebar-footer">
-          <div class="ym-ai__role-indicator" @click="roleDrawerOpen = true">
-            <span
-              class="ym-badge"
-              :class="pickRoleMark(activeRole?.category).color"
-              >{{ pickRoleMark(activeRole?.category).char }}</span>
-            <span class="ym-ai__role-name">{{
-              activeRole ? activeRole.name : $t('page.ai.chat.selectRole')
-            }}</span>
+        <!-- 会话列表（分组） -->
+        <div class="ym-ai__session-list">
+          <!-- 无会话 -->
+          <div v-if="sessionsLoading" class="ym-ai__session-loading">
+            <div v-for="i in 4" :key="i" class="ym-ai__session-skeleton"></div>
           </div>
-          <Select
-            v-model:value="activeModelId"
-            :placeholder="$t('page.ai.chat.modelSelect')"
-            size="small"
-            class="ym-ai__model-select"
-            allow-clear
+          <div
+            v-else-if="filteredSessions.length === 0"
+            class="ym-ai__session-empty"
           >
-            <Select.Option v-for="m in models" :key="m.id" :value="m.id">
-              {{ m.name }}
-            </Select.Option>
-          </Select>
+            <span v-if="sessionSearch">{{
+              $t('page.ai.chat.searchEmpty')
+            }}</span>
+            <span v-else>{{ $t('page.ai.chat.noSessions') }}</span>
+          </div>
+          <template v-else>
+            <div
+              v-for="group in sessionGroups"
+              :key="group.key"
+              class="ym-ai__group"
+            >
+              <div v-show="sidebarOpen" class="ym-ai__group-label">
+                {{ group.label }}
+              </div>
+              <div
+                v-for="session in group.items"
+                :key="session.id"
+                class="ym-ai__session-item"
+                :class="{
+                  'ym-ai__session-item--active': session.id === activeSessionId,
+                  'ym-ai__session-item--pinned': session.isPinned === 1,
+                }"
+                @click="selectSession(session.id)"
+              >
+                <!-- 置顶图标（仅折叠时显示） -->
+                <span
+                  v-if="!sidebarOpen && session.isPinned === 1"
+                  class="ym-ai__session-pin-dot"
+                ></span>
+
+                <!-- 重命名输入 -->
+                <Input
+                  v-if="renamingId === session.id"
+                  v-model:value="renameTitle"
+                  size="small"
+                  autofocus
+                  @click.stop
+                  @blur="commitRename(session.id)"
+                  @press-enter="commitRename(session.id)"
+                />
+
+                <template v-else>
+                  <div class="ym-ai__session-body" :title="session.title">
+                    <span
+                      v-if="session.isPinned === 1 && sidebarOpen"
+                      class="ym-ai__pin-icon"
+                      title="已置顶"
+                    >
+                      <svg
+                        class="size-2.5"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <line
+                          x1="12"
+                          x2="12"
+                          y1="17"
+                          y2="22"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        />
+                        <path
+                          d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          fill="none"
+                        />
+                      </svg>
+                    </span>
+                    <span v-show="sidebarOpen" class="ym-ai__session-title">{{
+                      session.title
+                    }}</span>
+                  </div>
+
+                  <!-- 操作按钮（hover 时显示） -->
+                  <div v-show="sidebarOpen" class="ym-ai__session-actions">
+                    <Tooltip
+                      :title="
+                        session.isPinned === 1
+                          ? $t('page.ai.chat.unpinSession')
+                          : $t('page.ai.chat.pinSession')
+                      "
+                    >
+                      <Button
+                        size="small"
+                        type="text"
+                        @click.stop="handlePinSession(session.id)"
+                      >
+                        <svg
+                          class="size-3"
+                          :fill="
+                            session.isPinned === 1 ? 'currentColor' : 'none'
+                          "
+                          stroke="currentColor"
+                          stroke-width="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <line x1="12" x2="12" y1="17" y2="22" />
+                          <path
+                            d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"
+                          />
+                        </svg>
+                      </Button>
+                    </Tooltip>
+                    <Tooltip :title="$t('page.ai.chat.renameSession')">
+                      <Button
+                        size="small"
+                        type="text"
+                        @click.stop="startRename(session.id, session.title)"
+                      >
+                        <svg
+                          class="size-3"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"
+                          />
+                        </svg>
+                      </Button>
+                    </Tooltip>
+                    <Popconfirm
+                      :title="$t('page.ai.chat.confirmDelete')"
+                      @confirm="handleDeleteSession(session.id)"
+                    >
+                      <Button size="small" danger type="text" @click.stop>
+                        <svg
+                          class="size-3"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                          />
+                        </svg>
+                      </Button>
+                    </Popconfirm>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
         </div>
       </aside>
 
-      <!-- 主区域 -->
-      <main class="ym-ai__main">
-        <!-- 顶部栏 -->
-        <header class="ym-ai__topbar">
-          <Button
-            class="ym-ai__menu-toggle"
-            type="text"
-            @click="handleSidebarToggle"
-          >
-            <Menu class="size-4" />
-          </Button>
-          <span v-if="activeTitle" class="ym-ai__topbar-title">{{
-            activeTitle
-          }}</span>
+      <!-- ======================================================
+           主区域
+      ====================================================== -->
+      <div class="ym-ai__main">
+        <!-- 顶部标题栏 -->
+        <header class="ym-ai__header">
+          <div class="ym-ai__header-left">
+            <span v-if="activeTitle" class="ym-ai__header-title">{{
+              activeTitle
+            }}</span>
+            <span
+              v-else
+              class="ym-ai__header-title ym-ai__header-title--placeholder"
+            >
+              {{ $t('page.ai.chat.newChat') }}
+            </span>
+          </div>
+          <div class="ym-ai__header-right">
+            <!-- 当前角色芯片 -->
+            <div v-if="activeRole" class="ym-ai__role-chip">
+              <span
+                class="ym-badge ym-badge--sm"
+                :class="roleMark(activeRole.category).cls"
+              >
+                {{ roleMark(activeRole.category).char }}
+              </span>
+              <span>{{ activeRole.name }}</span>
+              <button class="ym-ai__role-chip-close" @click="activeRole = null">
+                <X class="size-3" />
+              </button>
+            </div>
+            <!-- 重新生成 -->
+            <Tooltip
+              v-if="messages.length > 0 && !isStreaming"
+              :title="$t('page.ai.chat.regenerate')"
+            >
+              <Button size="small" type="text" @click="regenerate">
+                <RotateCw class="size-4" />
+              </Button>
+            </Tooltip>
+          </div>
         </header>
 
-        <!-- 欢迎页 -->
+        <!-- ===== 欢迎页 ===== -->
         <div v-if="welcomeShown" ref="welcomeRef" class="ym-ai__welcome">
           <div class="ym-ai__welcome-inner">
+            <div class="ym-ai__welcome-icon">✦</div>
             <h1 class="ym-ai__welcome-title">
               {{ $t('page.ai.chat.welcomeTitle') }}
             </h1>
-            <p class="ym-ai__welcome-subtitle">
+            <p class="ym-ai__welcome-sub">
               {{ $t('page.ai.chat.welcomeSubtitle') }}
             </p>
 
             <!-- 角色卡片 -->
+            <div
+              v-if="featuredRoles.length > 0"
+              class="ym-ai__welcome-section-label"
+            >
+              {{ $t('page.ai.chat.welcomeRole') }}
+            </div>
             <div class="ym-ai__welcome-roles">
               <div
                 v-for="role in featuredRoles"
@@ -649,10 +797,9 @@ async function scrollToBottom(force = false) {
                 class="ym-ai__role-card"
                 @click="handleNewChatWithRole(role.id)"
               >
-                <span
-                  class="ym-badge"
-                  :class="pickRoleMark(role.category).color"
-                  >{{ pickRoleMark(role.category).char }}</span>
+                <span class="ym-badge" :class="roleMark(role.category).cls">
+                  {{ roleMark(role.category).char }}
+                </span>
                 <span class="ym-ai__role-card-name">{{ role.name }}</span>
                 <span class="ym-ai__role-card-desc">{{
                   role.description
@@ -661,6 +808,9 @@ async function scrollToBottom(force = false) {
             </div>
 
             <!-- 快捷问题 -->
+            <div class="ym-ai__welcome-section-label">
+              {{ $t('page.ai.chat.welcomeQuickQ') }}
+            </div>
             <div class="ym-ai__quick-questions">
               <button
                 v-for="q in quickQuestions"
@@ -674,192 +824,288 @@ async function scrollToBottom(force = false) {
           </div>
         </div>
 
-        <!-- 消息列表 -->
+        <!-- ===== 消息列表 ===== -->
         <div v-else ref="msgListRef" class="ym-ai__messages">
-          <div
-            v-for="msg in messages"
-            :key="msg.id"
-            :class="`ym-ai__msg ym-ai__msg--${msg.role}`"
-          >
-            <!-- AI 消息 -->
-            <div v-if="msg.role === 'assistant'" class="ym-ai__msg-content">
-              <!-- eslint-disable vue/no-v-html -->
-              <div
-                v-if="msg.content"
-                class="ym-ai__markdown"
-                :class="{ 'ym-ai__markdown--error': isErrorText(msg.content) }"
-                v-html="renderMd(msg.content)"
-                @click="handleMarkdownClick"
-              ></div>
-              <!-- eslint-enable vue/no-v-html -->
-              <span v-else class="ym-ai__thinking">{{
-                $t('page.ai.chat.thinking')
-              }}</span>
-
-              <div
-                v-if="!isStreaming || msg.id !== 'streaming'"
-                class="ym-ai__msg-actions"
-              >
-                <button
-                  class="ym-ai__action"
-                  :title="$t('page.ai.chat.copy')"
-                  @click="copyMessage(msg.content)"
-                >
-                  <svg
-                    class="size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                    stroke-linecap="round"
-                  >
-                    <rect width="14" height="14" x="8" y="8" rx="2" />
-                    <path
-                      d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
-                    />
-                  </svg>
-                </button>
-                <button
-                  class="ym-ai__action"
-                  :class="{ active: liked[msg.id] === 'up' }"
-                  :title="$t('page.ai.chat.thumbUp')"
-                  @click="toggleLike(msg.id, 'up')"
-                >
-                  <svg
-                    class="size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M7 10v12" />
-                    <path
-                      d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"
-                    />
-                  </svg>
-                </button>
-                <button
-                  class="ym-ai__action"
-                  :class="{ active: liked[msg.id] === 'down' }"
-                  :title="$t('page.ai.chat.thumbDown')"
-                  @click="toggleLike(msg.id, 'down')"
-                >
-                  <svg
-                    class="size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M17 14V2" />
-                    <path
-                      d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"
-                    />
-                  </svg>
-                </button>
-                <button
-                  class="ym-ai__action"
-                  :title="$t('page.ai.chat.regenerate')"
-                  @click="regenerate"
-                >
-                  <RotateCw class="size-4" />
-                </button>
-              </div>
-            </div>
-
-            <!-- 用户消息 -->
-            <div v-else class="ym-ai__user-bubble">
-              <span class="ym-ai__plain">{{ msg.content }}</span>
-            </div>
+          <!-- 加载骨架 -->
+          <div v-if="messagesLoading" class="ym-ai__msg-loading">
+            <div
+              v-for="i in 3"
+              :key="i"
+              class="ym-ai__msg-skeleton"
+              :class="i % 2 === 0 ? 'user' : 'ai'"
+            ></div>
           </div>
+
+          <template v-else>
+            <div
+              v-for="msg in messages"
+              :key="msg.id"
+              class="ym-ai__msg"
+              :class="`ym-ai__msg--${msg.role}`"
+            >
+              <!-- AI 消息 -->
+              <template v-if="msg.role === 'assistant'">
+                <div class="ym-ai__msg-avatar ym-ai__msg-avatar--ai">✦</div>
+                <div class="ym-ai__msg-body">
+                  <!-- eslint-disable-next-line vue/no-v-html -->
+                  <div
+                    v-if="msg.content"
+                    class="ym-ai__markdown"
+                    :class="{
+                      'ym-ai__markdown--error': isErrorText(msg.content),
+                    }"
+                    v-html="renderMd(msg.content)"
+                    @click="handleMarkdownClick"
+                  ></div>
+                  <!-- 流式光标 -->
+                  <span
+                    v-else-if="isStreaming && msg.id === 'streaming'"
+                    class="ym-ai__cursor"
+                  ></span>
+                  <span v-else class="ym-ai__thinking">{{
+                    $t('page.ai.chat.thinking')
+                  }}</span>
+
+                  <!-- 消息操作（非流式时显示） -->
+                  <div v-if="msg.id !== 'streaming'" class="ym-ai__msg-actions">
+                    <button
+                      class="ym-ai__action"
+                      :title="$t('page.ai.chat.copy')"
+                      @click="copyMessage(msg.content)"
+                    >
+                      <svg
+                        class="size-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        stroke-linecap="round"
+                      >
+                        <rect width="14" height="14" x="8" y="8" rx="2" />
+                        <path
+                          d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      class="ym-ai__action"
+                      :class="{
+                        'ym-ai__action--active': liked[msg.id] === 'up',
+                      }"
+                      :title="$t('page.ai.chat.thumbUp')"
+                      @click="toggleLike(msg.id, 'up')"
+                    >
+                      <svg
+                        class="size-3.5"
+                        :fill="liked[msg.id] === 'up' ? 'currentColor' : 'none'"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        stroke-linecap="round"
+                      >
+                        <path
+                          d="M7 10v12M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      class="ym-ai__action"
+                      :class="{
+                        'ym-ai__action--active': liked[msg.id] === 'down',
+                      }"
+                      :title="$t('page.ai.chat.thumbDown')"
+                      @click="toggleLike(msg.id, 'down')"
+                    >
+                      <svg
+                        class="size-3.5"
+                        :fill="
+                          liked[msg.id] === 'down' ? 'currentColor' : 'none'
+                        "
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        stroke-linecap="round"
+                      >
+                        <path
+                          d="M17 14V2M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"
+                        />
+                      </svg>
+                    </button>
+                    <span class="ym-ai__msg-time">{{
+                      formatTime(msg.createTime)
+                    }}</span>
+                  </div>
+                  <!-- 生成中 loading indicator -->
+                  <div
+                    v-if="isStreaming && msg.id === 'streaming' && msg.content"
+                    class="ym-ai__msg-actions"
+                  >
+                    <span class="ym-ai__generating">
+                      <span class="ym-ai__dot"></span><span class="ym-ai__dot"></span><span class="ym-ai__dot"></span>
+                      {{ $t('page.ai.chat.generating') }}
+                    </span>
+                  </div>
+                </div>
+              </template>
+
+              <!-- 用户消息 -->
+              <template v-else-if="msg.role === 'user'">
+                <div class="ym-ai__msg-body ym-ai__msg-body--user">
+                  <div class="ym-ai__user-bubble">{{ msg.content }}</div>
+                  <div class="ym-ai__msg-actions ym-ai__msg-actions--user">
+                    <button
+                      class="ym-ai__action"
+                      :title="$t('page.ai.chat.copy')"
+                      @click="copyMessage(msg.content)"
+                    >
+                      <svg
+                        class="size-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        stroke-linecap="round"
+                      >
+                        <rect width="14" height="14" x="8" y="8" rx="2" />
+                        <path
+                          d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+                        />
+                      </svg>
+                    </button>
+                    <span class="ym-ai__msg-time">{{
+                      formatTime(msg.createTime)
+                    }}</span>
+                  </div>
+                </div>
+                <div class="ym-ai__msg-avatar ym-ai__msg-avatar--user">我</div>
+              </template>
+            </div>
+          </template>
         </div>
 
-        <!-- 输入区 -->
-        <div class="ym-ai__input-area">
+        <!-- ===== 输入区 ===== -->
+        <div class="ym-ai__input-wrap">
           <div class="ym-ai__input-box">
             <Input.TextArea
               v-model:value="inputText"
-              :auto-size="{ maxRows: 10, minRows: 1 }"
-              :disabled="isStreaming"
               :placeholder="$t('page.ai.chat.placeholder')"
+              :auto-size="{ minRows: 1, maxRows: 6 }"
               class="ym-ai__textarea"
               @keydown="handleKeydown"
             />
-            <div class="ym-ai__input-tools">
-              <Select
-                v-if="knowledgeBases.length > 0"
-                v-model:value="activeKbId"
-                :placeholder="$t('page.ai.chat.attachKb')"
-                class="ym-ai__kb-select"
-                size="small"
-                allow-clear
-              >
-                <Select.Option
-                  v-for="kb in knowledgeBases"
-                  :key="kb.id"
-                  :value="kb.id"
+            <div class="ym-ai__input-toolbar">
+              <!-- 左侧工具 -->
+              <div class="ym-ai__tools-left">
+                <!-- 角色选择 -->
+                <Tooltip :title="$t('page.ai.chat.selectRole')">
+                  <button
+                    class="ym-ai__tool-btn"
+                    :class="{ 'ym-ai__tool-btn--active': roleDrawerOpen }"
+                    @click="roleDrawerOpen = !roleDrawerOpen"
+                  >
+                    <svg
+                      class="size-4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      stroke-linecap="round"
+                    >
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path
+                        d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
+                      />
+                    </svg>
+                    <span v-if="activeRole" class="ym-ai__tool-label">{{
+                      activeRole.name
+                    }}</span>
+                  </button>
+                </Tooltip>
+                <!-- 知识库 -->
+                <Tooltip
+                  v-if="knowledgeBases.length > 0"
+                  :title="$t('page.ai.chat.attachKb')"
                 >
-                  {{ kb.name }}
-                </Select.Option>
-              </Select>
-
-              <div v-if="activeRole" class="ym-ai__active-role-chip">
-                <span>{{ pickRoleMark(activeRole.category).char }}</span>
-                {{ activeRole.name }}
-                <button @click="activeRole = null">×</button>
+                  <Select
+                    v-model:value="activeKbId"
+                    :options="[
+                      { label: '不关联知识库', value: '' },
+                      ...knowledgeBases.map((kb) => ({
+                        label: `${kb.icon || '📚'} ${kb.name}`,
+                        value: kb.id,
+                      })),
+                    ]"
+                    size="small"
+                    class="ym-ai__kb-select"
+                    :bordered="false"
+                    placeholder="关联知识库…"
+                  />
+                </Tooltip>
+                <!-- 模型 -->
+                <Select
+                  v-if="models.length > 1"
+                  v-model:value="activeModelId"
+                  :options="
+                    models
+                      .filter((m) => m.modelType === 'CHAT' || !m.modelType)
+                      .map((m) => ({ label: m.modelName, value: m.id }))
+                  "
+                  size="small"
+                  class="ym-ai__model-select"
+                  :bordered="false"
+                />
               </div>
-
-              <div class="ym-ai__input-tools-right">
-                <button
-                  v-if="!isStreaming"
-                  class="ym-ai__send"
+              <!-- 右侧：发送/停止 -->
+              <div class="ym-ai__tools-right">
+                <span class="ym-ai__enter-tip">{{
+                  $t('page.ai.chat.enterTip')
+                }}</span>
+                <Button
+                  v-if="isStreaming"
+                  class="ym-ai__send-btn ym-ai__send-btn--stop"
+                  type="primary"
+                  danger
+                  @click="handleStop"
+                >
+                  <Square class="size-3.5" />
+                  {{ $t('page.ai.chat.stop') }}
+                </Button>
+                <Button
+                  v-else
+                  class="ym-ai__send-btn"
+                  type="primary"
                   :disabled="!inputText.trim()"
                   @click="handleSend"
                 >
-                  <svg
-                    class="size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                    stroke-linecap="round"
-                  >
-                    <path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z" />
-                  </svg>
-                </button>
-                <button
-                  v-else
-                  class="ym-ai__send ym-ai__send--stop"
-                  @click="handleStop"
-                >
-                  <Square class="size-4" />
-                </button>
+                  {{ $t('page.ai.chat.send') }}
+                </Button>
               </div>
             </div>
           </div>
-          <p class="ym-ai__input-tip">{{ $t('page.ai.chat.enterTip') }}</p>
         </div>
-      </main>
+      </div>
 
-      <!-- 角色选择抽屉 -->
+      <!-- ======================================================
+           角色选择浮层
+      ====================================================== -->
       <Transition name="ym-role">
-        <div v-if="roleDrawerOpen" class="ym-role-drawer">
-          <div class="ym-role-mask" @click="roleDrawerOpen = false"></div>
+        <div
+          v-if="roleDrawerOpen"
+          class="ym-role-overlay"
+          @click.self="roleDrawerOpen = false"
+        >
           <div class="ym-role-panel">
             <div class="ym-role-header">
-              <h3>{{ $t('page.ai.chat.selectRole') }}</h3>
-              <button class="ym-role-close" @click="roleDrawerOpen = false">
+              <span class="ym-role-title">{{
+                $t('page.ai.chat.selectRole')
+              }}</span>
+              <Button size="small" type="text" @click="roleDrawerOpen = false">
                 <X class="size-4" />
-              </button>
+              </Button>
             </div>
-            <div class="ym-role-search">
-              <Search class="size-4" />
-              <Input
-                v-model:value="roleSearch"
-                :placeholder="$t('page.ai.chat.rolePlaceholder')"
-                size="small"
-              />
-            </div>
+
+            <!-- 分类 Tab -->
             <div class="ym-role-cats">
               <button
                 v-for="cat in roleCategories"
@@ -871,21 +1117,37 @@ async function scrollToBottom(force = false) {
                 {{
                   cat === 'all'
                     ? $t('page.ai.chat.roleAll')
-                    : $t(`page.ai.chat.roleCategory_${cat}`)
+                    : cat === 'favorite'
+                      ? $t('page.ai.chat.roleFavorite')
+                      : cat === 'custom'
+                        ? $t('page.ai.chat.roleCustom')
+                        : $t(`page.ai.chat.roleCategory_${cat}`)
                 }}
               </button>
             </div>
+
+            <!-- 搜索 -->
+            <div class="ym-role-search">
+              <Input
+                v-model:value="roleSearch"
+                :placeholder="$t('page.ai.chat.rolePlaceholder')"
+                allow-clear
+                size="small"
+              />
+            </div>
+
+            <!-- 角色列表 -->
             <div class="ym-role-list">
               <div
                 v-for="role in filteredRoles"
                 :key="role.id"
                 class="ym-role-item"
+                :class="{ active: activeRole?.id === role.id }"
                 @click="selectRole(role)"
               >
-                <span
-                  class="ym-badge"
-                  :class="pickRoleMark(role.category).color"
-                  >{{ pickRoleMark(role.category).char }}</span>
+                <span class="ym-badge" :class="roleMark(role.category).cls">
+                  {{ roleMark(role.category).char }}
+                </span>
                 <div class="ym-role-info">
                   <span class="ym-role-name">{{ role.name }}</span>
                   <span class="ym-role-desc">{{ role.description }}</span>
@@ -893,7 +1155,8 @@ async function scrollToBottom(force = false) {
                 <button
                   class="ym-role-fav"
                   :class="{ active: role.isFavorite }"
-                  @click.stop="toggleFavorite(role)"
+                  :title="role.isFavorite ? '取消收藏' : '收藏'"
+                  @click.stop="toggleFavorite(role, $event)"
                 >
                   <svg
                     class="size-4"
@@ -909,7 +1172,11 @@ async function scrollToBottom(force = false) {
                 </button>
               </div>
               <div v-if="filteredRoles.length === 0" class="ym-role-empty">
-                {{ $t('page.ai.chat.roleAll') }} 暂无角色
+                {{
+                  roleCategory === 'favorite'
+                    ? '还没有收藏的角色'
+                    : '暂无匹配角色'
+                }}
               </div>
             </div>
           </div>
@@ -920,7 +1187,9 @@ async function scrollToBottom(force = false) {
 </template>
 
 <style scoped>
-/* ===== AI 对话页样式 ===== */
+/* ================================================================
+   整体容器
+================================================================ */
 .ym-ai {
   display: flex;
   height: 100%;
@@ -928,64 +1197,81 @@ async function scrollToBottom(force = false) {
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
   border-radius: 0.75rem;
-  box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 5%);
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 6%);
 }
 
-/* ===== 侧边栏 ===== */
+/* ================================================================
+   侧边栏
+================================================================ */
 .ym-ai__sidebar {
   display: flex;
   flex-shrink: 0;
   flex-direction: column;
   width: 260px;
-  background: hsl(var(--secondary) / 30%);
+  overflow: hidden;
+  background: hsl(var(--secondary) / 25%);
   border-right: 1px solid hsl(var(--border));
-  transition: width 0.2s;
+  transition: width 0.22s ease;
 }
 
-.ym-ai__sidebar.collapsed {
-  width: 60px;
+.ym-ai__sidebar--collapsed {
+  width: 56px;
 }
 
-.ym-ai__sidebar.collapsed .ym-ai__new-btn {
-  width: 40px;
-  height: 40px;
-  margin: 8px auto;
-}
-
-.ym-ai__sidebar-header {
+.ym-ai__sidebar-top {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 8px;
 }
 
 .ym-ai__logo {
   display: flex;
   gap: 8px;
   align-items: center;
-  padding: 4px 6px;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.ym-ai__logo-mark {
-  font-size: 18px;
+.ym-ai__logo-icon {
+  flex-shrink: 0;
+  font-size: 20px;
   color: hsl(var(--primary));
-  animation: ym-spin 12s linear infinite;
+  animation: ym-pulse 4s ease-in-out infinite;
+}
+
+@keyframes ym-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .ym-ai__logo-text {
-  font-size: 16px;
+  overflow: hidden;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.3px;
+  white-space: nowrap;
 }
 
-@keyframes ym-spin {
-  from {
-    transform: rotate(0deg);
-  }
+.ym-ai__collapse-btn {
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
 
-  to {
-    transform: rotate(360deg);
-  }
+.ym-ai__collapse-btn:hover {
+  opacity: 1;
+}
+
+.ym-ai__sidebar-new {
+  padding: 0 10px 8px;
 }
 
 .ym-ai__new-btn {
@@ -996,37 +1282,112 @@ async function scrollToBottom(force = false) {
   font-weight: 500;
 }
 
+.ym-ai__sidebar-search {
+  padding: 0 10px 8px;
+}
+
+/* ===== 会话列表 ===== */
 .ym-ai__session-list {
   flex: 1;
   min-height: 0;
-  padding: 8px;
+  padding: 4px 6px;
   overflow-y: auto;
+  scrollbar-width: none;
 }
 
-.ym-ai__section-label {
-  padding: 8px 10px 4px;
+.ym-ai__session-list::-webkit-scrollbar {
+  display: none;
+}
+
+.ym-ai__session-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px;
+}
+
+.ym-ai__session-skeleton {
+  height: 32px;
+  background: hsl(var(--muted));
+  border-radius: 8px;
+  animation: ym-shimmer 1.4s ease infinite;
+}
+
+@keyframes ym-shimmer {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.ym-ai__session-empty {
+  padding: 24px 12px;
   font-size: 12px;
   color: hsl(var(--muted-foreground));
+  text-align: center;
+}
+
+.ym-ai__group-label {
+  padding: 10px 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
 }
 
 .ym-ai__session-item {
+  position: relative;
   display: flex;
+  gap: 6px;
   align-items: center;
-  padding: 7px 10px;
-  margin-bottom: 2px;
+  min-width: 0;
+  padding: 7px 8px;
+  margin-bottom: 1px;
   cursor: pointer;
   border-radius: 8px;
-  transition: background 0.15s;
+  transition: background 0.12s;
 }
 
 .ym-ai__session-item:hover {
-  background: hsl(var(--muted));
+  background: hsl(var(--muted) / 70%);
 }
 
-.ym-ai__session-item.active {
-  background: hsl(var(--muted) / 70%);
+.ym-ai__session-item--active {
+  background: hsl(var(--primary) / 10%);
+}
+
+.ym-ai__session-item--active .ym-ai__session-title {
+  font-weight: 500;
+  color: hsl(var(--primary));
+}
+
+.ym-ai__session-pin-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  margin: auto;
+  background: hsl(var(--primary));
+  border-radius: 50%;
+}
+
+.ym-ai__session-body {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+
+.ym-ai__pin-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  color: hsl(var(--primary));
 }
 
 .ym-ai__session-title {
@@ -1034,12 +1395,14 @@ async function scrollToBottom(force = false) {
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 13px;
+  color: hsl(var(--foreground));
   white-space: nowrap;
 }
 
 .ym-ai__session-actions {
   display: flex;
-  gap: 2px;
+  flex-shrink: 0;
+  gap: 1px;
   opacity: 0;
   transition: opacity 0.15s;
 }
@@ -1048,156 +1411,163 @@ async function scrollToBottom(force = false) {
   opacity: 1;
 }
 
-.ym-ai__session-actions .pinned {
-  color: hsl(var(--primary));
-}
-
-.ym-ai__empty-session {
-  padding: 20px;
-  font-size: 13px;
-  color: hsl(var(--muted-foreground));
-  text-align: center;
-}
-
-.ym-ai__sidebar-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border-top: 1px solid hsl(var(--border));
-}
-
-.ym-ai__role-indicator {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 6px 8px;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: background 0.15s;
-}
-
-.ym-ai__role-indicator:hover {
-  background: hsl(var(--muted));
-}
-
-.ym-ai__role-emoji {
-  font-size: 16px;
-}
-
-.ym-ai__role-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.ym-ai__model-select {
-  width: 100%;
-}
-
-/* ===== 主区域 ===== */
+/* ================================================================
+   主区域
+================================================================ */
 .ym-ai__main {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-width: 0;
+  overflow: hidden;
 }
 
-.ym-ai__topbar {
+/* ===== 顶部标题栏 ===== */
+.ym-ai__header {
+  display: flex;
+  flex-shrink: 0;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  height: 50px;
+  padding: 0 18px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.ym-ai__header-left {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.ym-ai__header-right {
   display: flex;
   flex-shrink: 0;
   gap: 8px;
   align-items: center;
-  height: 52px;
-  padding: 0 12px;
-  border-bottom: 1px solid hsl(var(--border));
 }
 
-.ym-ai__menu-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-  color: hsl(var(--foreground));
-}
-
-.ym-ai__menu-toggle:hover {
-  background: hsl(var(--muted));
-}
-
-.ym-ai__topbar-title {
+.ym-ai__header-title {
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 14px;
-  font-weight: 500;
-  color: hsl(var(--muted-foreground));
+  font-weight: 600;
   white-space: nowrap;
 }
 
-/* ===== 欢迎页 ===== */
+.ym-ai__header-title--placeholder {
+  font-weight: 400;
+  color: hsl(var(--muted-foreground));
+}
+
+.ym-ai__role-chip {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 3px 8px 3px 4px;
+  font-size: 12px;
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 10%);
+  border-radius: 20px;
+}
+
+.ym-ai__role-chip-close {
+  display: flex;
+  align-items: center;
+  padding: 0 1px;
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: none;
+  opacity: 0.6;
+}
+
+.ym-ai__role-chip-close:hover {
+  opacity: 1;
+}
+
+/* ================================================================
+   欢迎页
+================================================================ */
 .ym-ai__welcome {
+  display: flex;
   flex: 1;
-  min-height: 0;
-  padding: 48px 24px;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 24px 24px;
   overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.ym-ai__welcome::-webkit-scrollbar {
+  display: none;
 }
 
 .ym-ai__welcome-inner {
+  width: 100%;
   max-width: 640px;
-  margin: 0 auto;
+}
+
+.ym-ai__welcome-icon {
+  margin-bottom: 12px;
+  font-size: 36px;
+  color: hsl(var(--primary));
   text-align: center;
 }
 
 .ym-ai__welcome-title {
   margin: 0 0 8px;
-  font-size: 34px;
+  font-size: 24px;
   font-weight: 700;
-  color: transparent;
-  letter-spacing: -1px;
-  background: linear-gradient(135deg, hsl(var(--primary)), hsl(262deg 83% 58%));
-  background-clip: text;
+  text-align: center;
+  letter-spacing: -0.5px;
 }
 
-.ym-ai__welcome-subtitle {
-  margin: 0 0 32px;
-  font-size: 15px;
+.ym-ai__welcome-sub {
+  margin: 0 0 28px;
+  font-size: 14px;
   color: hsl(var(--muted-foreground));
+  text-align: center;
+}
+
+.ym-ai__welcome-section-label {
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
 }
 
 .ym-ai__welcome-roles {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 28px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
 }
 
 .ym-ai__role-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 16px;
-  text-align: left;
+  gap: 5px;
+  padding: 14px 12px;
   cursor: pointer;
+  background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
-  border-radius: 12px;
-  transition: all 0.2s;
+  border-radius: 10px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .ym-ai__role-card:hover {
-  border-color: hsl(var(--primary));
-  box-shadow: 0 4px 20px hsl(var(--primary) / 10%);
-  transform: translateY(-2px);
-}
-
-.ym-ai__role-card-emoji {
-  margin-bottom: 4px;
-  font-size: 24px;
+  border-color: hsl(var(--primary) / 50%);
+  box-shadow: 0 2px 8px hsl(var(--primary) / 10%);
 }
 
 .ym-ai__role-card-name {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -1205,178 +1575,220 @@ async function scrollToBottom(force = false) {
   display: -webkit-box;
   overflow: hidden;
   -webkit-line-clamp: 2;
-  font-size: 12px;
+  font-size: 11px;
   color: hsl(var(--muted-foreground));
   -webkit-box-orient: vertical;
 }
 
 .ym-ai__quick-questions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
-  justify-content: center;
 }
 
 .ym-ai__quick-q {
-  padding: 8px 14px;
+  padding: 10px 14px;
   font-size: 13px;
+  line-height: 1.4;
   color: hsl(var(--foreground));
+  text-align: left;
   cursor: pointer;
-  background: hsl(var(--muted));
+  background: hsl(var(--muted) / 50%);
   border: 1px solid hsl(var(--border));
-  border-radius: 20px;
-  transition: all 0.15s;
+  border-radius: 8px;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
 }
 
 .ym-ai__quick-q:hover {
-  background: hsl(var(--muted) / 60%);
+  background: hsl(var(--muted));
   border-color: hsl(var(--primary) / 40%);
 }
 
-/* ===== 消息列表 ===== */
+/* ================================================================
+   消息列表
+================================================================ */
 .ym-ai__messages {
+  display: flex;
   flex: 1;
-  width: 100%;
-  max-width: 820px;
-  min-height: 0;
-  padding: 20px 16px;
-  margin: 0 auto;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px 20px;
   overflow-y: auto;
+  scrollbar-width: none;
 }
 
+.ym-ai__messages::-webkit-scrollbar {
+  display: none;
+}
+
+/* 骨架 */
+.ym-ai__msg-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ym-ai__msg-skeleton {
+  height: 52px;
+  background: hsl(var(--muted));
+  border-radius: 12px;
+  animation: ym-shimmer 1.4s ease infinite;
+}
+
+.ym-ai__msg-skeleton.ai {
+  align-self: flex-start;
+  width: 70%;
+}
+
+.ym-ai__msg-skeleton.user {
+  align-self: flex-end;
+  width: 55%;
+}
+
+/* 消息行 */
 .ym-ai__msg {
   display: flex;
-  flex-direction: row;
-  width: 100%;
-  margin-bottom: 24px;
+  gap: 10px;
+  align-items: flex-start;
+  max-width: 100%;
 }
 
-/* AI 消息：左对齐，内容占满 */
-.ym-ai__msg--ai {
+.ym-ai__msg--user {
+  flex-direction: row-reverse;
   justify-content: flex-start;
 }
 
-/* 用户消息：右对齐 */
-.ym-ai__msg--user {
-  justify-content: flex-end;
-}
-
-.ym-ai__avatar {
+/* 头像 */
+.ym-ai__msg-avatar {
   display: flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
-  font-size: 16px;
-  border-radius: 8px;
-}
-
-.ym-ai__avatar--ai {
-  color: #fff;
-  background: linear-gradient(135deg, hsl(221deg 83% 53%), hsl(262deg 83% 58%));
-}
-
-.ym-ai__avatar--user {
-  background: hsl(var(--secondary));
-}
-
-/* ===== 角色中性标记（圆形头像徽章，不用 emoji） ===== */
-.ym-badge {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  color: #fff;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 700;
+  user-select: none;
   border-radius: 50%;
 }
 
-.ym-badge--assistant,
-.ym-ai__avatar.ym-badge--assistant {
-  background: linear-gradient(135deg, hsl(221deg 83% 53%), hsl(262deg 83% 58%));
+.ym-ai__msg-avatar--ai {
+  font-size: 16px;
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 15%);
 }
 
-.ym-badge--translator,
-.ym-ai__avatar.ym-badge--translator {
-  background: linear-gradient(
-    135deg,
-    hsl(199deg 89% 48%),
-    hsl(187deg 100% 42%)
-  );
-}
-
-.ym-badge--coder,
-.ym-ai__avatar.ym-badge--coder {
-  background: linear-gradient(135deg, hsl(262deg 83% 58%), hsl(330deg 81% 60%));
-}
-
-.ym-badge--analyst,
-.ym-ai__avatar.ym-badge--analyst {
-  background: linear-gradient(135deg, hsl(215deg 91% 48%), hsl(221deg 83% 53%));
-}
-
-.ym-badge--writer,
-.ym-ai__avatar.ym-badge--writer {
-  background: linear-gradient(135deg, hsl(32deg 95% 44%), hsl(28deg 95% 50%));
-}
-
-.ym-badge--custom,
-.ym-ai__avatar.ym-badge--custom {
-  background: linear-gradient(135deg, hsl(220deg 8% 40%), hsl(220deg 8% 55%));
-}
-
-.ym-ai__msg-content {
-  width: 100%;
-  min-width: 0;
-}
-
-.ym-ai__msg-name {
-  margin-bottom: 4px;
+.ym-ai__msg-avatar--user {
   font-size: 12px;
-  font-weight: 600;
-  color: hsl(var(--muted-foreground));
+  color: hsl(var(--secondary-foreground));
+  background: hsl(var(--secondary));
 }
 
-.ym-ai__user-bubble {
+/* 消息体 */
+.ym-ai__msg-body {
+  flex: 1;
   min-width: 0;
+  max-width: min(680px, calc(100% - 42px));
+}
+
+.ym-ai__msg-body--user {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* 用户气泡 */
+.ym-ai__user-bubble {
   max-width: 100%;
-  padding: 10px 14px;
-  font-size: 15px;
-  line-height: 1.7;
-  color: hsl(var(--foreground));
-  overflow-wrap: break-word;
+  padding: 9px 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: hsl(var(--primary-foreground));
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
-  background: hsl(var(--primary) / 10%);
-  border-radius: 12px;
-  border-bottom-right-radius: 3px;
+  background: hsl(var(--primary));
+  border-radius: 18px 18px 4px;
 }
 
-.ym-ai__plain {
-  font-size: 15px;
-  line-height: 1.7;
-  overflow-wrap: break-word;
-  white-space: pre-wrap;
-}
-
+/* AI Markdown */
 .ym-ai__markdown {
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.75;
   color: hsl(var(--foreground));
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 .ym-ai__markdown--error {
-  color: hsl(var(--destructive, 0 72% 51%));
+  color: hsl(var(--destructive));
 }
 
-.ym-ai__thinking {
+/* 消息操作栏 */
+.ym-ai__msg-actions {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.ym-ai__msg--assistant:hover .ym-ai__msg-actions,
+.ym-ai__msg--user:hover .ym-ai__msg-actions {
+  opacity: 1;
+}
+
+.ym-ai__msg-actions--user {
+  justify-content: flex-end;
+}
+
+.ym-ai__action {
+  display: flex;
+  align-items: center;
+  padding: 4px 5px;
   color: hsl(var(--muted-foreground));
-  animation: ym-blink 1s infinite;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.ym-ai__action:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted));
+}
+
+.ym-ai__action--active {
+  color: hsl(var(--primary)) !important;
+}
+
+.ym-ai__msg-time {
+  padding: 0 4px;
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+  user-select: none;
+}
+
+/* 思考中 + 流式光标 */
+.ym-ai__thinking {
+  font-size: 13px;
+  font-style: italic;
+  color: hsl(var(--muted-foreground));
+}
+
+.ym-ai__cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  vertical-align: text-bottom;
+  background: hsl(var(--primary));
+  border-radius: 1px;
+  animation: ym-blink 0.9s steps(2) infinite;
 }
 
 @keyframes ym-blink {
@@ -1386,411 +1798,341 @@ async function scrollToBottom(force = false) {
   }
 
   50% {
-    opacity: 0.3;
+    opacity: 0;
   }
 }
 
-.ym-ai__msg-actions {
-  display: flex;
-  gap: 2px;
-  margin-top: 6px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.ym-ai__msg:hover .ym-ai__msg-actions {
-  opacity: 1;
-}
-
-.ym-ai__action {
-  display: flex;
+/* 生成中指示器 */
+.ym-ai__generating {
+  display: inline-flex;
+  gap: 5px;
   align-items: center;
-  justify-content: center;
-  padding: 5px;
+  font-size: 11px;
   color: hsl(var(--muted-foreground));
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  border-radius: 5px;
-  transition: all 0.15s;
 }
 
-.ym-ai__action:hover {
-  color: hsl(var(--foreground));
-  background: hsl(var(--muted));
+.ym-ai__dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  background: hsl(var(--muted-foreground));
+  border-radius: 50%;
+  animation: ym-bounce 1.2s ease infinite;
 }
 
-.ym-ai__action.active {
-  color: hsl(var(--primary));
+.ym-ai__dot:nth-child(2) {
+  animation-delay: 0.2s;
 }
 
-/* ===== 输入区 ===== */
-.ym-ai__input-area {
+.ym-ai__dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes ym-bounce {
+  0%,
+  80%,
+  100% {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+/* ================================================================
+   输入区
+================================================================ */
+.ym-ai__input-wrap {
   flex-shrink: 0;
-  min-height: 0;
-  padding: 8px 16px 16px;
+  padding: 12px 16px 14px;
+  border-top: 1px solid hsl(var(--border));
 }
 
 .ym-ai__input-box {
-  width: min(56vw, 820px);
-  min-width: 360px;
-  padding: 14px 14px 10px 18px;
-  margin: 0 auto;
+  padding: 10px 12px 8px;
   background: hsl(var(--background));
-  border: 1px solid hsl(var(--border));
-  border-radius: 14px;
-  box-shadow: 0 2px 12px hsl(var(--foreground) / 6%);
-  transition: all 0.2s;
+  border: 1.5px solid hsl(var(--border));
+  border-radius: 12px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .ym-ai__input-box:focus-within {
   border-color: hsl(var(--primary) / 60%);
-  box-shadow: 0 4px 20px hsl(var(--primary) / 14%);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 8%);
 }
 
 .ym-ai__textarea {
-  min-height: 52px;
-  font-size: 15px;
-  resize: none;
+  width: 100% !important;
+  padding: 0 !important;
+  font-size: 14px !important;
+  resize: none !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
 }
 
-.ym-ai__input-tools {
+.ym-ai__input-toolbar {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  margin-top: 6px;
+  justify-content: space-between;
+  margin-top: 8px;
 }
 
-.ym-ai__kb-select {
-  width: 180px;
+.ym-ai__tools-left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
 }
 
-.ym-ai__active-role-chip {
+.ym-ai__tools-right {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  align-items: center;
+}
+
+.ym-ai__tool-btn {
   display: inline-flex;
   gap: 4px;
   align-items: center;
   padding: 3px 8px;
   font-size: 12px;
-  color: hsl(var(--primary));
-  background: hsl(var(--primary) / 12%);
-  border-radius: 12px;
-}
-
-.ym-ai__active-role-chip button {
-  padding: 0 2px;
-  font-size: 13px;
-  line-height: 1;
-  color: inherit;
+  color: hsl(var(--muted-foreground));
   cursor: pointer;
   background: none;
-  border: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
 }
 
-.ym-ai__input-tools-right {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
+.ym-ai__tool-btn:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted));
 }
 
-.ym-ai__send {
-  display: flex;
+.ym-ai__tool-btn--active {
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 10%);
+  border-color: hsl(var(--primary) / 30%);
+}
+
+.ym-ai__tool-label {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ym-ai__kb-select {
+  width: 160px;
+  font-size: 12px;
+}
+
+.ym-ai__model-select {
+  width: 140px;
+  font-size: 12px;
+}
+
+.ym-ai__enter-tip {
+  font-size: 11px;
+  color: hsl(var(--muted-foreground) / 70%);
+}
+
+.ym-ai__send-btn {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  font-weight: 500;
+}
+
+/* ================================================================
+   角色徽章（ym-badge）
+================================================================ */
+.ym-badge {
+  display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  color: hsl(var(--primary-foreground));
-  cursor: pointer;
-  background: hsl(var(--primary));
-  border: none;
-  border-radius: 50%;
-  transition: opacity 0.15s;
-}
-
-.ym-ai__send:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-
-.ym-ai__send--stop {
-  background: hsl(var(--destructive, 0 72% 51%));
-}
-
-.ym-ai__input-tip {
-  max-width: 820px;
-  margin: 8px auto 0;
-  font-size: 12px;
-  color: hsl(var(--muted-foreground));
-  text-align: center;
-}
-
-/* ===== Markdown 样式 ===== */
-.ym-ai__markdown :deep(p) {
-  margin: 0 0 10px;
-}
-
-.ym-ai__markdown :deep(p:last-child) {
-  margin-bottom: 0;
-}
-
-.ym-ai__markdown :deep(h1),
-.ym-ai__markdown :deep(h2),
-.ym-ai__markdown :deep(h3) {
-  margin: 14px 0 8px;
-  font-weight: 600;
-}
-
-.ym-ai__markdown :deep(ul),
-.ym-ai__markdown :deep(ol) {
-  padding-left: 22px;
-  margin: 8px 0;
-}
-
-.ym-ai__markdown :deep(li) {
-  margin: 3px 0;
-}
-
-.ym-ai__markdown :deep(blockquote) {
-  padding-left: 12px;
-  margin: 10px 0;
-  color: hsl(var(--muted-foreground));
-  border-left: 3px solid hsl(var(--border));
-}
-
-.ym-ai__markdown :deep(a) {
-  color: hsl(var(--primary));
-}
-
-.ym-ai__markdown :deep(.ai-code-block) {
-  position: relative;
-  margin: 12px 0;
-  overflow-x: auto;
-  background: hsl(var(--secondary));
-  border: 1px solid hsl(var(--border));
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+  font-weight: 700;
+  user-select: none;
   border-radius: 8px;
 }
 
-.ym-ai__markdown :deep(.ai-code-block code) {
-  display: block;
-  padding: 14px 16px;
-  font-family:
-    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
-    monospace;
-  font-size: 13px;
-  line-height: 1.7;
-  color: hsl(var(--foreground));
-  tab-size: 2;
-}
-
-/* highlight.js 语法高亮 token 配色（作用于 AI 回复代码块） */
-.ym-ai__markdown :deep(.ai-code-block .hljs-keyword),
-.ym-ai__markdown :deep(.ai-code-block .hljs-selector-tag),
-.ym-ai__markdown :deep(.ai-code-block .hljs-literal) {
-  color: hsl(262deg 83% 70%);
-}
-
-.ym-ai__markdown :deep(.ai-code-block .hljs-string),
-.ym-ai__markdown :deep(.ai-code-block .hljs-title),
-.ym-ai__markdown :deep(.ai-code-block .hljs-attr) {
-  color: hsl(142deg 71% 45%);
-}
-
-.ym-ai__markdown :deep(.ai-code-block .hljs-comment),
-.ym-ai__markdown :deep(.ai-code-block .hljs-quote) {
-  font-style: italic;
-  color: hsl(var(--muted-foreground));
-}
-
-.ym-ai__markdown :deep(.ai-code-block .hljs-number),
-.ym-ai__markdown :deep(.ai-code-block .hljs-variable),
-.ym-ai__markdown :deep(.ai-code-block span[class~='hljs-built-in']),
-.ym-ai__markdown :deep(.ai-code-block span[class~='hljs-built_in']) {
-  color: hsl(32deg 95% 55%);
-}
-
-.ym-ai__markdown :deep(.ai-code-block .hljs-function),
-.ym-ai__markdown :deep(.ai-code-block .hljs-params) {
-  color: hsl(221deg 83% 65%);
-}
-
-.ym-ai__markdown :deep(.ai-copy-btn) {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  padding: 3px 8px;
-  font-size: 11px;
-  color: hsl(var(--muted-foreground));
-  cursor: pointer;
-  background: hsl(var(--background));
-  border: 1px solid hsl(var(--border));
+.ym-badge--sm {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
   border-radius: 5px;
-  opacity: 0;
-  transition: opacity 0.2s;
 }
 
-.ym-ai__markdown :deep(.ai-copy-btn svg) {
-  width: 12px;
-  height: 12px;
+.role-assistant {
+  color: hsl(221deg 83% 53%);
+  background: hsl(221deg 83% 53% / 15%);
 }
 
-.ym-ai__markdown :deep(.ai-code-block:hover .ai-copy-btn) {
-  opacity: 1;
+.role-translator {
+  color: hsl(142deg 71% 45%);
+  background: hsl(142deg 71% 45% / 15%);
 }
 
-.ym-ai__markdown :deep(code:not(.hljs)) {
-  padding: 2px 5px;
-  font-size: 13px;
-  background: hsl(var(--secondary));
-  border-radius: 3px;
+.role-coder {
+  color: hsl(262deg 83% 58%);
+  background: hsl(262deg 83% 58% / 15%);
 }
 
-.ym-ai__markdown :deep(table) {
-  width: 100%;
-  margin: 10px 0;
-  font-size: 13px;
-  border-collapse: collapse;
+.role-analyst {
+  color: hsl(24deg 95% 53%);
+  background: hsl(24deg 95% 53% / 15%);
 }
 
-.ym-ai__markdown :deep(th),
-.ym-ai__markdown :deep(td) {
-  padding: 6px 10px;
-  text-align: left;
-  border: 1px solid hsl(var(--border));
+.role-writer {
+  color: hsl(340deg 82% 52%);
+  background: hsl(340deg 82% 52% / 15%);
 }
 
-.ym-ai__markdown :deep(th) {
-  background: hsl(var(--secondary));
+.role-custom {
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted));
 }
 
-/* ===== 角色抽屉 ===== */
-.ym-role-mask {
+/* ================================================================
+   角色选择浮层
+================================================================ */
+.ym-role-overlay {
   position: absolute;
   inset: 0;
   z-index: 50;
-  background: hsl(var(--foreground) / 30%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: hsl(var(--foreground) / 20%);
   backdrop-filter: blur(2px);
 }
 
 .ym-role-panel {
   position: absolute;
-  top: 0;
   right: 0;
   bottom: 0;
-  z-index: 51;
+  left: 0;
   display: flex;
   flex-direction: column;
-  width: 320px;
-  background: hsl(var(--background));
-  border-left: 1px solid hsl(var(--border));
-  box-shadow: -4px 0 24px hsl(var(--foreground) / 10%);
+  max-height: 72vh;
+  background: hsl(var(--card));
+  border-top: 1px solid hsl(var(--border));
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -8px 32px hsl(var(--foreground) / 8%);
 }
 
 .ym-role-header {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: 14px 16px 8px;
   border-bottom: 1px solid hsl(var(--border));
 }
 
-.ym-role-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.ym-role-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-  color: hsl(var(--muted-foreground));
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-}
-
-.ym-role-close:hover {
-  background: hsl(var(--muted));
-}
-
-.ym-role-search {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 12px 16px;
-  color: hsl(var(--muted-foreground));
-  border-bottom: 1px solid hsl(var(--border));
+.ym-role-title {
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .ym-role-cats {
   display: flex;
-  flex-wrap: wrap;
+  flex-shrink: 0;
   gap: 6px;
-  padding: 12px 16px;
-  border-bottom: 1px solid hsl(var(--border));
+  padding: 10px 16px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ym-role-cats::-webkit-scrollbar {
+  display: none;
 }
 
 .ym-role-cat {
   padding: 4px 12px;
   font-size: 12px;
-  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
   cursor: pointer;
-  background: transparent;
+  background: hsl(var(--muted) / 50%);
   border: 1px solid hsl(var(--border));
-  border-radius: 16px;
-  transition: all 0.15s;
-}
-
-.ym-role-cat:hover {
-  border-color: hsl(var(--primary) / 40%);
+  border-radius: 20px;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
 }
 
 .ym-role-cat.active {
   color: hsl(var(--primary));
-  background: hsl(var(--primary) / 12%);
+  background: hsl(var(--primary) / 15%);
   border-color: hsl(var(--primary) / 40%);
 }
 
+.ym-role-search {
+  flex-shrink: 0;
+  padding: 6px 12px;
+}
+
 .ym-role-list {
+  display: flex;
   flex: 1;
-  padding: 8px;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 10px 12px;
   overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.ym-role-list::-webkit-scrollbar {
+  display: none;
 }
 
 .ym-role-item {
   display: flex;
   gap: 10px;
   align-items: center;
-  padding: 10px 12px;
+  padding: 9px 10px;
   cursor: pointer;
-  border-radius: 8px;
-  transition: background 0.15s;
+  border-radius: 10px;
+  transition: background 0.12s;
 }
 
 .ym-role-item:hover {
-  background: hsl(var(--muted));
+  background: hsl(var(--muted) / 60%);
 }
 
-.ym-role-emoji {
-  font-size: 22px;
+.ym-role-item.active {
+  outline: 1px solid hsl(var(--primary) / 25%);
+  background: hsl(var(--primary) / 8%);
 }
 
 .ym-role-info {
   display: flex;
   flex: 1;
   flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
 
 .ym-role-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -1804,32 +2146,36 @@ async function scrollToBottom(force = false) {
 
 .ym-role-fav {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 5px;
+  flex-shrink: 0;
+  padding: 4px;
   color: hsl(var(--muted-foreground));
   cursor: pointer;
-  background: transparent;
+  background: none;
   border: none;
   border-radius: 5px;
-  transition: color 0.15s;
-}
-
-.ym-role-fav.active {
-  color: hsl(48deg 96% 53%);
+  transition:
+    color 0.12s,
+    background 0.12s;
 }
 
 .ym-role-fav:hover {
   background: hsl(var(--muted));
 }
 
+.ym-role-fav.active {
+  color: hsl(40deg 90% 55%);
+}
+
 .ym-role-empty {
-  padding: 32px;
+  padding: 24px;
   font-size: 13px;
   color: hsl(var(--muted-foreground));
   text-align: center;
 }
 
+/* ================================================================
+   角色浮层动效
+================================================================ */
 .ym-role-enter-active,
 .ym-role-leave-active {
   transition: opacity 0.2s;
@@ -1837,7 +2183,7 @@ async function scrollToBottom(force = false) {
 
 .ym-role-enter-active .ym-role-panel,
 .ym-role-leave-active .ym-role-panel {
-  transition: transform 0.2s;
+  transition: transform 0.22s ease;
 }
 
 .ym-role-enter-from,
@@ -1847,18 +2193,185 @@ async function scrollToBottom(force = false) {
 
 .ym-role-enter-from .ym-role-panel,
 .ym-role-leave-to .ym-role-panel {
-  transform: translateX(100%);
+  transform: translateY(100%);
 }
 </style>
 
 <style>
-/* 隐藏 AI 对话页滚动条（保留滚动功能），视觉更简洁 */
+/* 代码块全局样式 */
+.ym-ai__markdown .ai-code-block {
+  position: relative;
+  margin: 12px 0;
+  overflow: hidden;
+  background: hsl(var(--muted) / 60%);
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+}
+
+.ym-ai__markdown .ai-code-block::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 2px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  content: attr(data-lang);
+  background: hsl(var(--muted));
+  border-right: 1px solid hsl(var(--border));
+  border-bottom: 1px solid hsl(var(--border));
+  border-bottom-right-radius: 6px;
+}
+
+.ym-ai__markdown .ai-code-block code {
+  display: block;
+  padding: 28px 14px 12px;
+  overflow-x: auto;
+  font-family: 'Fira Code', 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+  scrollbar-width: none;
+}
+
+.ym-ai__markdown .ai-code-block code::-webkit-scrollbar {
+  display: none;
+}
+
+.ym-ai__markdown .ai-copy-btn {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    background 0.12s;
+}
+
+.ym-ai__markdown .ai-code-block:hover .ai-copy-btn {
+  opacity: 1;
+}
+
+.ym-ai__markdown .ai-copy-btn:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted));
+}
+
+.ym-ai__markdown .ai-copy-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Markdown 正文排版 */
+.ym-ai__markdown p {
+  margin: 0.5em 0;
+}
+
+.ym-ai__markdown p:first-child {
+  margin-top: 0;
+}
+
+.ym-ai__markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.ym-ai__markdown h1,
+.ym-ai__markdown h2,
+.ym-ai__markdown h3 {
+  margin: 1em 0 0.4em;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.ym-ai__markdown h1 {
+  font-size: 1.3em;
+}
+
+.ym-ai__markdown h2 {
+  font-size: 1.15em;
+}
+
+.ym-ai__markdown h3 {
+  font-size: 1em;
+}
+
+.ym-ai__markdown ul,
+.ym-ai__markdown ol {
+  padding-left: 1.4em;
+  margin: 0.5em 0;
+}
+
+.ym-ai__markdown li {
+  margin: 0.2em 0;
+}
+
+.ym-ai__markdown blockquote {
+  padding: 4px 12px;
+  margin: 0.75em 0;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted) / 30%);
+  border-left: 3px solid hsl(var(--primary) / 40%);
+  border-radius: 0 6px 6px 0;
+}
+
+.ym-ai__markdown code:not(.hljs) {
+  padding: 0.1em 0.35em;
+  font-family: 'Fira Code', ui-monospace, monospace;
+  font-size: 0.85em;
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+.ym-ai__markdown table {
+  width: 100%;
+  margin: 0.75em 0;
+  font-size: 13px;
+  border-collapse: collapse;
+}
+
+.ym-ai__markdown th,
+.ym-ai__markdown td {
+  padding: 6px 10px;
+  border: 1px solid hsl(var(--border));
+}
+
+.ym-ai__markdown th {
+  font-weight: 600;
+  background: hsl(var(--muted));
+}
+
+.ym-ai__markdown tr:hover td {
+  background: hsl(var(--muted) / 30%);
+}
+
+.ym-ai__markdown a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ym-ai__markdown hr {
+  margin: 1em 0;
+  border: none;
+  border-top: 1px solid hsl(var(--border));
+}
+
+/* 隐藏滚动条 */
 .ym-ai__messages,
 .ym-ai__session-list,
 .ym-ai__welcome,
-.ym-role-list,
-.ym-ai__msg-content,
-.ym-ai__markdown .ai-code-block {
+.ym-role-list {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -1866,10 +2379,7 @@ async function scrollToBottom(force = false) {
 .ym-ai__messages::-webkit-scrollbar,
 .ym-ai__session-list::-webkit-scrollbar,
 .ym-ai__welcome::-webkit-scrollbar,
-.ym-role-list::-webkit-scrollbar,
-.ym-ai__markdown .ai-code-block::-webkit-scrollbar {
+.ym-role-list::-webkit-scrollbar {
   display: none;
-  width: 0;
-  height: 0;
 }
 </style>
