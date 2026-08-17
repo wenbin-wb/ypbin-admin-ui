@@ -69,7 +69,10 @@
       "welcomeQuickQ": "Try asking",
       "msgUser": "You",
       "msgAi": "AI Assistant",
-      "generating": "Generating"
+      "generating": "Generating",
+      "noKb": "No knowledge base",
+      "attachKbPlaceholder": "Attach knowledge base…",
+      "emptySession": "No messages yet. Send the first message to start."
     },
     "widget": {
       "title": "AI Assistant",

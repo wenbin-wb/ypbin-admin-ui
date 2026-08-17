@@ -453,8 +453,20 @@ const activeTitle = computed(
   () => sessions.value.find((s) => s.id === activeSessionId.value)?.title ?? '',
 );
 
+/** 真欢迎页：没有选中任何会话 */
 const welcomeShown = computed(
-  () => messages.value.length === 0 && !messagesLoading.value,
+  () =>
+    !activeSessionId.value &&
+    messages.value.length === 0 &&
+    !messagesLoading.value,
+);
+
+/** 空会话提示：选了会话但尚无消息（新建后还没发送） */
+const emptySessionShown = computed(
+  () =>
+    !!activeSessionId.value &&
+    messages.value.length === 0 &&
+    !messagesLoading.value,
 );
 
 const ROLE_MARKS: Record<string, { char: string; cls: string }> = {
@@ -784,28 +796,27 @@ async function scrollToBottom(force = false) {
             </p>
 
             <!-- 角色卡片 -->
-            <div
-              v-if="featuredRoles.length > 0"
-              class="ym-ai__welcome-section-label"
-            >
-              {{ $t('page.ai.chat.welcomeRole') }}
-            </div>
-            <div class="ym-ai__welcome-roles">
-              <div
-                v-for="role in featuredRoles"
-                :key="role.id"
-                class="ym-ai__role-card"
-                @click="handleNewChatWithRole(role.id)"
-              >
-                <span class="ym-badge" :class="roleMark(role.category).cls">
-                  {{ roleMark(role.category).char }}
-                </span>
-                <span class="ym-ai__role-card-name">{{ role.name }}</span>
-                <span class="ym-ai__role-card-desc">{{
-                  role.description
-                }}</span>
+            <template v-if="featuredRoles.length > 0">
+              <div class="ym-ai__welcome-section-label">
+                {{ $t('page.ai.chat.welcomeRole') }}
               </div>
-            </div>
+              <div class="ym-ai__welcome-roles">
+                <div
+                  v-for="role in featuredRoles"
+                  :key="role.id"
+                  class="ym-ai__role-card"
+                  @click="handleNewChatWithRole(role.id)"
+                >
+                  <span class="ym-badge" :class="roleMark(role.category).cls">
+                    {{ roleMark(role.category).char }}
+                  </span>
+                  <span class="ym-ai__role-card-name">{{ role.name }}</span>
+                  <span class="ym-ai__role-card-desc">{{
+                    role.description
+                  }}</span>
+                </div>
+              </div>
+            </template>
 
             <!-- 快捷问题 -->
             <div class="ym-ai__welcome-section-label">
@@ -821,6 +832,14 @@ async function scrollToBottom(force = false) {
                 {{ $t(`page.ai.chat.${q.key}`) }}
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- ===== 空会话提示（选了会话但无消息） ===== -->
+        <div v-else-if="emptySessionShown" class="ym-ai__welcome">
+          <div class="ym-ai__empty-session">
+            <span class="ym-ai__empty-icon">💬</span>
+            <p>{{ $t('page.ai.chat.emptySession') }}</p>
           </div>
         </div>
 
@@ -1027,24 +1046,26 @@ async function scrollToBottom(force = false) {
                   v-if="knowledgeBases.length > 0"
                   :title="$t('page.ai.chat.attachKb')"
                 >
-                  <Select
-                    v-model:value="activeKbId"
-                    :options="[
-                      { label: '不关联知识库', value: '' },
-                      ...knowledgeBases.map((kb) => ({
-                        label: `${kb.icon || '📚'} ${kb.name}`,
-                        value: kb.id,
-                      })),
-                    ]"
-                    size="small"
-                    class="ym-ai__kb-select"
-                    :bordered="false"
-                    placeholder="关联知识库…"
-                  />
+                  <div>
+                    <Select
+                      v-model:value="activeKbId"
+                      :options="[
+                        { label: $t('page.ai.chat.noKb'), value: '' },
+                        ...knowledgeBases.map((kb) => ({
+                          label: `${kb.icon || '📚'} ${kb.name}`,
+                          value: kb.id,
+                        })),
+                      ]"
+                      size="small"
+                      class="ym-ai__kb-select"
+                      :bordered="false"
+                      :placeholder="$t('page.ai.chat.attachKbPlaceholder')"
+                    />
+                  </div>
                 </Tooltip>
                 <!-- 模型 -->
                 <Select
-                  v-if="models.length > 1"
+                  v-if="models.length > 0"
                   v-model:value="activeModelId"
                   :options="
                     models
@@ -1077,9 +1098,9 @@ async function scrollToBottom(force = false) {
                   type="primary"
                   :disabled="!inputText.trim()"
                   @click="handleSend"
-                >
-                  {{ $t('page.ai.chat.send') }}
-                </Button>
+                  >
+{{ $t('page.ai.chat.send') }}
+</Button>
               </div>
             </div>
           </div>
@@ -2197,6 +2218,30 @@ async function scrollToBottom(force = false) {
 .ym-role-enter-from .ym-role-panel,
 .ym-role-leave-to .ym-role-panel {
   transform: translateY(100%);
+}
+
+/* 空会话提示 */
+.ym-ai__empty-session {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+}
+
+.ym-ai__empty-icon {
+  font-size: 32px;
+  opacity: 0.4;
+}
+
+/* enter-tip 窄屏隐藏 */
+@media (max-width: 640px) {
+  .ym-ai__enter-tip {
+    display: none;
+  }
 }
 </style>
 

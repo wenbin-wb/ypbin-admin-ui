@@ -57,7 +57,10 @@
       "welcomeQuickQ": "试试问我",
       "msgUser": "你",
       "msgAi": "AI 助手",
-      "generating": "生成中"
+      "generating": "生成中",
+      "noKb": "不关联知识库",
+      "attachKbPlaceholder": "关联知识库…",
+      "emptySession": "会话还没有消息，发第一条消息开始对话吧"
     },
     "widget": {
       "title": "AI 助手",
