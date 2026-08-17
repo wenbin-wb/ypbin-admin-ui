@@ -118,14 +118,15 @@ async function loadSessions() {
 }
 
 async function createNewSession(roleId?: string) {
-  const id = await createSession({
-    roleId: roleId ?? activeRole.value?.id,
-    modelId: activeModelId.value || undefined,
-  });
-  // 重新加载，展示新会话
-  await loadSessions();
-  await selectSession(id);
-  return id;
+  // 只重置客户端为空会话状态，暂不落库（避免一点"新对话"就生成一堆废会话）；
+  // 真正发送首条消息时才由 handleSend 创建会话。
+  if (roleId) {
+    activeRole.value = roles.value.find((r) => r.id === roleId) ?? null;
+  }
+  activeSessionId.value = '';
+  messages.value = [];
+  roleDrawerOpen.value = false;
+  inputText.value = '';
 }
 
 async function selectSession(id: string) {
@@ -385,25 +386,32 @@ const activeTitle = computed(() => {
 
 const welcomeShown = computed(() => messages.value.length === 0);
 
-function pickRoleEmoji(category: string | undefined): string {
+/**
+ * 角色分类的中性视觉标记：返回短字符 + 渐变底色类（企业级头像，不用 emoji）。
+ * 首字母用分类关键词的文案，保证可读、稳重、不花哨。
+ */
+function pickRoleMark(category: string | undefined): {
+  char: string;
+  color: string;
+} {
   switch (category) {
     case 'analyst': {
-      return '📊';
+      return { char: '析', color: 'ym-badge--analyst' };
     }
     case 'coder': {
-      return '💻';
+      return { char: '码', color: 'ym-badge--coder' };
     }
     case 'custom': {
-      return '⚡';
+      return { char: '自', color: 'ym-badge--custom' };
     }
     case 'translator': {
-      return '🌐';
+      return { char: '译', color: 'ym-badge--translator' };
     }
     case 'writer': {
-      return '✍️';
+      return { char: '写', color: 'ym-badge--writer' };
     }
     default: {
-      return '🤖';
+      return { char: 'AI', color: 'ym-badge--assistant' };
     }
   }
 }
@@ -462,7 +470,7 @@ async function scrollToBottom(force = false) {
     <aside class="ym-ai__sidebar" :class="{ collapsed: !sidebarOpen }">
       <div class="ym-ai__sidebar-header">
         <div class="ym-ai__logo">
-          <span class="ym-ai__logo-mark">✦</span>
+          <span class="ym-ai__logo-mark">AI</span>
           <span v-if="sidebarOpen" class="ym-ai__logo-text">Ypbin AI</span>
         </div>
         <Button
@@ -575,9 +583,10 @@ async function scrollToBottom(force = false) {
       <!-- 底部：角色选择 + 模型 -->
       <div v-if="sidebarOpen" class="ym-ai__sidebar-footer">
         <div class="ym-ai__role-indicator" @click="roleDrawerOpen = true">
-          <span class="ym-ai__role-emoji">{{
-            activeRole ? pickRoleEmoji(activeRole.category) : '🤖'
-          }}</span>
+          <span
+            class="ym-badge"
+            :class="pickRoleMark(activeRole?.category).color"
+            >{{ pickRoleMark(activeRole?.category).char }}</span>
           <span class="ym-ai__role-name">{{
             activeRole ? activeRole.name : $t('page.ai.chat.selectRole')
           }}</span>
@@ -630,9 +639,10 @@ async function scrollToBottom(force = false) {
               class="ym-ai__role-card"
               @click="handleNewChatWithRole(role.id)"
             >
-              <span class="ym-ai__role-card-emoji">{{
-                pickRoleEmoji(role.category)
-              }}</span>
+              <span
+                class="ym-badge"
+                :class="pickRoleMark(role.category).color"
+                >{{ pickRoleMark(role.category).char }}</span>
               <span class="ym-ai__role-card-name">{{ role.name }}</span>
               <span class="ym-ai__role-card-desc">{{ role.description }}</span>
             </div>
@@ -662,8 +672,11 @@ async function scrollToBottom(force = false) {
         >
           <!-- AI 消息 -->
           <div v-if="msg.role === 'assistant'" class="ym-ai__msg-ai">
-            <div class="ym-ai__avatar ym-ai__avatar--ai">
-              {{ activeRole ? pickRoleEmoji(activeRole.category) : '🤖' }}
+            <div
+              class="ym-ai__avatar ym-ai__avatar--ai"
+              :class="pickRoleMark(activeRole?.category).color"
+            >
+              {{ pickRoleMark(activeRole?.category).char }}
             </div>
             <div class="ym-ai__msg-content">
               <div class="ym-ai__msg-name">Ypbin AI</div>
@@ -757,7 +770,7 @@ async function scrollToBottom(force = false) {
             <div class="ym-ai__user-bubble">
               <span class="ym-ai__plain">{{ msg.content }}</span>
             </div>
-            <div class="ym-ai__avatar ym-ai__avatar--user">👤</div>
+            <div class="ym-ai__avatar ym-ai__avatar--user">我</div>
           </div>
         </div>
       </div>
@@ -792,7 +805,7 @@ async function scrollToBottom(force = false) {
             </Select>
 
             <div v-if="activeRole" class="ym-ai__active-role-chip">
-              <span>{{ pickRoleEmoji(activeRole.category) }}</span>
+              <span>{{ pickRoleMark(activeRole.category).char }}</span>
               {{ activeRole.name }}
               <button @click="activeRole = null">×</button>
             </div>
@@ -870,9 +883,10 @@ async function scrollToBottom(force = false) {
               class="ym-role-item"
               @click="selectRole(role)"
             >
-              <span class="ym-role-emoji">{{
-                pickRoleEmoji(role.category)
-              }}</span>
+              <span
+                class="ym-badge"
+                :class="pickRoleMark(role.category).color"
+                >{{ pickRoleMark(role.category).char }}</span>
               <div class="ym-role-info">
                 <span class="ym-role-name">{{ role.name }}</span>
                 <span class="ym-role-desc">{{ role.description }}</span>
@@ -1254,18 +1268,65 @@ async function scrollToBottom(force = false) {
 }
 
 .ym-ai__avatar--ai {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 15%),
-    hsl(262deg 83% 58% / 15%)
-  );
+  color: #fff;
+  background: linear-gradient(135deg, hsl(221deg 83% 53%), hsl(262deg 83% 58%));
 }
 
 .ym-ai__avatar--user {
   background: hsl(var(--secondary));
 }
 
+/* ===== 角色中性标记（圆形头像徽章，不用 emoji） ===== */
+.ym-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  border-radius: 50%;
+}
+
+.ym-badge--assistant,
+.ym-ai__avatar.ym-badge--assistant {
+  background: linear-gradient(135deg, hsl(221deg 83% 53%), hsl(262deg 83% 58%));
+}
+
+.ym-badge--translator,
+.ym-ai__avatar.ym-badge--translator {
+  background: linear-gradient(
+    135deg,
+    hsl(199deg 89% 48%),
+    hsl(187deg 100% 42%)
+  );
+}
+
+.ym-badge--coder,
+.ym-ai__avatar.ym-badge--coder {
+  background: linear-gradient(135deg, hsl(262deg 83% 58%), hsl(330deg 81% 60%));
+}
+
+.ym-badge--analyst,
+.ym-ai__avatar.ym-badge--analyst {
+  background: linear-gradient(135deg, hsl(215deg 91% 48%), hsl(221deg 83% 53%));
+}
+
+.ym-badge--writer,
+.ym-ai__avatar.ym-badge--writer {
+  background: linear-gradient(135deg, hsl(32deg 95% 44%), hsl(28deg 95% 50%));
+}
+
+.ym-badge--custom,
+.ym-ai__avatar.ym-badge--custom {
+  background: linear-gradient(135deg, hsl(220deg 8% 40%), hsl(220deg 8% 55%));
+}
+
 .ym-ai__msg-content {
+  min-width: 0;
   max-width: calc(100% - 48px);
   padding-top: 2px;
 }
@@ -1278,7 +1339,9 @@ async function scrollToBottom(force = false) {
 }
 
 .ym-ai__user-bubble {
-  max-width: 72%;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: min(72%, 600px);
   padding: 10px 14px;
   font-size: 15px;
   line-height: 1.7;

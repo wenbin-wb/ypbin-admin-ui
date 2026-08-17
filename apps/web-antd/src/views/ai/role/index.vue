@@ -66,25 +66,28 @@ async function onToggleFavorite(row: any) {
   onRefresh();
 }
 
-function pickEmoji(category: string | undefined): string {
+function pickEmoji(category: string | undefined): {
+  char: string;
+  color: string;
+} {
   switch (category) {
     case 'analyst': {
-      return '📊';
+      return { char: '析', color: 'ym-badge--analyst' };
     }
     case 'coder': {
-      return '💻';
+      return { char: '码', color: 'ym-badge--coder' };
     }
     case 'custom': {
-      return '⚡';
+      return { char: '自', color: 'ym-badge--custom' };
     }
     case 'translator': {
-      return '🌐';
+      return { char: '译', color: 'ym-badge--translator' };
     }
     case 'writer': {
-      return '✍️';
+      return { char: '写', color: 'ym-badge--writer' };
     }
     default: {
-      return '🤖';
+      return { char: 'AI', color: 'ym-badge--assistant' };
     }
   }
 }
@@ -106,7 +109,9 @@ function pickEmoji(category: string | undefined): string {
       </template>
 
       <template #emoji="{ row }">
-        {{ pickEmoji(row.category) }}
+        <span class="ym-badge" :class="pickEmoji(row.category).color">{{
+          pickEmoji(row.category).char
+        }}</span>
       </template>
 
       <template #builtin="{ row }">

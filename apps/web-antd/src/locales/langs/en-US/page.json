@@ -127,7 +127,6 @@
       "category": "Category",
       "modelPreference": "Preferred Model",
       "temperature": "Temperature",
-      "category": "Category",
       "isBuiltin": "Built-in",
       "action": "Action",
       "confirmDelete": "Delete this role?",

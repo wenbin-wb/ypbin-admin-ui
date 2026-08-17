@@ -115,7 +115,6 @@
       "category": "分类",
       "modelPreference": "推荐模型",
       "temperature": "温度参数",
-      "category": "分类",
       "isBuiltin": "内置",
       "action": "操作",
       "confirmDelete": "确认删除该角色？",

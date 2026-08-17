@@ -201,14 +201,21 @@ export async function chat(
 ) {
   const accessStore = useAccessStore();
   const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
-  const response = await fetch(`${apiURL}/ai/chat`, {
+  // 后端统一流式接口 POST /ai/chat/stream，入参 AiChatSendReq（sessionId/content/roleId）
+  // ChatReq 的 conversationId→sessionId、message→content、promptTemplateId→roleId 语义对应
+  const streamBody = {
+    sessionId: data.conversationId,
+    content: data.message,
+    roleId: data.promptTemplateId,
+  };
+  const response = await fetch(`${apiURL}/ai/chat/stream`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessStore.accessToken}`,
       'Accept-Language': preferences.app.locale,
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(streamBody),
     signal,
   });
   if (!response.ok) {

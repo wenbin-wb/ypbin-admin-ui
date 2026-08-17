@@ -44,8 +44,8 @@
     "ant-design-vue": "catalog:",
     "dayjs": "catalog:",
     "dompurify": "catalog:",
-    "highlight.js": "^11.12.0",
-    "marked": "^18.0.9",
+    "highlight.js": "catalog:",
+    "marked": "catalog:",
     "pinia": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"
