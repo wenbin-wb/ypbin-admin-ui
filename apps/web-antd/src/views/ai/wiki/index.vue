@@ -97,7 +97,6 @@ async function loadKbs() {
   kbLoading.value = true;
   try {
     kbs.value = await getKnowledgeBaseList();
-    // 优先使用路由参数指定的知识库
     const routeKbId = route.params.kbId as string;
     if (routeKbId && kbs.value.some((k) => k.id === routeKbId)) {
       activeKbId.value = routeKbId;
@@ -106,6 +105,10 @@ async function loadKbs() {
     }
   } finally {
     kbLoading.value = false;
+  }
+  // 初次加载后直接拉文档，不依赖 watch 异步触发
+  if (activeKbId.value) {
+    await loadDocs(activeKbId.value);
   }
 }
 
