@@ -1129,6 +1129,7 @@ async function scrollToBottom(force = false) {
 /* ===== 欢迎页 ===== */
 .ym-ai__welcome {
   flex: 1;
+  min-height: 0;
   padding: 48px 24px;
   overflow-y: auto;
 }
@@ -1227,6 +1228,7 @@ async function scrollToBottom(force = false) {
   flex: 1;
   width: 100%;
   max-width: 820px;
+  min-height: 0;
   padding: 20px 16px;
   margin: 0 auto;
   overflow-y: auto;
@@ -1415,6 +1417,7 @@ async function scrollToBottom(force = false) {
 /* ===== 输入区 ===== */
 .ym-ai__input-area {
   flex-shrink: 0;
+  min-height: 0;
   padding: 8px 16px 16px;
 }
 
