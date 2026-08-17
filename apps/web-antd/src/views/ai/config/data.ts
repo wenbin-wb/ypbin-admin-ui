@@ -40,6 +40,24 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
     },
     {
+      component: 'Select',
+      componentProps: {
+        options: [
+          {
+            label: $t('page.ai.config.modelTypeOptions.chat'),
+            value: 'CHAT',
+          },
+          {
+            label: $t('page.ai.config.modelTypeOptions.embedding'),
+            value: 'EMBEDDING',
+          },
+        ],
+        defaultValue: 'CHAT',
+      },
+      fieldName: 'modelType',
+      label: $t('page.ai.config.modelType'),
+    },
+    {
       component: 'Input',
       componentProps: {
         placeholder: 'deepseek-v4-flash / deepseek-v4-pro',

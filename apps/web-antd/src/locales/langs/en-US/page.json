@@ -155,6 +155,7 @@
       "addModel": "Add Model",
       "editModel": "Edit Model",
       "provider": "Provider",
+      "modelType": "Model Type",
       "modelName": "Model Name",
       "apiKey": "API Key",
       "apiKeyTip": "Leave blank to keep unchanged when editing",
@@ -189,6 +190,10 @@
         "openai": "OpenAI",
         "ollama": "Ollama (Local)",
         "custom": "Custom"
+      },
+      "modelTypeOptions": {
+        "chat": "Chat Model",
+        "embedding": "Embedding Model"
       }
     },
     "permission": {

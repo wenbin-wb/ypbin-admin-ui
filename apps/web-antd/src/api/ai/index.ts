@@ -29,10 +29,13 @@ export namespace AiApi {
     promptTemplateId?: string;
   }
 
+  export type ModelType = 'CHAT' | 'EMBEDDING';
+
   export interface ModelConfig {
     id: string;
     name: string;
     provider: string;
+    modelType?: ModelType;
     baseUrl?: string;
     modelName: string;
     isDefault: number;
@@ -45,6 +48,7 @@ export namespace AiApi {
   export interface ModelConfigSaveReq {
     name: string;
     provider: string;
+    modelType?: ModelType;
     apiKey?: string;
     baseUrl?: string;
     modelName: string;
@@ -355,8 +359,15 @@ export function searchKnowledgeBaseRerank(
 }
 
 // 模型配置
-export function getModelList() {
-  return requestClient.get<AiApi.ModelConfig[]>('/ai/models');
+/**
+ * 查询模型配置列表。
+ *
+ * @param modelType 模型类型过滤：CHAT 对话 | EMBEDDING 向量化，缺省返回全部
+ */
+export function getModelList(modelType?: AiApi.ModelType) {
+  return requestClient.get<AiApi.ModelConfig[]>('/ai/models', {
+    params: modelType ? { modelType } : undefined,
+  });
 }
 
 export function createModel(data: AiApi.ModelConfigSaveReq) {

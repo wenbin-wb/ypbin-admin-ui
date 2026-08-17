@@ -143,6 +143,7 @@
       "addModel": "新增模型",
       "editModel": "编辑模型",
       "provider": "提供商",
+      "modelType": "模型类型",
       "modelName": "模型名称",
       "apiKey": "API Key",
       "apiKeyTip": "编辑时留空表示不修改",
@@ -177,6 +178,10 @@
         "openai": "OpenAI",
         "ollama": "Ollama（本地）",
         "custom": "自定义"
+      },
+      "modelTypeOptions": {
+        "chat": "对话模型",
+        "embedding": "向量化模型"
       }
     },
     "permission": {

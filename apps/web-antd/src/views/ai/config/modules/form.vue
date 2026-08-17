@@ -43,6 +43,7 @@ const [Drawer, drawerApi] = useVbenDrawer<AiApi.ModelConfig | null>({
         baseUrl: data.baseUrl ?? '',
         modelName: data.modelName,
         name: data.name,
+        modelType: data.modelType ?? 'CHAT',
         provider: data.provider,
         remark: data.remark ?? '',
         // apiKey 不回填：列表只返回脱敏值，留空表示不修改

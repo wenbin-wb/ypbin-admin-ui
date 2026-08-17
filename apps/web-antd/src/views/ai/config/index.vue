@@ -2,10 +2,12 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { AiApi } from '#/api/ai';
 
+import { ref } from 'vue';
+
 import { Page, useVbenDrawer } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
-import { Button, message, Tag } from 'ant-design-vue';
+import { Button, message, Tabs, Tag } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
@@ -26,6 +28,13 @@ const [FormDrawer, formDrawerApi] = useVbenDrawer({
   destroyOnClose: false,
 });
 
+/** 当前激活的模型类型：CHAT 对话 | EMBEDDING 向量化 */
+const activeModelType = ref<AiApi.ModelType>('CHAT');
+
+function onModelTypeChange() {
+  gridApi.query();
+}
+
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
     schema: useGridFormSchema(),
@@ -38,7 +47,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     proxyConfig: {
       ajax: {
         query: async () => {
-          const items = await getModelList();
+          const items = await getModelList(activeModelType.value);
           return { items, total: items.length };
         },
       },
@@ -134,6 +143,25 @@ const providerTags: Record<string, string> = {
 <template>
   <Page auto-content-height>
     <FormDrawer @reload="onRefresh" />
+    <Tabs
+      class="mb-3"
+      :active-key="activeModelType"
+      @change="
+        (key) => {
+          activeModelType = key as AiApi.ModelType;
+          onModelTypeChange();
+        }
+      "
+    >
+      <Tabs.TabPane
+        key="CHAT"
+        :tab="$t('page.ai.config.modelTypeOptions.chat')"
+      />
+      <Tabs.TabPane
+        key="EMBEDDING"
+        :tab="$t('page.ai.config.modelTypeOptions.embedding')"
+      />
+    </Tabs>
     <Grid :table-title="$t('page.ai.config.title')">
       <template #toolbar-tools>
         <Button
