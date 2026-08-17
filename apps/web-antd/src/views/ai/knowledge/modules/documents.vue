@@ -211,7 +211,7 @@ defineExpose({ modalApi });
 <template>
   <Modal
     :title="modalApi.getData()?.name ?? ''"
-    width="min(92vw, 1200px)"
+    :width="1200"
     class="ai-doc-modal"
   >
     <div class="mb-4 flex items-center gap-3">
