@@ -124,7 +124,21 @@
       "tabTest": "Retrieval Test",
       "docsEmpty": "No documents yet. Upload your first document to start building.",
       "pollingHint": "Processing documents refresh automatically",
-      "answerLabel": "AI Answer"
+      "answerLabel": "AI Answer",
+      "importDoc": "Import",
+      "importUrl": "From URL",
+      "importSitemap": "From Sitemap",
+      "importRss": "From RSS",
+      "importUrlLabel": "Page URL",
+      "importSitemapLabel": "Sitemap URL",
+      "importRssLabel": "RSS Feed URL",
+      "importUrlPlaceholder": "https://example.com/page",
+      "importSitemapPlaceholder": "https://example.com/sitemap.xml",
+      "importRssPlaceholder": "https://example.com/rss.xml",
+      "importMaxUrls": "Max URLs (1-100)",
+      "importSubmit": "Start Import",
+      "importSuccess": "Import successful, {count} document(s) created",
+      "importFail": "Import failed"
     },
     "wiki": {
       "title": "Wiki Reader",

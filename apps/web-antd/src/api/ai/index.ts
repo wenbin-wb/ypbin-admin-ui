@@ -90,6 +90,16 @@ export namespace AiApi {
     errorMsg?: string;
     createTime: string;
     updateTime?: string;
+    sourceType?: string;
+    sourceUrl?: string;
+  }
+
+  export interface KbImportReq {
+    /** URL / SITEMAP / RSS */
+    sourceType: 'RSS' | 'SITEMAP' | 'URL';
+    url: string;
+    maxUrls?: number;
+    customTitle?: string;
   }
 
   export interface KbSourceFragment {
@@ -346,6 +356,13 @@ export function retryDocument(kbId: string, docId: string) {
 
 export function deleteDocument(kbId: string, docId: string) {
   return requestClient.delete(`/ai/knowledge-bases/${kbId}/documents/${docId}`);
+}
+
+export function importDocumentFromUrl(kbId: string, req: AiApi.KbImportReq) {
+  return requestClient.post<AiApi.KbDocument[]>(
+    `/ai/knowledge-bases/${kbId}/import-url`,
+    req,
+  );
 }
 
 export function queryKnowledgeBase(kbId: string, question: string) {

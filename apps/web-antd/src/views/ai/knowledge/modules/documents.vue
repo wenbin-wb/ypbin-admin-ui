@@ -2,16 +2,21 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { AiApi } from '#/api/ai';
 
-import { onUnmounted, ref } from 'vue';
+import { onUnmounted, reactive, ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
 import {
   Alert,
+  Modal as AntModal,
   Badge,
   Button,
+  Dropdown,
   Empty,
+  Form,
+  Input,
+  InputNumber,
   message,
   Tabs,
   Tooltip,
@@ -22,6 +27,7 @@ import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
   deleteDocument,
   getDocumentList,
+  importDocumentFromUrl,
   queryKnowledgeBase,
   retryDocument,
   searchKnowledgeBaseMultiple,
@@ -243,6 +249,52 @@ function formatSize(bytes: number) {
   return `${(bytes / k ** i).toFixed(1)} ${units[i] ?? 'B'}`;
 }
 
+// ---- URL / Sitemap / RSS 导入弹窗 ----
+const importVisible = ref(false);
+const importLoading = ref(false);
+const importForm = reactive({
+  sourceType: 'URL' as 'RSS' | 'SITEMAP' | 'URL',
+  url: '',
+  maxUrls: 10,
+});
+
+function openImport(type: 'RSS' | 'SITEMAP' | 'URL') {
+  importForm.sourceType = type;
+  importForm.url = '';
+  importForm.maxUrls = 10;
+  importVisible.value = true;
+}
+
+async function onImportSubmit() {
+  if (!importForm.url.trim()) {
+    message.warning($t('page.ai.knowledge.importUrlPlaceholder'));
+    return;
+  }
+  const kb = modalApi.getData();
+  if (!kb) return;
+  importLoading.value = true;
+  try {
+    const docs = await importDocumentFromUrl(kb.id, {
+      sourceType: importForm.sourceType,
+      url: importForm.url.trim(),
+      maxUrls: importForm.maxUrls,
+    });
+    importVisible.value = false;
+    message.success(
+      $t('page.ai.knowledge.importSuccess').replace(
+        '{count}',
+        String(docs.length),
+      ),
+    );
+    gridApi.query();
+    emits('reload');
+  } catch (error: any) {
+    message.error(error?.message || $t('page.ai.knowledge.importFail'));
+  } finally {
+    importLoading.value = false;
+  }
+}
+
 defineExpose({ modalApi });
 </script>
 
@@ -265,6 +317,32 @@ defineExpose({ modalApi });
               {{ $t('page.ai.knowledge.upload') }}
             </Button>
           </Upload>
+          <Dropdown>
+            <Button>
+              {{ $t('page.ai.knowledge.importDoc') }}
+              <span class="ml-1 text-xs opacity-60">▾</span>
+            </Button>
+            <template #overlay>
+              <div
+                class="min-w-[160px] overflow-hidden rounded-md border border-border bg-background py-1 shadow-md"
+              >
+                <div
+                  v-for="type in ['URL', 'SITEMAP', 'RSS'] as const"
+                  :key="type"
+                  class="cursor-pointer px-4 py-2 text-sm transition-colors hover:bg-muted"
+                  @click="openImport(type)"
+                >
+                  {{
+                    type === 'URL'
+                      ? $t('page.ai.knowledge.importUrl')
+                      : type === 'SITEMAP'
+                        ? $t('page.ai.knowledge.importSitemap')
+                        : $t('page.ai.knowledge.importRss')
+                  }}
+                </div>
+              </div>
+            </template>
+          </Dropdown>
           <span class="text-xs text-muted-foreground">
             {{ $t('page.ai.knowledge.uploadHint') }}
           </span>
@@ -281,8 +359,14 @@ defineExpose({ modalApi });
 
         <Grid class="min-h-[260px]">
           <template #filename="{ row }">
-            <Tooltip :title="row.filename">
-              <span class="truncate">{{ row.filename }}</span>
+            <Tooltip :title="row.sourceUrl || row.filename">
+              <div class="flex items-center gap-1.5 truncate">
+                <span
+                  v-if="row.sourceType && row.sourceType !== 'UPLOAD'"
+                  class="shrink-0 rounded bg-blue-100 px-1 py-px text-[10px] font-medium leading-4 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                  >{{ row.sourceType }}</span>
+                <span class="truncate">{{ row.filename }}</span>
+              </div>
             </Tooltip>
           </template>
           <template #size="{ row }">
@@ -411,4 +495,56 @@ defineExpose({ modalApi });
       </Tabs.TabPane>
     </Tabs>
   </Modal>
+
+  <!-- URL / Sitemap / RSS 导入弹窗 -->
+  <AntModal
+    v-model:open="importVisible"
+    :confirm-loading="importLoading"
+    :ok-text="$t('page.ai.knowledge.importSubmit')"
+    :title="
+      importForm.sourceType === 'URL'
+        ? $t('page.ai.knowledge.importUrl')
+        : importForm.sourceType === 'SITEMAP'
+          ? $t('page.ai.knowledge.importSitemap')
+          : $t('page.ai.knowledge.importRss')
+    "
+    width="520px"
+    @ok="onImportSubmit"
+  >
+    <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" class="mt-4">
+      <Form.Item
+        :label="
+          importForm.sourceType === 'URL'
+            ? $t('page.ai.knowledge.importUrlLabel')
+            : importForm.sourceType === 'SITEMAP'
+              ? $t('page.ai.knowledge.importSitemapLabel')
+              : $t('page.ai.knowledge.importRssLabel')
+        "
+        required
+      >
+        <Input
+          v-model:value="importForm.url"
+          :placeholder="
+            importForm.sourceType === 'URL'
+              ? $t('page.ai.knowledge.importUrlPlaceholder')
+              : importForm.sourceType === 'SITEMAP'
+                ? $t('page.ai.knowledge.importSitemapPlaceholder')
+                : $t('page.ai.knowledge.importRssPlaceholder')
+          "
+          allow-clear
+        />
+      </Form.Item>
+      <Form.Item
+        v-if="importForm.sourceType === 'SITEMAP'"
+        :label="$t('page.ai.knowledge.importMaxUrls')"
+      >
+        <InputNumber
+          v-model:value="importForm.maxUrls"
+          :max="100"
+          :min="1"
+          class="w-full"
+        />
+      </Form.Item>
+    </Form>
+  </AntModal>
 </template>

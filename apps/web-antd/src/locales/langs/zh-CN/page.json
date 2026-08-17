@@ -112,7 +112,21 @@
       "tabTest": "检索测试",
       "docsEmpty": "该知识库还没有文档，上传第一个文档开始构建",
       "pollingHint": "处理中的文档将自动刷新状态",
-      "answerLabel": "AI 回答"
+      "answerLabel": "AI 回答",
+      "importDoc": "导入文档",
+      "importUrl": "URL 导入",
+      "importSitemap": "Sitemap 批量导入",
+      "importRss": "RSS 订阅导入",
+      "importUrlLabel": "页面 URL",
+      "importSitemapLabel": "Sitemap 地址",
+      "importRssLabel": "RSS Feed 地址",
+      "importUrlPlaceholder": "https://example.com/page",
+      "importSitemapPlaceholder": "https://example.com/sitemap.xml",
+      "importRssPlaceholder": "https://example.com/rss.xml",
+      "importMaxUrls": "最多导入条数（1-100）",
+      "importSubmit": "开始导入",
+      "importSuccess": "导入成功，共创建 {count} 个文档",
+      "importFail": "导入失败"
     },
     "wiki": {
       "title": "Wiki 阅读",
