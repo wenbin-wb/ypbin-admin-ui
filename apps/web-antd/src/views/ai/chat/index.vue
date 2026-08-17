@@ -1251,9 +1251,12 @@ async function scrollToBottom(force = false) {
   align-items: flex-start;
 }
 
-.ym-ai__msg--user {
+.ym-ai__msg-user {
+  display: flex;
   flex-direction: row-reverse;
   align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
 }
 
 .ym-ai__avatar {
@@ -1339,9 +1342,9 @@ async function scrollToBottom(force = false) {
 }
 
 .ym-ai__user-bubble {
-  flex-shrink: 1;
+  flex-shrink: 0;
   min-width: 0;
-  max-width: min(72%, 600px);
+  max-width: 76%;
   padding: 10px 14px;
   font-size: 15px;
   line-height: 1.7;
