@@ -25,6 +25,7 @@ import {
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
+  batchUploadDocuments,
   deleteDocument,
   getDocumentList,
   importDocumentFromUrl,
@@ -34,7 +35,6 @@ import {
   searchKnowledgeBaseRerank,
   searchKnowledgeBaseTest,
 } from '#/api/ai';
-import { requestClient } from '#/api/request';
 import { $t } from '#/locales';
 
 const emits = defineEmits<{ reload: [] }>();
@@ -144,21 +144,41 @@ const [Grid, gridApi] = useVbenVxeGrid({
   } as VxeTableGridOptions<AiApi.KbDocument>,
 });
 
-async function onUpload(file: File) {
-  docUploading.value = true;
+// 多选文件 → 统一调批量上传接口；before-upload 返回 false 阻止单选自动上传
+const pendingFiles: File[] = [];
+let batchTimer: null | ReturnType<typeof setTimeout> = null;
+
+function onSelectFile(file: File) {
+  pendingFiles.push(file);
+  if (batchTimer) clearTimeout(batchTimer);
+  batchTimer = setTimeout(() => {
+    const files = pendingFiles.splice(0);
+    if (files.length > 0) {
+      doBatchUpload(files);
+    }
+  }, 300);
+  return false;
+}
+
+async function doBatchUpload(files: File[]) {
   const kb = modalApi.getData();
-  if (!kb) return false;
+  if (!kb) return;
+  docUploading.value = true;
   try {
-    await requestClient.upload(`/ai/knowledge-bases/${kb.id}/documents`, {
-      file,
-    });
-    message.success($t('common.success'));
+    const docs = await batchUploadDocuments(kb.id, files);
+    message.success(
+      $t('page.ai.knowledge.uploadSuccess').replace(
+        '{count}',
+        String(docs.length),
+      ),
+    );
     gridApi.query();
     emits('reload');
+  } catch (error: any) {
+    message.error(error?.message || $t('common.requestFailed'));
   } finally {
     docUploading.value = false;
   }
-  return false;
 }
 
 function onDeleteDoc(row: AiApi.KbDocument) {
@@ -308,8 +328,9 @@ defineExpose({ modalApi });
       <Tabs.TabPane key="docs" :tab="$t('page.ai.knowledge.tabDocs')">
         <div class="mb-4 flex items-center gap-3">
           <Upload
-            :before-upload="onUpload"
-            accept=".pdf,.md,.txt"
+            :before-upload="onSelectFile"
+            accept=".pdf,.md,.txt,.docx,.xlsx,.html,.htm"
+            :multiple="true"
             :show-upload-list="false"
           >
             <Button :loading="docUploading" type="primary">

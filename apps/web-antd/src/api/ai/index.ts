@@ -365,6 +365,16 @@ export function importDocumentFromUrl(kbId: string, req: AiApi.KbImportReq) {
   );
 }
 
+export async function batchUploadDocuments(kbId: string, files: File[]) {
+  const form = new FormData();
+  files.forEach((file) => form.append('files', file));
+  return requestClient.post<AiApi.KbDocument[]>(
+    `/ai/knowledge-bases/${kbId}/documents/batch`,
+    form,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
+}
+
 export function queryKnowledgeBase(kbId: string, question: string) {
   return requestClient.post<string>(`/ai/knowledge-bases/${kbId}/query`, {
     question,
