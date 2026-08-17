@@ -13,7 +13,6 @@ import {
   Select,
   Tooltip,
 } from 'ant-design-vue';
-import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
 import { marked } from 'marked';
 
@@ -31,6 +30,7 @@ import {
   updateSessionTitle,
 } from '#/api/ai';
 import { $t } from '#/locales';
+import { sanitizeHtml } from '#/views/system/_shared/sanitize';
 
 defineOptions({ name: 'AiChat' });
 
@@ -38,11 +38,16 @@ defineOptions({ name: 'AiChat' });
 const markdownRenderer = new marked.Renderer();
 markdownRenderer.code = ({ text, lang }: { lang?: string; text: string }) => {
   const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
-  const safeCode = DOMPurify.sanitize(text, { FORBID_TAGS: ['script'] });
+  const safeCode = text;
   const highlighted = hljs.highlight(safeCode, { language }).value;
   return `<pre class="ai-code-block"><code class="hljs language-${language}">${highlighted}</code><button type="button" class="ai-copy-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>${$t('page.ai.chat.copy')}</button></pre>`;
 };
-marked.use({ breaks: true, gfm: true, renderer: markdownRenderer });
+marked.use({
+  async: false,
+  breaks: true,
+  gfm: true,
+  renderer: markdownRenderer,
+});
 
 // ===== 状态 =====
 const sidebarOpen = ref(true);
@@ -357,14 +362,15 @@ async function regenerate() {
 function renderMd(content: string): string {
   if (!content) return '';
   try {
-    const raw = marked.parse(content) as string;
-    const html = typeof raw === 'string' ? raw : String(raw);
-    return DOMPurify.sanitize(html, { ADD_ATTR: ['class'] });
-  } catch {
-    return content
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;');
+    const raw = marked.parse(content);
+    if (typeof raw !== 'string') {
+      console.error('[ypbin-ai] marked 返回非字符串，疑似异步渲染异常', raw);
+      return content;
+    }
+    return sanitizeHtml(raw);
+  } catch (error) {
+    console.error('[ypbin-ai] markdown 渲染失败，不静默降级', error);
+    return content;
   }
 }
 
@@ -1245,9 +1251,8 @@ async function scrollToBottom(force = false) {
 
 .ym-ai__msg--user {
   display: flex;
-  flex-direction: row-reverse;
   align-items: flex-start;
-  justify-content: flex-start;
+  justify-content: flex-end;
   width: 100%;
 }
 
@@ -1334,9 +1339,9 @@ async function scrollToBottom(force = false) {
 }
 
 .ym-ai__user-bubble {
-  flex-shrink: 0;
+  flex-shrink: 1;
   min-width: 0;
-  max-width: 76%;
+  max-width: 100%;
   padding: 10px 14px;
   font-size: 15px;
   line-height: 1.7;
@@ -1556,17 +1561,54 @@ async function scrollToBottom(force = false) {
 
 .ym-ai__markdown :deep(.ai-code-block) {
   position: relative;
-  margin: 10px 0;
+  margin: 12px 0;
   overflow-x: auto;
   background: hsl(var(--secondary));
+  border: 1px solid hsl(var(--border));
   border-radius: 8px;
 }
 
 .ym-ai__markdown :deep(.ai-code-block code) {
   display: block;
-  padding: 14px;
+  padding: 14px 16px;
+  font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+    monospace;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.7;
+  color: hsl(var(--foreground));
+  tab-size: 2;
+}
+
+/* highlight.js 语法高亮 token 配色（作用于 AI 回复代码块） */
+.ym-ai__markdown :deep(.ai-code-block .hljs-keyword),
+.ym-ai__markdown :deep(.ai-code-block .hljs-selector-tag),
+.ym-ai__markdown :deep(.ai-code-block .hljs-literal) {
+  color: hsl(262deg 83% 70%);
+}
+
+.ym-ai__markdown :deep(.ai-code-block .hljs-string),
+.ym-ai__markdown :deep(.ai-code-block .hljs-title),
+.ym-ai__markdown :deep(.ai-code-block .hljs-attr) {
+  color: hsl(142deg 71% 45%);
+}
+
+.ym-ai__markdown :deep(.ai-code-block .hljs-comment),
+.ym-ai__markdown :deep(.ai-code-block .hljs-quote) {
+  font-style: italic;
+  color: hsl(var(--muted-foreground));
+}
+
+.ym-ai__markdown :deep(.ai-code-block .hljs-number),
+.ym-ai__markdown :deep(.ai-code-block .hljs-variable),
+.ym-ai__markdown :deep(.ai-code-block span[class~='hljs-built-in']),
+.ym-ai__markdown :deep(.ai-code-block span[class~='hljs-built_in']) {
+  color: hsl(32deg 95% 55%);
+}
+
+.ym-ai__markdown :deep(.ai-code-block .hljs-function),
+.ym-ai__markdown :deep(.ai-code-block .hljs-params) {
+  color: hsl(221deg 83% 65%);
 }
 
 .ym-ai__markdown :deep(.ai-copy-btn) {
