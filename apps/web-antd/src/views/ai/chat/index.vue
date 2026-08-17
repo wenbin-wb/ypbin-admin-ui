@@ -673,14 +673,10 @@ async function scrollToBottom(force = false) {
         <div
           v-for="msg in messages"
           :key="msg.id"
-          class="ym-ai__msg"
-          :class="`ym-ai__msg--${msg.role}`"
+          :class="`ym-ai__msg ym-ai__msg--${msg.role}`"
         >
           <!-- AI 消息 -->
-          <div
-            v-if="msg.role === 'assistant'"
-            class="ym-ai__msg-content ym-ai__msg-content--ai"
-          >
+          <div v-if="msg.role === 'assistant'" class="ym-ai__msg-content">
             <!-- eslint-disable vue/no-v-html -->
             <div
               v-if="msg.content"
@@ -766,10 +762,8 @@ async function scrollToBottom(force = false) {
           </div>
 
           <!-- 用户消息 -->
-          <div v-else class="ym-ai__msg-user">
-            <div class="ym-ai__user-bubble">
-              <span class="ym-ai__plain">{{ msg.content }}</span>
-            </div>
+          <div v-else class="ym-ai__user-bubble">
+            <span class="ym-ai__plain">{{ msg.content }}</span>
           </div>
         </div>
       </div>
@@ -1240,20 +1234,19 @@ async function scrollToBottom(force = false) {
 
 .ym-ai__msg {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  width: 100%;
   margin-bottom: 24px;
 }
 
+/* AI 消息：左对齐，内容占满 */
 .ym-ai__msg--ai {
-  align-items: flex-start;
+  justify-content: flex-start;
 }
 
+/* 用户消息：右对齐 */
 .ym-ai__msg--user {
-  display: flex;
-  align-items: flex-start;
   justify-content: flex-end;
-  width: 100%;
 }
 
 .ym-ai__avatar {
@@ -1326,9 +1319,8 @@ async function scrollToBottom(force = false) {
 }
 
 .ym-ai__msg-content {
+  width: 100%;
   min-width: 0;
-  max-width: calc(100% - 48px);
-  padding-top: 2px;
 }
 
 .ym-ai__msg-name {
@@ -1339,7 +1331,6 @@ async function scrollToBottom(force = false) {
 }
 
 .ym-ai__user-bubble {
-  flex-shrink: 1;
   min-width: 0;
   max-width: 100%;
   padding: 10px 14px;
