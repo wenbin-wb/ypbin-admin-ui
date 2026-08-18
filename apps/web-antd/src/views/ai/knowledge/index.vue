@@ -11,12 +11,17 @@ import {
   Empty,
   Input,
   message,
+  Modal,
   Popconfirm,
   Skeleton,
   Tooltip,
 } from 'ant-design-vue';
 
-import { deleteKnowledgeBase, getKnowledgeBaseList } from '#/api/ai';
+import {
+  deleteKnowledgeBase,
+  getKnowledgeBaseList,
+  setWidgetEnabled,
+} from '#/api/ai';
 import { $t } from '#/locales';
 
 import Documents from './modules/documents.vue';
@@ -74,6 +79,74 @@ async function onDelete(row: AiApi.KnowledgeBase) {
   await loadKbs();
 }
 
+// ---- 网页挂件 ----
+const widgetKb = ref<AiApi.KnowledgeBase | null>(null);
+const widgetToken = ref('');
+const widgetLoading = ref(false);
+const widgetOpen = ref(false);
+
+function onWidget(row: AiApi.KnowledgeBase, e: Event) {
+  e.stopPropagation();
+  widgetKb.value = row;
+  widgetToken.value = row.widgetToken || '';
+  widgetOpen.value = true;
+}
+
+async function onWidgetEnable() {
+  const kb = widgetKb.value;
+  if (!kb) return;
+  widgetLoading.value = true;
+  try {
+    const token = await setWidgetEnabled(kb.id, true);
+    widgetToken.value = token;
+    kb.widgetToken = token;
+    kb.widgetEnabled = 1;
+    message.success($t('common.success'));
+  } catch (error: any) {
+    message.error(error?.message || $t('common.requestFailed'));
+  } finally {
+    widgetLoading.value = false;
+  }
+}
+
+async function onWidgetDisable() {
+  const kb = widgetKb.value;
+  if (!kb) return;
+  widgetLoading.value = true;
+  try {
+    await setWidgetEnabled(kb.id, false);
+    widgetToken.value = '';
+    kb.widgetToken = '';
+    kb.widgetEnabled = 0;
+    message.success($t('page.ai.knowledge.widgetDisabled'));
+  } catch (error: any) {
+    message.error(error?.message || $t('common.requestFailed'));
+  } finally {
+    widgetLoading.value = false;
+  }
+}
+
+function widgetEmbedCode(token: string) {
+  const host = window.location.origin;
+  // 用 \\u002F 转义 script 结束标签，避免提前终止本组件的 setup 块
+  return (
+    `<scr` +
+    `ipt src="${host}/embed.js" data-token="${
+      token
+    }" data-title="${widgetKb.value?.name || ''}"><\u002Fscript>`
+  );
+}
+
+async function onCopyCode() {
+  const code = widgetEmbedCode(widgetToken.value);
+  try {
+    await navigator.clipboard.writeText(code);
+    message.success($t('page.ai.knowledge.widgetCopied'));
+  } catch {
+    message.error($t('common.requestFailed'));
+  }
+}
+
 /** 取知识库默认展示图标：优先 icon 字段，否则取名称首字 */
 function kbIcon(kb: AiApi.KnowledgeBase) {
   if (kb.icon && kb.icon.trim()) return kb.icon.trim();
@@ -104,6 +177,52 @@ onMounted(loadKbs);
   <Page auto-content-height content-class="p-4">
     <FormDrawer @reload="loadKbs" />
     <DocumentsModal @reload="loadKbs" />
+
+    <!-- 网页挂件弹窗 -->
+    <Modal
+      v-model:open="widgetOpen"
+      :footer="null"
+      :title="$t('page.ai.knowledge.widget')"
+      width="560px"
+    >
+      <div v-if="widgetKb" class="space-y-4 py-2">
+        <p class="text-sm text-muted-foreground">
+          {{ $t('page.ai.knowledge.widgetHint') }}
+        </p>
+
+        <template v-if="widgetToken">
+          <p class="text-sm font-medium">
+            {{ $t('page.ai.knowledge.widgetCodeLabel') }}
+          </p>
+          <pre
+            class="max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted/60 p-3 text-xs leading-relaxed"
+            >{{ widgetEmbedCode(widgetToken) }}</pre>
+          <Button size="small" @click="onCopyCode">
+            {{ $t('page.ai.knowledge.widgetCopy') }}
+          </Button>
+          <div class="mt-4 flex justify-end">
+            <Button danger :loading="widgetLoading" @click="onWidgetDisable">
+              {{ $t('page.ai.knowledge.widgetDisable') }}
+            </Button>
+          </div>
+        </template>
+
+        <template v-else>
+          <p class="text-sm">
+            {{ $t('page.ai.knowledge.widgetNotEnabled') }}
+          </p>
+          <div class="mt-4 flex justify-end">
+            <Button
+              :loading="widgetLoading"
+              type="primary"
+              @click="onWidgetEnable"
+            >
+              {{ $t('page.ai.knowledge.widgetEnable') }}
+            </Button>
+          </div>
+        </template>
+      </div>
+    </Modal>
 
     <div class="flex h-full flex-col rounded-lg bg-background p-5 shadow-sm">
       <!-- 顶栏 -->
@@ -184,6 +303,22 @@ onMounted(loadKbs);
           <div
             class="absolute right-3 top-3 hidden items-center gap-1 group-hover:flex"
           >
+            <Tooltip :title="$t('page.ai.knowledge.widget')">
+              <Button
+                v-access:code="['ai:knowledge:create']"
+                size="small"
+                type="text"
+                class="size-7 p-0"
+                :class="
+                  kb.widgetEnabled === 1
+                    ? 'text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                "
+                @click="onWidget(kb, $event)"
+              >
+                <span class="i-lucide-globe-2 size-3.5"></span>
+              </Button>
+            </Tooltip>
             <Tooltip :title="$t('common.edit')">
               <Button
                 v-access:code="['ai:knowledge:create']"

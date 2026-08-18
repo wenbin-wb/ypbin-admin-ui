@@ -139,7 +139,16 @@
       "importMaxUrls": "Max URLs (1-100)",
       "importSubmit": "Start Import",
       "importSuccess": "Import successful, {count} document(s) created",
-      "importFail": "Import failed"
+      "importFail": "Import failed",
+      "widget": "Web Widget",
+      "widgetHint": "Once enabled, embed an AI Q&A assistant (answered from this knowledge base) into any website via embed code. The token is used for auth; disable and re-enable if leaked.",
+      "widgetCodeLabel": "Embed code (copy & paste into your website HTML)",
+      "widgetCopy": "Copy code",
+      "widgetEnable": "Enable widget",
+      "widgetDisable": "Disable widget",
+      "widgetDisabled": "Widget disabled",
+      "widgetCopied": "Embed code copied",
+      "widgetNotEnabled": "Web widget is not enabled yet. Enable it to generate a token and embed code."
     },
     "wiki": {
       "title": "Wiki Reader",

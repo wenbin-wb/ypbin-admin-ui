@@ -63,6 +63,9 @@ export namespace AiApi {
     icon?: string;
     docCount: number;
     createTime: string;
+    /** 网页挂件令牌（非空表示已启用） */
+    widgetToken?: string;
+    widgetEnabled?: number;
   }
 
   export interface KnowledgeBaseSaveReq {
@@ -339,6 +342,12 @@ export function updateKnowledgeBase(
 
 export function deleteKnowledgeBase(id: string) {
   return requestClient.delete(`/ai/knowledge-bases/${id}`);
+}
+
+export function setWidgetEnabled(kbId: string, enabled: boolean) {
+  return requestClient.put<string>(`/ai/knowledge-bases/${kbId}/widget`, null, {
+    params: { enabled },
+  });
 }
 
 export function getDocumentList(kbId: string, params?: Record<string, any>) {

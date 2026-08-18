@@ -127,7 +127,16 @@
       "importMaxUrls": "最多导入条数（1-100）",
       "importSubmit": "开始导入",
       "importSuccess": "导入成功，共创建 {count} 个文档",
-      "importFail": "导入失败"
+      "importFail": "导入失败",
+      "widget": "网页挂件",
+      "widgetHint": "启用后，可在任意网站通过嵌入代码添加 AI 问答助手（基于本知识库回答）。令牌用于鉴权，泄露请禁用后重新启用。",
+      "widgetCodeLabel": "嵌入代码（复制粘贴到目标网站 HTML 中）",
+      "widgetCopy": "复制代码",
+      "widgetEnable": "启用挂件",
+      "widgetDisable": "禁用挂件",
+      "widgetDisabled": "挂件已禁用",
+      "widgetCopied": "嵌入代码已复制",
+      "widgetNotEnabled": "当前未启用网页挂件。启用后将生成专属令牌并显示嵌入代码。"
     },
     "wiki": {
       "title": "Wiki 阅读",
