@@ -4,6 +4,7 @@ import type { AiApi } from '#/api/ai';
 import { computed, onMounted, ref } from 'vue';
 
 import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
+import { useAppConfig } from '@vben/hooks';
 import { Plus } from '@vben/icons';
 
 import {
@@ -127,11 +128,11 @@ async function onWidgetDisable() {
 }
 
 function widgetEmbedCode(token: string) {
-  const host = window.location.origin;
+  const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
   // 用 \\u002F 转义 script 结束标签，避免提前终止本组件的 setup 块
   return (
     `<scr` +
-    `ipt src="${host}/embed.js" data-token="${
+    `ipt src="${apiURL}/widget/embed.js" data-token="${
       token
     }" data-title="${widgetKb.value?.name || ''}"><\u002Fscript>`
   );
@@ -299,10 +300,8 @@ onMounted(loadKbs);
           class="group relative flex cursor-pointer flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
           @click="onManageDocs(kb)"
         >
-          <!-- 操作按钮（hover 时显示） -->
-          <div
-            class="absolute right-3 top-3 hidden items-center gap-1 group-hover:flex"
-          >
+          <!-- 操作按钮（挂件始终显示，编辑/删除 hover 显示） -->
+          <div class="absolute right-3 top-3 flex items-center gap-1">
             <Tooltip :title="$t('page.ai.knowledge.widget')">
               <Button
                 v-access:code="['ai:knowledge:create']"
@@ -311,41 +310,43 @@ onMounted(loadKbs);
                 class="size-7 p-0"
                 :class="
                   kb.widgetEnabled === 1
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'text-primary hover:text-primary/80'
+                    : 'text-slate-400 hover:text-slate-600'
                 "
                 @click="onWidget(kb, $event)"
               >
                 <span class="i-lucide-globe-2 size-3.5"></span>
               </Button>
             </Tooltip>
-            <Tooltip :title="$t('common.edit')">
-              <Button
-                v-access:code="['ai:knowledge:create']"
-                size="small"
-                type="text"
-                class="size-7 p-0 text-muted-foreground hover:text-foreground"
-                @click="onEdit(kb, $event)"
-              >
-                <span class="i-lucide-pencil size-3.5"></span>
-              </Button>
-            </Tooltip>
-            <Popconfirm
-              :title="$t('page.ai.knowledge.confirmDeleteKb')"
-              @confirm.stop="onDelete(kb)"
-            >
-              <Tooltip :title="$t('common.delete')">
+            <div class="hidden group-hover:flex items-center gap-1">
+              <Tooltip :title="$t('common.edit')">
                 <Button
+                  v-access:code="['ai:knowledge:create']"
                   size="small"
                   type="text"
-                  danger
-                  class="size-7 p-0"
-                  @click.stop
+                  class="size-7 p-0 text-muted-foreground hover:text-foreground"
+                  @click="onEdit(kb, $event)"
                 >
-                  <span class="i-lucide-trash-2 size-3.5"></span>
+                  <span class="i-lucide-pencil size-3.5"></span>
                 </Button>
               </Tooltip>
-            </Popconfirm>
+              <Popconfirm
+                :title="$t('page.ai.knowledge.confirmDeleteKb')"
+                @confirm.stop="onDelete(kb)"
+              >
+                <Tooltip :title="$t('common.delete')">
+                  <Button
+                    size="small"
+                    type="text"
+                    danger
+                    class="size-7 p-0"
+                    @click.stop
+                  >
+                    <span class="i-lucide-trash-2 size-3.5"></span>
+                  </Button>
+                </Tooltip>
+              </Popconfirm>
+            </div>
           </div>
 
           <!-- 图标 + 名称 -->
