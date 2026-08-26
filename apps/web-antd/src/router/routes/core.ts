@@ -112,6 +112,21 @@ const coreRoutes: RouteRecordRaw[] = [
       },
     ],
   },
+  /**
+   * 知识库公开分享页：免登录、无后台布局壳，仅通过分享令牌访问。
+   * 名字加入 coreRouteNames 后由权限守卫直接放行。
+   */
+  {
+    component: () => import('#/views/ai/share/index.vue'),
+    meta: {
+      hideInBreadcrumb: true,
+      hideInMenu: true,
+      hideInTab: true,
+      title: $t('page.ai.share.title'),
+    },
+    name: 'AiShare',
+    path: '/share/:token',
+  },
 ];
 
 export { coreRoutes, fallbackNotFoundRoute };

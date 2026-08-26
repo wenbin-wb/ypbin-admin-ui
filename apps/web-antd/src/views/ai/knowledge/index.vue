@@ -9,18 +9,22 @@ import { Plus } from '@vben/icons';
 
 import {
   Button,
+  DatePicker,
   Empty,
   Input,
   message,
   Modal,
   Popconfirm,
   Skeleton,
+  Switch,
   Tooltip,
 } from 'ant-design-vue';
+import dayjs, { type Dayjs } from 'dayjs';
 
 import {
   deleteKnowledgeBase,
   getKnowledgeBaseList,
+  setShareSetting,
   setWidgetEnabled,
 } from '#/api/ai';
 import { $t } from '#/locales';
@@ -148,6 +152,104 @@ async function onCopyCode() {
   }
 }
 
+// ---- 公开分享 ----
+const shareKb = ref<AiApi.KnowledgeBase | null>(null);
+const shareOpen = ref(false);
+const shareEnabled = ref(false);
+const shareExpire = ref<Dayjs | undefined>(undefined);
+const sharePassword = ref('');
+const shareToken = ref('');
+const shareSaving = ref(false);
+
+function shareLink(token: string) {
+  return `${window.location.origin}/share/${token}`;
+}
+
+function onShare(row: AiApi.KnowledgeBase, e: Event) {
+  e.stopPropagation();
+  shareKb.value = row;
+  shareEnabled.value = row.shareEnabled === 1;
+  shareToken.value = row.shareToken || '';
+  shareExpire.value = row.shareExpireTime ? dayjs(row.shareExpireTime) : undefined;
+  sharePassword.value = '';
+  shareOpen.value = true;
+}
+
+async function onShareEnable() {
+  const kb = shareKb.value;
+  if (!kb) return;
+  shareSaving.value = true;
+  try {
+    const token = await setShareSetting(kb.id, { enabled: true });
+    shareToken.value = token;
+    shareEnabled.value = true;
+    kb.shareToken = token;
+    kb.shareEnabled = 1;
+    message.success($t('page.ai.knowledge.shareEnabled'));
+  } catch (error: any) {
+    message.error(error?.message || $t('common.requestFailed'));
+  } finally {
+    shareSaving.value = false;
+  }
+}
+
+async function onShareSave() {
+  const kb = shareKb.value;
+  if (!kb) return;
+  shareSaving.value = true;
+  try {
+    const token = await setShareSetting(kb.id, {
+      enabled: true,
+      expireTime: shareExpire.value
+        ? shareExpire.value.format('YYYY-MM-DDTHH:mm:ss')
+        : null,
+      password: sharePassword.value.trim() || undefined,
+    });
+    shareToken.value = token;
+    kb.shareToken = token;
+    kb.shareEnabled = 1;
+    kb.shareExpireTime = shareExpire.value
+      ? shareExpire.value.format('YYYY-MM-DDTHH:mm:ss')
+      : '';
+    sharePassword.value = '';
+    message.success($t('common.success'));
+  } catch (error: any) {
+    message.error(error?.message || $t('common.requestFailed'));
+  } finally {
+    shareSaving.value = false;
+  }
+}
+
+async function onShareDisable() {
+  const kb = shareKb.value;
+  if (!kb) return;
+  shareSaving.value = true;
+  try {
+    await setShareSetting(kb.id, { enabled: false });
+    shareEnabled.value = false;
+    shareToken.value = '';
+    shareExpire.value = undefined;
+    sharePassword.value = '';
+    kb.shareToken = '';
+    kb.shareEnabled = 0;
+    kb.shareExpireTime = '';
+    message.success($t('page.ai.knowledge.shareDisabled'));
+  } catch (error: any) {
+    message.error(error?.message || $t('common.requestFailed'));
+  } finally {
+    shareSaving.value = false;
+  }
+}
+
+async function onCopyShareLink() {
+  try {
+    await navigator.clipboard.writeText(shareLink(shareToken.value));
+    message.success($t('page.ai.knowledge.shareCopied'));
+  } catch {
+    message.error($t('common.requestFailed'));
+  }
+}
+
 /** 取知识库默认展示图标：优先 icon 字段，否则取名称首字 */
 function kbIcon(kb: AiApi.KnowledgeBase) {
   if (kb.icon && kb.icon.trim()) return kb.icon.trim();
@@ -219,6 +321,102 @@ onMounted(loadKbs);
               @click="onWidgetEnable"
             >
               {{ $t('page.ai.knowledge.widgetEnable') }}
+            </Button>
+          </div>
+        </template>
+      </div>
+    </Modal>
+
+    <!-- 公开分享弹窗 -->
+    <Modal
+      v-model:open="shareOpen"
+      :footer="null"
+      :title="$t('page.ai.knowledge.share')"
+      width="560px"
+    >
+      <div v-if="shareKb" class="space-y-4 py-2">
+        <div class="flex items-center justify-between gap-4">
+          <p class="text-sm text-muted-foreground">
+            {{ $t('page.ai.knowledge.shareHint') }}
+          </p>
+          <Switch v-model:checked="shareEnabled" :disabled="shareSaving" />
+        </div>
+
+        <template v-if="shareEnabled && shareToken">
+          <div>
+            <p class="mb-1.5 text-sm font-medium">
+              {{ $t('page.ai.knowledge.shareLinkLabel') }}
+            </p>
+            <div class="flex gap-2">
+              <Input
+                :model-value="shareLink(shareToken)"
+                read-only
+                class="flex-1"
+              />
+              <Button size="small" @click="onCopyShareLink">
+                {{ $t('page.ai.knowledge.shareCopy') }}
+              </Button>
+            </div>
+            <p class="mt-1 text-xs text-muted-foreground">
+              {{ $t('page.ai.knowledge.shareLinkHint') }}
+            </p>
+          </div>
+
+          <div>
+            <p class="mb-1.5 text-sm font-medium">
+              {{ $t('page.ai.knowledge.shareExpire') }}
+            </p>
+            <DatePicker
+              v-model:value="shareExpire"
+              :placeholder="$t('page.ai.knowledge.shareExpirePlaceholder')"
+              show-time
+              class="w-full"
+            />
+          </div>
+
+          <div>
+            <p class="mb-1.5 text-sm font-medium">
+              {{ $t('page.ai.knowledge.sharePassword') }}
+            </p>
+            <Input.Password
+              v-model:value="sharePassword"
+              :placeholder="$t('page.ai.knowledge.sharePasswordPlaceholder')"
+              allow-clear
+            />
+            <p class="mt-1 text-xs text-muted-foreground">
+              {{ $t('page.ai.knowledge.sharePasswordHint') }}
+            </p>
+          </div>
+
+          <div class="flex justify-end gap-2">
+            <Button
+              danger
+              :loading="shareSaving"
+              @click="onShareDisable"
+            >
+              {{ $t('page.ai.knowledge.shareDisable') }}
+            </Button>
+            <Button
+              :loading="shareSaving"
+              type="primary"
+              @click="onShareSave"
+            >
+              {{ $t('page.ai.knowledge.shareSave') }}
+            </Button>
+          </div>
+        </template>
+
+        <template v-else>
+          <p class="text-sm">
+            {{ $t('page.ai.knowledge.shareNotEnabled') }}
+          </p>
+          <div class="mt-4 flex justify-end">
+            <Button
+              :loading="shareSaving"
+              type="primary"
+              @click="onShareEnable"
+            >
+              {{ $t('page.ai.knowledge.shareEnable') }}
             </Button>
           </div>
         </template>
@@ -300,7 +498,7 @@ onMounted(loadKbs);
           class="group relative flex cursor-pointer flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
           @click="onManageDocs(kb)"
         >
-          <!-- 操作按钮（挂件始终显示，编辑/删除 hover 显示） -->
+          <!-- 操作按钮（挂件/分享始终显示，编辑/删除 hover 显示） -->
           <div class="absolute right-3 top-3 flex items-center gap-1">
             <Tooltip :title="$t('page.ai.knowledge.widget')">
               <Button
@@ -316,6 +514,22 @@ onMounted(loadKbs);
                 @click="onWidget(kb, $event)"
               >
                 <span class="i-lucide-globe-2 size-3.5"></span>
+              </Button>
+            </Tooltip>
+            <Tooltip :title="$t('page.ai.knowledge.share')">
+              <Button
+                v-access:code="['ai:knowledge:create']"
+                size="small"
+                type="text"
+                class="size-7 p-0"
+                :class="
+                  kb.shareEnabled === 1
+                    ? 'text-primary hover:text-primary/80'
+                    : 'text-slate-400 hover:text-slate-600'
+                "
+                @click="onShare(kb, $event)"
+              >
+                <span class="i-lucide-share-2 size-3.5"></span>
               </Button>
             </Tooltip>
             <div class="hidden group-hover:flex items-center gap-1">

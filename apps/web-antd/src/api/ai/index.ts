@@ -66,6 +66,19 @@ export namespace AiApi {
     /** 网页挂件令牌（非空表示已启用） */
     widgetToken?: string;
     widgetEnabled?: number;
+    /** 公开分享令牌（非空表示已启用分享） */
+    shareToken?: string;
+    shareEnabled?: number;
+    /** 分享过期时间（空表示永不过期） */
+    shareExpireTime?: string;
+  }
+
+  export interface ShareSettingReq {
+    enabled: boolean;
+    /** 过期时间 ISO 字符串；null/缺省=永不过期 */
+    expireTime?: string | null;
+    /** 访问密码（明文）；空=无需密码 */
+    password?: string;
   }
 
   export interface KnowledgeBaseSaveReq {
@@ -348,6 +361,92 @@ export function setWidgetEnabled(kbId: string, enabled: boolean) {
   return requestClient.put<string>(`/ai/knowledge-bases/${kbId}/widget`, null, {
     params: { enabled },
   });
+}
+
+// 知识库公开分享
+export function setShareSetting(kbId: string, req: AiApi.ShareSettingReq) {
+  return requestClient.put<string>(`/ai/knowledge-bases/${kbId}/share`, req);
+}
+
+/**
+ * 公开分享接口（免登录）统一请求。
+ * 后端统一响应 HTTP 恒 200，靠 body.code 区分：200 成功、其余失败（message 为原因）。
+ */
+async function shareRequest(
+  path: string,
+  options: { body?: unknown; method?: string; password?: string } = {},
+) {
+  const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (options.password) {
+    headers['X-Share-Password'] = options.password;
+  }
+  const response = await fetch(`${apiURL}${path}`, {
+    method: options.method ?? 'GET',
+    headers,
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const json = (await response.json()) as {
+    code?: number;
+    data?: unknown;
+    message?: string;
+  };
+  if (json?.code !== 200) {
+    throw new Error(json?.message || '请求失败，请稍后重试');
+  }
+  return json?.data;
+}
+
+/** 分享配置：知识库名称、是否需要密码、是否过期等 */
+export function getShareConfig(token: string) {
+  return shareRequest(`/share/${token}/config`) as Promise<{
+    name: string;
+    description: string;
+    icon: string;
+    docCount: number;
+    requirePassword: boolean;
+    expired: boolean;
+    expireTime: string;
+  }>;
+}
+
+/** 分享文档分页列表 */
+export function getShareDocuments(
+  token: string,
+  params: { page?: number; pageSize?: number },
+  password?: string,
+) {
+  const qs = new URLSearchParams();
+  qs.set('page', String(params.page ?? 1));
+  qs.set('pageSize', String(params.pageSize ?? 100));
+  return shareRequest(`/share/${token}/documents?${qs.toString()}`, {
+    password,
+  }) as Promise<{ items: AiApi.KbDocument[]; total: number }>;
+}
+
+/** 分享文档原文 */
+export function getShareDocumentContent(
+  token: string,
+  docId: string,
+  password?: string,
+) {
+  return shareRequest(`/share/${token}/documents/${docId}/content`, {
+    password,
+  }) as Promise<string>;
+}
+
+/** 分享知识库匿名问答 */
+export function shareAsk(token: string, question: string, password?: string) {
+  return shareRequest(`/share/${token}/ask`, {
+    method: 'POST',
+    body: { question },
+    password,
+  }) as Promise<string>;
 }
 
 export function getDocumentList(kbId: string, params?: Record<string, any>) {
