@@ -17,36 +17,55 @@ onMounted(() => {
       containLabel: true,
       left: '1%',
       right: '1%',
-      top: '2 %',
+      top: '4%',
     },
     series: [
       {
-        barMaxWidth: 80,
-        // color: '#4f69fd',
+        barMaxWidth: 32,
         data: [
           3000, 2000, 3333, 5000, 3200, 4200, 3200, 2100, 3000, 5100, 6000,
           3200, 4800,
         ],
+        itemStyle: {
+          borderRadius: [6, 6, 0, 0],
+          color: {
+            type: 'linear',
+            x: 0,
+            x2: 0,
+            y: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: '#5b8ff9' },
+              { offset: 1, color: 'rgba(91,143,249,0.25)' },
+            ],
+          },
+        },
         type: 'bar',
       },
     ],
     tooltip: {
       axisPointer: {
         lineStyle: {
-          // color: '#4f69fd',
+          color: '#5b8ff9',
           width: 1,
         },
       },
       trigger: 'axis',
     },
     xAxis: {
+      axisLine: { show: false },
+      axisTick: { show: false },
       data: Array.from({ length: 12 }).map((_item, index) =>
         $t('page.dashboard.month', [index + 1]),
       ),
       type: 'category',
     },
     yAxis: {
+      axisLine: { show: false },
       max: 8000,
+      splitLine: {
+        lineStyle: { type: 'dashed' },
+      },
       splitNumber: 4,
       type: 'value',
     },

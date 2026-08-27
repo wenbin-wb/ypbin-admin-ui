@@ -24,7 +24,7 @@ onMounted(() => {
         animationEasing: 'exponentialInOut',
         animationType: 'scale',
         avoidLabelOverlap: false,
-        color: ['#5ab1ef', '#b6a2de', '#67e0e3', '#2ec7c9'],
+        color: ['#5b8ff9', '#818cf8', '#22d3ee', '#67e0a3'],
         data: [
           { name: $t('page.dashboard.searchEngine'), value: 1048 },
           { name: $t('page.dashboard.directAccess'), value: 735 },
@@ -37,9 +37,11 @@ onMounted(() => {
             fontWeight: 'bold',
             show: true,
           },
+          scaleSize: 8,
         },
         itemStyle: {
-          borderRadius: 10,
+          borderColor: 'transparent',
+          borderRadius: 6,
           borderWidth: 2,
         },
         label: {
@@ -50,7 +52,7 @@ onMounted(() => {
           show: false,
         },
         name: $t('page.dashboard.visitSource'),
-        radius: ['40%', '65%'],
+        radius: ['42%', '66%'],
         type: 'pie',
       },
     ],

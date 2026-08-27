@@ -43,23 +43,34 @@ onMounted(() => {
     series: [
       {
         areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            x2: 1,
+            y: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(129,140,248,0.5)' },
+              { offset: 1, color: 'rgba(129,140,248,0.05)' },
+            ],
+          },
           opacity: 1,
-          shadowBlur: 0,
-          shadowColor: 'rgba(0,0,0,.2)',
+          shadowBlur: 12,
+          shadowColor: 'rgba(129,140,248,0.4)',
           shadowOffsetX: 0,
-          shadowOffsetY: 10,
+          shadowOffsetY: 6,
         },
         data: [
           {
             itemStyle: {
-              color: '#b6a2de',
+              color: '#818cf8',
             },
             name: $t('page.dashboard.visitName'),
             value: [90, 50, 86, 40, 50, 20],
           },
           {
             itemStyle: {
-              color: '#5ab1ef',
+              color: '#22d3ee',
             },
             name: $t('page.dashboard.trendName'),
             value: [70, 75, 70, 76, 20, 85],

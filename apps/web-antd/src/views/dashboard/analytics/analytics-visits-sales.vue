@@ -20,7 +20,7 @@ onMounted(() => {
         animationEasing: 'exponentialInOut',
         animationType: 'scale',
         center: ['50%', '50%'],
-        color: ['#5ab1ef', '#b6a2de', '#67e0e3', '#2ec7c9'],
+        color: ['#5b8ff9', '#818cf8', '#22d3ee', '#67e0a3'],
         data: [
           { name: $t('page.dashboard.outsourcing'), value: 500 },
           { name: $t('page.dashboard.custom'), value: 310 },
@@ -29,6 +29,13 @@ onMounted(() => {
         ].toSorted((a, b) => {
           return a.value - b.value;
         }),
+        itemStyle: {
+          borderRadius: 4,
+        },
+        label: {
+          color: 'inherit',
+          fontSize: 11,
+        },
         name: $t('page.dashboard.businessRatio'),
         radius: '80%',
         roseType: 'radius',
