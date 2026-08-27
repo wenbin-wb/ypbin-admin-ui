@@ -128,6 +128,20 @@ export namespace AiApi {
     answer: string;
     sources: KbSourceFragment[];
   }
+
+  /** 检索测试器命中的分块（含启发式关键词相关度评估字段） */
+  export interface KbSearchHit {
+    content: string;
+    metadata: Record<string, any>;
+    source?: string;
+    docId?: string;
+    docName?: string;
+    charCount?: number;
+    /** 关键词相关度 0-100（启发式，非向量相似度） */
+    score?: number;
+    hitKeywords?: string[];
+    maxHitLen?: number;
+  }
   export interface PromptTemplate {
     id: string;
     name: string;
@@ -494,12 +508,13 @@ export function searchKnowledgeBaseTest(
   question: string,
   topK = 5,
 ) {
-  return requestClient.post<
-    Array<{ content: string; metadata: Record<string, any>; source?: string }>
-  >(`/ai/knowledge-bases/${kbId}/search-test`, {
-    question,
-    topK,
-  });
+  return requestClient.post<AiApi.KbSearchHit[]>(
+    `/ai/knowledge-bases/${kbId}/search-test`,
+    {
+      question,
+      topK,
+    },
+  );
 }
 
 export function searchKnowledgeBaseMultiple(
@@ -507,13 +522,14 @@ export function searchKnowledgeBaseMultiple(
   question: string,
   topKPerKb = 5,
 ) {
-  return requestClient.post<
-    Array<{ content: string; metadata: Record<string, any>; source?: string }>
-  >('/ai/knowledge-bases/search-multiple-test', {
-    knowledgeBaseIds: kbIds,
-    question,
-    topKPerKb,
-  });
+  return requestClient.post<AiApi.KbSearchHit[]>(
+    '/ai/knowledge-bases/search-multiple-test',
+    {
+      knowledgeBaseIds: kbIds,
+      question,
+      topKPerKb,
+    },
+  );
 }
 
 export function searchKnowledgeBaseRerank(
@@ -521,12 +537,13 @@ export function searchKnowledgeBaseRerank(
   question: string,
   topK = 5,
 ) {
-  return requestClient.post<
-    Array<{ content: string; metadata: Record<string, any>; source?: string }>
-  >(`/ai/knowledge-bases/${kbId}/search-rerank-test`, {
-    question,
-    topK,
-  });
+  return requestClient.post<AiApi.KbSearchHit[]>(
+    `/ai/knowledge-bases/${kbId}/search-rerank-test`,
+    {
+      question,
+      topK,
+    },
+  );
 }
 
 // 模型配置

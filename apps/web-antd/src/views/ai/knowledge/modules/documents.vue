@@ -2,7 +2,7 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { AiApi } from '#/api/ai';
 
-import { onUnmounted, reactive, ref } from 'vue';
+import { computed, onUnmounted, reactive, ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
@@ -44,10 +44,52 @@ const activeTab = ref<'docs' | 'test'>('docs');
 const testQuery = ref('');
 const testAnswer = ref('');
 const testLoading = ref(false);
-const recallList = ref<
-  Array<{ content: string; metadata: Record<string, any>; source?: string }>
->([]);
+const recallList = ref<AiApi.KbSearchHit[]>([]);
 const testMode = ref<'multiple' | 'rerank' | 'single'>('single');
+
+// ---- 召回评估汇总 ----
+const recallStats = computed(() => {
+  if (!recallList.value.length) return null;
+  const scores = recallList.value.map((h) => h.score ?? 0);
+  const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+  const max = Math.max(...scores);
+  const tokens = new Set<string>();
+  recallList.value.forEach((h) =>
+    h.hitKeywords?.forEach((t) => tokens.add(t)),
+  );
+  const hitCount = recallList.value.filter((h) => (h.score ?? 0) >= 50).length;
+  return { avg, max, tokens: [...tokens], hitCount };
+});
+
+/** 相关度分颜色：>=70 绿 / >=40 黄 / 其余红 */
+function scoreColor(score = 0) {
+  if (score >= 70) return 'bg-emerald-500';
+  if (score >= 40) return 'bg-amber-500';
+  return 'bg-red-500/70';
+}
+
+function scoreTextColor(score = 0) {
+  if (score >= 70) return 'text-emerald-600 dark:text-emerald-400';
+  if (score >= 40) return 'text-amber-600 dark:text-amber-400';
+  return 'text-red-500';
+}
+
+/** 将命中的关键词在片段文本中高亮（长词优先，防嵌套替换） */
+function highlightKeywords(text: string, keywords?: string[]) {
+  if (!keywords?.length || !text) return text;
+  const pattern = keywords
+    .slice()
+    .sort((a, b) => b.length - a.length)
+    .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .filter((k) => k.length >= 2)
+    .join('|');
+  if (!pattern) return text;
+  const re = new RegExp(`(${pattern})`, 'gi');
+  return text.replace(
+    re,
+    '<mark class="rounded-sm bg-amber-200/80 px-0.5 text-inherit dark:bg-amber-500/30">$1</mark>',
+  );
+}
 
 // 轮询：有"处理中"文档时每 3 秒刷新一次
 let pollTimer: null | ReturnType<typeof setInterval> = null;
@@ -228,9 +270,7 @@ async function onTestQuery() {
 async function fetchRecallByMode(
   kbId: string,
   question: string,
-): Promise<
-  Array<{ content: string; metadata: Record<string, any>; source?: string }>
-> {
+): Promise<AiApi.KbSearchHit[]> {
   switch (testMode.value) {
     case 'multiple': {
       return searchKnowledgeBaseMultiple([kbId], question, 5).catch(() => []);
@@ -481,11 +521,39 @@ defineExpose({ modalApi });
           />
         </div>
 
+        <!-- 召回评估汇总 -->
+        <div
+          v-if="recallStats"
+          class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground"
+        >
+          <span>
+            {{ $t('page.ai.knowledge.recallHint') }}
+            <b class="text-foreground">{{ recallList.length }}</b>
+          </span>
+          <span>
+            {{ $t('page.ai.knowledge.recallAvgScore') }}
+            <b :class="scoreTextColor(recallStats.avg)">{{ recallStats.avg }}</b>
+          </span>
+          <span>
+            {{ $t('page.ai.knowledge.recallMaxScore') }}
+            <b class="text-foreground">{{ recallStats.max }}</b>
+          </span>
+          <span>
+            {{ $t('page.ai.knowledge.recallHitKeywords') }}
+            <template v-if="recallStats.tokens.length">
+              <b
+                v-for="t in recallStats.tokens"
+                :key="t"
+                class="mr-1 inline-block rounded bg-primary/10 px-1 py-0.5 text-[10px] font-normal text-primary"
+                >{{ t }}</b
+              >
+            </template>
+            <template v-else>0</template>
+          </span>
+        </div>
+
         <!-- 召回片段 -->
         <template v-if="recallList.length > 0">
-          <p class="mb-2 text-xs font-medium text-muted-foreground">
-            {{ $t('page.ai.knowledge.recallHint') }}（{{ recallList.length }}）
-          </p>
           <div class="flex flex-col gap-2">
             <div
               v-for="(doc, idx) in recallList"
@@ -493,16 +561,48 @@ defineExpose({ modalApi });
               class="rounded-lg border border-border bg-muted/30 p-3"
             >
               <div
-                class="mb-1.5 flex items-center gap-2 text-xs text-muted-foreground"
+                class="mb-2 flex items-center gap-2 text-xs text-muted-foreground"
               >
                 <span
-                  class="inline-flex size-4 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary"
-                  >#{{ idx + 1 }}</span>
-                <span class="truncate">{{ doc.source }}</span>
+                  class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary"
+                  >#{{ idx + 1 }}</span
+                >
+                <span class="max-w-52 truncate font-medium text-foreground/80">{{
+                  doc.docName || doc.source || 'unknown'
+                }}</span>
+                <span class="ml-auto flex shrink-0 items-center gap-2">
+                  <span class="text-[10px]">{{ doc.charCount ?? 0 }} chars</span>
+                  <span class="flex items-center gap-1.5">
+                    <span class="h-1.5 w-12 overflow-hidden rounded-full bg-muted">
+                      <span
+                        class="block h-full rounded-full transition-all"
+                        :class="scoreColor(doc.score)"
+                        :style="{ width: `${Math.min(100, doc.score ?? 0)}%` }"
+                      ></span>
+                    </span>
+                    <span
+                      class="w-7 text-right text-xs font-semibold"
+                      :class="scoreTextColor(doc.score)"
+                      >{{ doc.score ?? 0 }}</span
+                    >
+                  </span>
+                </span>
               </div>
-              <p class="m-0 text-[13px] leading-relaxed text-foreground/80">
-                {{ doc.content }}
-              </p>
+              <p
+                class="m-0 text-[13px] leading-relaxed text-foreground/80"
+                v-html="highlightKeywords(doc.content, doc.hitKeywords)"
+              ></p>
+              <div
+                v-if="doc.hitKeywords?.length"
+                class="mt-2 flex flex-wrap gap-1"
+              >
+                <span
+                  v-for="kw in doc.hitKeywords"
+                  :key="kw"
+                  class="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+                  >{{ kw }}</span
+                >
+              </div>
             </div>
           </div>
         </template>
