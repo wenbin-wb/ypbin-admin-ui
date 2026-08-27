@@ -319,6 +319,18 @@ const DEMO_TRENDS: WorkbenchTrendItem[] = [
     content: '在检索测试器中测试「产品有哪些特性」topK=5',
     date: '昨天 18:30',
   },
+  {
+    avatar: 'svg:avatar-3',
+    title: '管理员',
+    content: '新增对话模型 deepseek-v4-flash 并设为默认',
+    date: '昨天 15:12',
+  },
+  {
+    avatar: 'svg:avatar-4',
+    title: '系统',
+    content: '挂件脚本 embed.js 更新（拖动 + 吸边）',
+    date: '昨天 11:40',
+  },
 ];
 
 const trendError = ref(false);
@@ -327,21 +339,55 @@ const trendLoading = ref(true);
 const trendsLoaded = ref(false);
 const usingDemoTrends = ref(false);
 
+/** 后端时间格式 MM/dd/yyyy HH:mm:ss → 友好展示（MM-dd HH:mm） */
+function formatLogTime(raw: string) {
+  if (!raw) return '';
+  // 兼容 yyyy-MM-dd HH:mm:ss 与 MM/dd/yyyy HH:mm:ss 两种格式
+  const m = raw.match(
+    /(\d{4})[/-](\d{1,2})[/-](\d{1,2})[ T](\d{1,2}):(\d{1,2})/,
+  );
+  if (m) {
+    return `${m[1]!}-${m[2]!.padStart(2, '0')}-${m[3]!.padStart(2, '0')} ${m[4]!.padStart(2, '0')}:${m[5]!}`;
+  }
+  const m2 = raw.match(
+    /(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{1,2})/,
+  );
+  if (m2) {
+    return `${m2[3]!}-${m2[1]!.padStart(2, '0')}-${m2[2]!.padStart(2, '0')} ${m2[4]!.padStart(2, '0')}:${m2[5]!}`;
+  }
+  return raw;
+}
+
 async function loadTrends() {
   trendError.value = false;
   trendLoading.value = true;
   try {
     const logs = await getLatestLogs(9);
-    if (logs && logs.length > 0) {
-      trendItems.value = logs.map((log, index) => ({
+    const real: WorkbenchTrendItem[] = (logs ?? [])
+      .filter((log) => log && log.description)
+      .map((log, index) => ({
         avatar: avatars[index % avatars.length] as string,
         content: `${log.module ? `[${log.module}] ` : ''}${log.description ?? ''}`,
-        date: log.operateTime,
-        title: log.operateUserIdName || log.operateUserId,
+        date: formatLogTime(log.operateTime),
+        title:
+          (log.operateUserIdName ?? '').trim() ||
+          (log.operateUserId ?? '').toString().trim() ||
+          '系统',
       }));
+    if (real.length >= 8) {
+      // 真实数据足够：直接展示
+      trendItems.value = real;
       usingDemoTrends.value = false;
+    } else if (real.length > 0) {
+      // 真实数据不足：真实在前 + 演示数据补齐（保持 8 条，视觉饱满）
+      const demo = DEMO_TRENDS.slice(0, 8 - real.length).map((d) => ({
+        ...d,
+        date: `${d.date}（演示）`,
+      }));
+      trendItems.value = [...real, ...demo];
+      usingDemoTrends.value = true;
     } else {
-      // 演示模式：日志为空（如演示环境）时展示示例活动流
+      // 完全无数据：纯演示数据
       trendItems.value = DEMO_TRENDS;
       usingDemoTrends.value = true;
     }
