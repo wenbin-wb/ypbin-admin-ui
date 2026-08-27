@@ -602,6 +602,36 @@ export function getUsageSummary() {
   }>('/ai/usage/summary');
 }
 
+// AI 统计看板
+export function getAiStatsSummary() {
+  return requestClient.get<{
+    kbCount: number;
+    docTotal: number;
+    chatCount: number;
+    queryCount: number;
+    tokenTotal: number;
+  }>('/ai/stats/summary');
+}
+
+export function getAiStatsDaily(days = 30) {
+  return requestClient.get<
+    Array<{ date: string; chatCount: number; queryCount: number; tokenCount: number }>
+  >('/ai/stats/daily', { params: { days } });
+}
+
+export function getAiStatsHotQueries(limit = 10) {
+  return requestClient.get<Array<{ query: string; count: number }>>(
+    '/ai/stats/hot-queries',
+    { params: { limit } },
+  );
+}
+
+export function getAiStatsKbDocs() {
+  return requestClient.get<Array<{ name: string; docCount: number }>>(
+    '/ai/stats/kb-docs',
+  );
+}
+
 export function getDailyUsage(params?: {
   endDate?: string;
   startDate?: string;
