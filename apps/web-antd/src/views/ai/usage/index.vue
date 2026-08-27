@@ -5,7 +5,7 @@ import { computed, onMounted, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
-import { Card, Col, Empty, Row, Statistic } from 'ant-design-vue';
+import { Card, Col, Empty, Row, Skeleton } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -13,12 +13,11 @@ import {
   getAiStatsHotQueries,
   getAiStatsKbDocs,
   getAiStatsSummary,
-  getDailyUsage,
   getUsageByModel,
 } from '#/api/ai';
 import { $t } from '#/locales';
 
-import { useDailyColumns, useModelColumns } from './data';
+import { useModelColumns } from './data';
 
 defineOptions({ name: 'AiUsage' });
 
@@ -37,7 +36,7 @@ const daily = ref<
 const hotQueries = ref<Array<{ query: string; count: number }>>([]);
 const kbDocs = ref<Array<{ name: string; docCount: number }>>([]);
 
-// 条形图归一化基准（至少 1，避免除零）
+// 归一化基准（至少 1，避免除零）
 const maxDaily = computed(() =>
   Math.max(1, ...daily.value.map((d) => Math.max(d.chatCount, d.queryCount))),
 );
@@ -49,10 +48,47 @@ const totalDaily = computed(() =>
   daily.value.reduce((s, d) => s + d.chatCount + d.queryCount, 0),
 );
 
+/** 5 个概览指标（label/value），供指标条渲染 */
+const metrics = computed(() => [
+  { label: $t('page.ai.usage.kbCount'), value: String(summary.value.kbCount) },
+  { label: $t('page.ai.usage.docTotal'), value: String(summary.value.docTotal) },
+  { label: $t('page.ai.usage.chatCount'), value: String(summary.value.chatCount) },
+  { label: $t('page.ai.usage.queryCount'), value: String(summary.value.queryCount) },
+  {
+    label: $t('page.ai.usage.totalTokens'),
+    value: formatTokens(summary.value.tokenTotal),
+  },
+]);
+
 function formatTokens(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
   return String(n);
+}
+
+/** 柱高百分比（0-100%） */
+function barPct(value: number, max: number) {
+  return `${Math.round((value / max) * 100)}%`;
+}
+
+/** 趋势底部标签：每 5 天显示一次，其余占位保持对齐 */
+function showTick(i: number) {
+  return i % 5 === 0 || i === daily.value.length - 1;
+}
+
+/** 热词名次强调：前三名用主色加深，其余弱化 */
+function rankClass(i: number) {
+  if (i === 0) return 'text-primary';
+  if (i === 1) return 'text-primary/70';
+  if (i === 2) return 'text-primary/50';
+  return 'text-muted-foreground/60';
+}
+
+function barClass(i: number) {
+  if (i === 0) return 'bg-primary';
+  if (i === 1) return 'bg-primary/70';
+  if (i === 2) return 'bg-primary/50';
+  return 'bg-primary/30';
 }
 
 async function loadStats() {
@@ -72,29 +108,6 @@ async function loadStats() {
     loading.value = false;
   }
 }
-
-// 每日 Token 用量表
-const [DailyGrid] = useVbenVxeGrid({
-  gridOptions: {
-    columns: useDailyColumns(),
-    height: 'auto',
-    keepSource: true,
-    proxyConfig: {
-      ajax: {
-        query: async () => {
-          const items = await getDailyUsage();
-          return { items, total: items.length };
-        },
-      },
-    },
-    rowConfig: { keyField: 'date' },
-    toolbarConfig: {
-      export: false,
-      refresh: true,
-      zoom: true,
-    },
-  } as VxeTableGridOptions<{ date: string; tokens: number }>,
-});
 
 // 按模型分布表
 const [ModelGrid] = useVbenVxeGrid({
@@ -131,194 +144,147 @@ onMounted(loadStats);
 
 <template>
   <Page auto-content-height>
-    <div class="space-y-6 p-4">
-      <!-- 概览卡片 -->
-      <Row :gutter="[16, 16]">
-        <Col :xs="12" :sm="12" :md="8" :lg="5">
-          <Card class="rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-            <Statistic
-              :loading="loading"
-              :title="$t('page.ai.usage.kbCount')"
-              :value="summary.kbCount"
-            />
-          </Card>
-        </Col>
-        <Col :xs="12" :sm="12" :md="8" :lg="5">
-          <Card class="rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-            <Statistic
-              :loading="loading"
-              :title="$t('page.ai.usage.docTotal')"
-              :value="summary.docTotal"
-            />
-          </Card>
-        </Col>
-        <Col :xs="12" :sm="12" :md="8" :lg="5">
-          <Card class="rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-            <Statistic
-              :loading="loading"
-              :title="$t('page.ai.usage.chatCount')"
-              :value="summary.chatCount"
-            />
-          </Card>
-        </Col>
-        <Col :xs="12" :sm="12" :md="8" :lg="5">
-          <Card class="rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-            <Statistic
-              :loading="loading"
-              :title="$t('page.ai.usage.queryCount')"
-              :value="summary.queryCount"
-            />
-          </Card>
-        </Col>
-        <Col :xs="24" :sm="12" :md="8" :lg="4">
-          <Card class="rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-            <Statistic
-              :loading="loading"
-              :title="$t('page.ai.usage.totalTokens')"
-              :value="formatTokens(summary.tokenTotal)"
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      <!-- 问答/检索趋势（近 30 天） -->
-      <Card :title="$t('page.ai.usage.trend')" size="small">
-        <div v-if="totalDaily > 0" class="flex items-end gap-1">
-          <div
-            v-for="(d, i) in daily"
-            :key="d.date"
-            class="group relative flex h-40 flex-1 flex-col justify-end"
-          >
-            <div class="flex flex-col justify-end gap-0.5">
-              <div
-                :style="{
-                  height: `${(d.queryCount / maxDaily) * 100}px`,
-                }"
-                class="w-full rounded-sm bg-primary/60 transition-all group-hover:bg-primary"
-                :title="`${d.date} ${$t('page.ai.usage.trendQuery')}: ${d.queryCount}`"
-              ></div>
-              <div
-                :style="{
-                  height: `${(d.chatCount / maxDaily) * 100}px`,
-                }"
-                class="w-full rounded-sm bg-violet-500/50 transition-all group-hover:bg-violet-500"
-                :title="`${d.date} ${$t('page.ai.usage.trendChat')}: ${d.chatCount}`"
-              ></div>
-            </div>
-            <span
-              v-if="i % 5 === 0 || i === daily.length - 1"
-              class="mt-1 text-center text-[10px] leading-none text-muted-foreground"
-              >{{ d.date.slice(5) }}</span
-            >
-          </div>
+    <div class="space-y-5 p-5">
+      <!-- 概览指标条（单一容器，间距即分隔） -->
+      <div class="grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border bg-card px-6 py-5 sm:grid-cols-3 lg:grid-cols-5">
+        <div v-for="m in metrics" :key="m.label" class="min-w-0">
+          <p class="truncate text-xs text-muted-foreground">{{ m.label }}</p>
+          <p class="mt-1.5 truncate text-2xl font-semibold tabular-nums tracking-tight">
+            <Skeleton v-if="loading" :paragraph="false" :title="{ width: 56 }" active class="!w-16" />
+            <template v-else>{{ m.value }}</template>
+          </p>
         </div>
-        <Empty
-          v-else
-          :description="$t('page.ai.usage.hotEmpty')"
-          class="py-8"
-        />
-        <div class="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
-          <span class="flex items-center gap-1.5">
-            <span class="size-2.5 rounded-sm bg-violet-500/50"></span>
-            {{ $t('page.ai.usage.trendChat') }}
-          </span>
-          <span class="flex items-center gap-1.5">
-            <span class="size-2.5 rounded-sm bg-primary/60"></span>
-            {{ $t('page.ai.usage.trendQuery') }}
-          </span>
-        </div>
-      </Card>
+      </div>
 
-      <!-- 搜索热词 + 文档分布 -->
+      <!-- 趋势 + 热词 -->
       <Row :gutter="[16, 16]">
-        <Col :xs="24" :lg="12">
-          <Card :title="$t('page.ai.usage.hotQueries')" size="small">
-            <div v-if="hotQueries.length" class="flex flex-col gap-2.5">
-              <div v-for="h in hotQueries" :key="h.query" class="flex items-center gap-2">
-                <span class="w-7 text-right text-xs font-medium text-muted-foreground">{{
-                  h.count
-                }}</span>
-                <div class="h-5 flex-1 overflow-hidden rounded-md bg-muted/50">
+        <Col :xs="24" :lg="16">
+          <Card :title="$t('page.ai.usage.trend')" size="small">
+            <template v-if="loading">
+              <Skeleton :paragraph="{ rows: 6 }" active />
+            </template>
+            <template v-else-if="totalDaily > 0">
+              <div class="flex h-44 items-end gap-[3px]">
+                <div
+                  v-for="d in daily"
+                  :key="d.date"
+                  class="group relative flex h-full flex-1 flex-col justify-end gap-[2px]"
+                  :title="`${d.date} ${$t('page.ai.usage.trendQuery')}: ${d.queryCount} / ${$t('page.ai.usage.trendChat')}: ${d.chatCount}`"
+                >
                   <div
-                    class="h-full rounded-md bg-primary/70 transition-all"
-                    :style="{ width: `${(h.count / maxHot) * 100}%` }"
+                    class="w-full rounded-t-[3px] bg-primary/35 transition-colors group-hover:bg-primary/55"
+                    :style="{ height: barPct(d.queryCount, maxDaily) }"
+                  ></div>
+                  <div
+                    class="w-full rounded-t-[3px] bg-primary transition-colors group-hover:bg-primary/85"
+                    :style="{ height: barPct(d.chatCount, maxDaily) }"
                   ></div>
                 </div>
-                <span class="max-w-56 truncate text-xs">{{ h.query }}</span>
               </div>
-            </div>
-            <Empty
-              v-else
-              :description="$t('page.ai.usage.hotEmpty')"
-              class="py-8"
-            />
-          </Card>
-        </Col>
-        <Col :xs="24" :lg="12">
-          <Card :title="$t('page.ai.usage.kbDistribution')" size="small">
-            <div v-if="kbDocs.length" class="flex flex-col gap-2.5">
-              <div v-for="k in kbDocs" :key="k.name" class="flex items-center gap-2">
-                <span class="w-28 truncate text-xs">{{ k.name }}</span>
-                <div class="h-5 flex-1 overflow-hidden rounded-md bg-muted/50">
-                  <div
-                    class="h-full rounded-md bg-emerald-500/60 transition-all"
-                    :style="{ width: `${(k.docCount / maxKbDocs) * 100}%` }"
-                  ></div>
-                </div>
-                <span class="w-12 text-right text-xs text-muted-foreground">
-                  {{ k.docCount }} {{ $t('page.ai.usage.docsUnit') }}
+              <div class="mt-1.5 flex">
+                <span
+                  v-for="(d, i) in daily"
+                  :key="d.date"
+                  class="flex-1 text-center text-[10px] leading-none text-muted-foreground"
+                  :class="showTick(i) ? '' : 'invisible'"
+                  >{{ d.date.slice(5) }}</span
+                >
+              </div>
+              <div class="mt-3 flex items-center gap-5 border-t border-border pt-3 text-xs text-muted-foreground">
+                <span class="flex items-center gap-1.5">
+                  <span class="size-2 rounded-sm bg-primary"></span>
+                  {{ $t('page.ai.usage.trendChat') }}
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="size-2 rounded-sm bg-primary/35"></span>
+                  {{ $t('page.ai.usage.trendQuery') }}
                 </span>
               </div>
-            </div>
-            <Empty
-              v-else
-              :description="$t('page.ai.usage.kbEmpty')"
-              class="py-8"
-            />
+            </template>
+            <Empty v-else :description="$t('page.ai.usage.hotEmpty')" class="py-10" />
+          </Card>
+        </Col>
+        <Col :xs="24" :lg="8">
+          <Card :title="$t('page.ai.usage.hotQueries')" size="small">
+            <template v-if="loading">
+              <Skeleton :paragraph="{ rows: 6 }" active />
+            </template>
+            <template v-else-if="hotQueries.length">
+              <div class="flex flex-col">
+                <div
+                  v-for="(h, i) in hotQueries"
+                  :key="h.query"
+                  class="flex items-center gap-3 py-1.5"
+                >
+                  <span class="w-5 shrink-0 text-center text-sm font-semibold tabular-nums" :class="rankClass(i)">{{
+                    i + 1
+                  }}</span>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="truncate text-sm">{{ h.query }}</span>
+                      <span class="shrink-0 text-xs text-muted-foreground tabular-nums">{{
+                        h.count
+                      }}</span>
+                    </div>
+                    <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-muted/60">
+                      <div
+                        class="h-full rounded-full transition-all"
+                        :class="barClass(i)"
+                        :style="{ width: barPct(h.count, maxHot) }"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <Empty v-else :description="$t('page.ai.usage.hotEmpty')" class="py-10" />
           </Card>
         </Col>
       </Row>
 
-      <!-- 原有 Token 用量明细 -->
+      <!-- 文档分布 + 按模型分布 -->
       <Row :gutter="[16, 16]">
         <Col :xs="24" :lg="12">
-          <Card :title="$t('page.ai.usage.daily')" size="small">
-            <DailyGrid>
-              <template #dailyTokens="{ row }">
-                <div class="flex items-center gap-3">
-                  <span class="w-16">{{ formatTokens(row.tokens) }}</span>
-                  <span
-                    class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
-                  >
-                    <span
-                      class="block h-full rounded-full bg-primary/70"
-                      :style="{
-                        width: `${Math.min(100, Math.round((row.tokens / Math.max(summary.tokenTotal, 1)) * 100))}%`,
-                      }"
-                    ></span>
+          <Card :title="$t('page.ai.usage.kbDistribution')" size="small">
+            <template v-if="loading">
+              <Skeleton :paragraph="{ rows: 5 }" active />
+            </template>
+            <template v-else-if="kbDocs.length">
+              <div class="flex flex-col gap-3">
+                <div v-for="k in kbDocs" :key="k.name" class="flex items-center gap-3">
+                  <span class="w-32 shrink-0 truncate text-sm">{{ k.name }}</span>
+                  <div class="h-2 flex-1 overflow-hidden rounded-full bg-muted/60">
+                    <div
+                      class="h-full rounded-full bg-primary/50 transition-all"
+                      :style="{ width: barPct(k.docCount, maxKbDocs) }"
+                    ></div>
+                  </div>
+                  <span class="w-16 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+                    {{ k.docCount }} {{ $t('page.ai.usage.docsUnit') }}
                   </span>
                 </div>
-              </template>
-            </DailyGrid>
+              </div>
+            </template>
+            <Empty v-else :description="$t('page.ai.usage.kbEmpty')" class="py-10" />
           </Card>
         </Col>
         <Col :xs="24" :lg="12">
           <Card :title="$t('page.ai.usage.byModel')" size="small">
             <ModelGrid>
               <template #modelTokens="{ row }">
-                {{ formatTokens(row.tokens) }}
+                <span class="tabular-nums">{{ formatTokens(row.tokens) }}</span>
               </template>
               <template #percent="{ row }">
                 <div class="flex items-center gap-2">
-                  <span class="w-8 text-xs text-muted-foreground">{{
+                  <span class="w-8 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{{
                     row.percent
                   }}%</span>
-                  <span class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                    <span
-                      class="block h-full rounded-full bg-primary/70"
+                  <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/60">
+                    <div
+                      class="h-full rounded-full bg-primary/70 transition-all"
                       :style="{ width: `${Math.min(100, Math.max(0, row.percent))}%` }"
-                    ></span>
-                  </span>
+                    ></div>
+                  </div>
                 </div>
               </template>
             </ModelGrid>

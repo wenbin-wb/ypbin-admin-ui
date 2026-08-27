@@ -369,7 +369,7 @@ const chunkList = ref<
   Array<{ chunkIndex: number; content: string; charCount: number }>
 >([]);
 
-async function openChunks(row: { docId: string; filename?: string }) {
+async function openChunks(row: { id: string; filename?: string }) {
   const kb = modalApi.getData();
   if (!kb) return;
   chunkVisible.value = true;
@@ -377,7 +377,7 @@ async function openChunks(row: { docId: string; filename?: string }) {
   chunkDocName.value = row.filename ?? '';
   chunkList.value = [];
   try {
-    chunkList.value = await getDocumentChunks(kb.id, row.docId);
+    chunkList.value = await getDocumentChunks(kb.id, row.id);
   } catch (error: any) {
     message.error(error?.message || $t('common.requestFailed'));
   } finally {
