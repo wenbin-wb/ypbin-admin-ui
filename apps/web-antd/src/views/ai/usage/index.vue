@@ -67,6 +67,20 @@ const maxKbDocs = computed(() =>
 const totalDaily = computed(() =>
   daily.value.reduce((s, d) => s + d.chatCount + d.queryCount, 0),
 );
+// 30 天汇总（问答/检索/Token）
+const sumChat = computed(() =>
+  daily.value.reduce((s, d) => s + d.chatCount, 0),
+);
+const sumQuery = computed(() =>
+  daily.value.reduce((s, d) => s + d.queryCount, 0),
+);
+const sumToken = computed(() =>
+  daily.value.reduce((s, d) => s + d.tokenCount, 0),
+);
+// 文档分布总数
+const kbDocsTotal = computed(() =>
+  kbDocs.value.reduce((s, k) => s + k.docCount, 0),
+);
 
 // ---- 概览指标（统一品牌渐变图标，仅图标区分语义）----
 const metrics = computed(() => [
@@ -254,7 +268,26 @@ onMounted(loadStats);
               :style="{ background: 'hsl(var(--primary) / 40%)' }"
             ></span>
             <div class="relative">
-              <h3 class="text-sm font-semibold">{{ $t('page.ai.usage.trend') }}</h3>
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold">{{ $t('page.ai.usage.trend') }}</h3>
+                <div
+                  v-if="totalDaily > 0"
+                  class="flex items-center gap-2 text-[11px] text-muted-foreground"
+                >
+                  <span class="flex items-center gap-1">
+                    <span class="size-1.5 rounded-full bg-[hsl(245_82%_67%)]"></span>
+                    {{ $t('page.ai.usage.trendChat') }} {{ sumChat }}
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <span class="size-1.5 rounded-full bg-[hsl(var(--primary)_/_45%)]"></span>
+                    {{ $t('page.ai.usage.trendQuery') }} {{ sumQuery }}
+                  </span>
+                  <span
+                    class="rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary"
+                    >{{ formatTokens(sumToken) }} tokens</span
+                  >
+                </div>
+              </div>
               <div v-if="loading" class="mt-4">
                 <Skeleton :paragraph="{ rows: 6 }" active />
               </div>
@@ -371,9 +404,16 @@ onMounted(loadStats);
       <Row :gutter="[16, 16]">
         <Col :xs="24" :lg="12">
           <div class="panel-card rounded-xl border border-border/80 bg-card p-5">
-            <h3 class="text-sm font-semibold">
-              {{ $t('page.ai.usage.kbDistribution') }}
-            </h3>
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold">
+                {{ $t('page.ai.usage.kbDistribution') }}
+              </h3>
+              <span
+                v-if="kbDocs.length"
+                class="rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+                >共 {{ kbDocsTotal }} {{ $t('page.ai.usage.docsUnit') }}</span
+              >
+            </div>
             <div v-if="loading" class="mt-4">
               <Skeleton :paragraph="{ rows: 5 }" active />
             </div>

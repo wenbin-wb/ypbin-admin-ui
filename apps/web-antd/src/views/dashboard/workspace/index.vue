@@ -28,6 +28,47 @@ import { $t } from '#/locales';
 const userStore = useUserStore();
 const router = useRouter();
 
+// ---- 统一视觉（与统计看板/分析页同语言）----
+const BRAND_GRAD =
+  'linear-gradient(135deg, hsl(var(--primary)), hsl(245 82% 67%))';
+
+// ---- 今日概览指标（演示数据）----
+const metricCards = computed(() => [
+  {
+    key: 'kb',
+    label: '知识库',
+    value: '12',
+    icon: 'i-lucide-database',
+    grad: 'linear-gradient(135deg, hsl(var(--primary)), hsl(245 82% 67%))',
+    glow: 'hsl(var(--primary) / 30%)',
+  },
+  {
+    key: 'doc',
+    label: '文档',
+    value: '386',
+    icon: 'i-lucide-file-text',
+    grad: 'linear-gradient(135deg, hsl(245 82% 67%), hsl(161 90% 43%))',
+    glow: 'hsl(245 82% 67% / 30%)',
+  },
+  {
+    key: 'chat',
+    label: '今日会话',
+    value: '46',
+    icon: 'i-lucide-message-square',
+    grad: 'linear-gradient(135deg, hsl(199 89% 48%), hsl(161 90% 43%))',
+    glow: 'hsl(199 89% 48% / 30%)',
+  },
+  {
+    key: 'qa',
+    label: '今日问答',
+    value: '128',
+    icon: 'i-lucide-message-circle-question',
+    grad: 'linear-gradient(135deg, hsl(32 95% 44%), hsl(16 90% 50%))',
+    glow: 'hsl(32 95% 44% / 30%)',
+  },
+]);
+
+// ---- 快捷导航 ----
 const quickNavItems: WorkbenchQuickNavItem[] = [
   {
     color: '#0066f5',
@@ -168,6 +209,52 @@ const todoItems: WorkbenchTodoItem[] = [
   },
 ];
 
+// ---- 环境信息（演示数据）----
+const envItems = [
+  {
+    label: '后端服务',
+    value: '在线',
+    ok: true,
+    icon: 'i-lucide-server',
+    color: '#0ec9a3',
+  },
+  {
+    label: '数据库',
+    value: '正常',
+    ok: true,
+    icon: 'i-lucide-database',
+    color: '#0066f5',
+  },
+  {
+    label: '向量化服务',
+    value: '待配置',
+    ok: false,
+    icon: 'i-lucide-box',
+    color: '#f0b429',
+  },
+  {
+    label: 'AI 模型',
+    value: '2 个对话 · 1 个向量',
+    ok: true,
+    icon: 'i-lucide-sparkles',
+    color: '#7c7cf0',
+  },
+  {
+    label: '系统版本',
+    value: 'ypbin-admin v1.0.0',
+    ok: true,
+    icon: 'i-lucide-package',
+    color: '#f2547b',
+  },
+  {
+    label: '部署环境',
+    value: '演示 Demo',
+    ok: true,
+    icon: 'i-lucide-globe',
+    color: '#5a6cf0',
+  },
+];
+
 // ---- 动态趋势（后端日志为空时用演示数据兜底）----
 const avatars = [
   'svg:avatar-1',
@@ -212,18 +299,6 @@ const DEMO_TRENDS: WorkbenchTrendItem[] = [
     title: '运营同学',
     content: '在检索测试器中测试「产品有哪些特性」topK=5',
     date: '昨天 18:30',
-  },
-  {
-    avatar: 'svg:avatar-3',
-    title: '管理员',
-    content: '新增对话模型 deepseek-v4-flash 并设为默认',
-    date: '昨天 15:12',
-  },
-  {
-    avatar: 'svg:avatar-4',
-    title: '系统',
-    content: '挂件脚本 embed.js 更新（拖动 + 吸边）',
-    date: '昨天 11:40',
   },
 ];
 
@@ -291,14 +366,92 @@ function onProjectClick(item: WorkbenchProjectItem) {
 
 <template>
   <div class="p-5">
+    <!-- 页头：问候 + 右侧炫彩计数 -->
     <WorkbenchHeader
       :avatar="userStore.userInfo?.avatar || preferences.app.defaultAvatar"
     >
       <template #title>{{ welcomeTitle }}</template>
+      <template #description>欢迎回来，今天也要高效工作 🚀</template>
+      <template #actions>
+        <div class="flex items-center gap-6 md:gap-10">
+          <div class="flex flex-col items-end">
+            <span class="text-xs text-muted-foreground">待办</span>
+            <span
+              class="text-2xl font-bold tabular-nums leading-none"
+              :style="{
+                background: BRAND_GRAD,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }"
+              >2/5</span
+            >
+          </div>
+          <div class="flex flex-col items-end">
+            <span class="text-xs text-muted-foreground">项目</span>
+            <span
+              class="text-2xl font-bold tabular-nums leading-none"
+              :style="{
+                background: BRAND_GRAD,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }"
+              >6</span
+            >
+          </div>
+          <div class="flex flex-col items-end">
+            <span class="text-xs text-muted-foreground">今日问答</span>
+            <span
+              class="text-2xl font-bold tabular-nums leading-none"
+              :style="{
+                background: BRAND_GRAD,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }"
+              >128</span
+            >
+          </div>
+        </div>
+      </template>
     </WorkbenchHeader>
 
-    <!-- 第一行：活动趋势 + 快捷导航 -->
-    <div class="mt-5 flex flex-col gap-4 lg:flex-row">
+    <!-- 今日概览指标条 -->
+    <div class="mt-5 grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <div
+        v-for="(m, i) in metricCards"
+        :key="m.key"
+        class="metric-card group relative overflow-hidden rounded-xl border border-border/80 bg-card p-4"
+        :style="{ '--glow': m.glow, animationDelay: `${i * 60}ms` }"
+      >
+        <span
+          class="pointer-events-none absolute -right-6 -top-6 size-20 rounded-full opacity-60 blur-2xl transition-opacity duration-300 group-hover:opacity-90"
+          :style="{ background: m.grad }"
+        ></span>
+        <div class="relative flex items-center gap-3">
+          <span
+            class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-white shadow-lg"
+            :style="{ background: m.grad, boxShadow: `0 6px 16px ${m.glow}` }"
+          >
+            <span :class="`${m.icon} size-5`"></span>
+          </span>
+          <div class="min-w-0">
+            <p class="truncate text-xs text-muted-foreground">{{ m.label }}</p>
+            <p
+              class="truncate text-2xl font-bold tabular-nums leading-tight tracking-tight"
+              :style="{
+                background: m.grad,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }"
+            >
+              {{ m.value }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 动态趋势 + 快捷导航 -->
+    <div class="mt-5 flex flex-col gap-4 xl:flex-row">
       <div class="min-w-0 flex-1">
         <Spin :spinning="trendLoading">
           <WorkbenchTrends
@@ -327,7 +480,7 @@ function onProjectClick(item: WorkbenchProjectItem) {
           />
         </Spin>
       </div>
-      <div class="w-full lg:w-[320px]">
+      <div class="w-full xl:w-[320px]">
         <WorkbenchQuickNav
           :items="quickNavItems"
           :title="$t('page.dashboard.quickNav')"
@@ -336,33 +489,94 @@ function onProjectClick(item: WorkbenchProjectItem) {
       </div>
     </div>
 
-    <!-- 第二行：项目卡片 + 待办 -->
-    <div class="mt-4 flex flex-col gap-4 xl:flex-row">
+    <!-- 我的项目 -->
+    <div class="mt-5">
+      <WorkbenchProject
+        :items="projectItems"
+        title="我的项目"
+        @click="onProjectClick"
+      >
+        <template #content="{ item }">
+          <div class="text-muted-foreground mt-3 flex h-9 items-center text-[13px]">
+            {{ item.content }}
+          </div>
+        </template>
+        <template #footer="{ item }">
+          <div class="text-muted-foreground flex w-full justify-between text-xs">
+            <span class="flex items-center gap-1">
+              <span class="i-lucide-folder size-3" />
+              {{ item.group }}
+            </span>
+            <span>{{ item.date }}</span>
+          </div>
+        </template>
+      </WorkbenchProject>
+    </div>
+
+    <!-- 待办事项 + 环境信息 -->
+    <div class="mt-5 flex flex-col gap-4 xl:flex-row">
       <div class="min-w-0 flex-1">
-        <WorkbenchProject
-          :items="projectItems"
-          title="我的项目"
-          @click="onProjectClick"
-        >
-          <template #content="{ item }">
-            <div class="text-muted-foreground mt-3 flex h-9 items-center text-[13px]">
-              {{ item.content }}
-            </div>
-          </template>
-          <template #footer="{ item }">
-            <div class="text-muted-foreground flex w-full justify-between text-xs">
-              <span class="flex items-center gap-1">
-                <span class="i-lucide-folder size-3" />
-                {{ item.group }}
-              </span>
-              <span>{{ item.date }}</span>
-            </div>
-          </template>
-        </WorkbenchProject>
+        <WorkbenchTodo :items="todoItems" title="待办事项" />
       </div>
       <div class="w-full xl:w-[340px]">
-        <WorkbenchTodo :items="todoItems" title="待办事项" />
+        <div class="rounded-xl border border-border/80 bg-card p-5">
+          <h3 class="text-base font-semibold">环境信息</h3>
+          <ul class="mt-3 flex flex-col divide-y divide-border/70">
+            <li
+              v-for="e in envItems"
+              :key="e.label"
+              class="flex items-center justify-between gap-3 py-2.5"
+            >
+              <span class="flex min-w-0 items-center gap-2.5">
+                <span
+                  class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-white"
+                  :style="{ background: e.color }"
+                >
+                  <span :class="`${e.icon} size-3.5`"></span>
+                </span>
+                <span class="truncate text-[13px]">{{ e.label }}</span>
+              </span>
+              <span
+                class="flex shrink-0 items-center gap-1.5 text-xs"
+                :class="e.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'"
+              >
+                <span
+                  class="size-1.5 rounded-full"
+                  :class="e.ok ? 'bg-emerald-500' : 'bg-amber-500'"
+                ></span>
+                {{ e.value }}
+              </span>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.metric-card {
+  animation: metric-in 0.4s ease-out both;
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+.metric-card:hover {
+  transform: translateY(-2px);
+  border-color: hsl(var(--primary) / 40%);
+  box-shadow:
+    0 8px 24px hsl(var(--foreground) / 8%),
+    0 0 24px var(--glow);
+}
+@keyframes metric-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+</style>
