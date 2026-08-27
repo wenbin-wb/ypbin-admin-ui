@@ -135,7 +135,7 @@ onMounted(loadStats);
       <!-- 概览卡片 -->
       <Row :gutter="[16, 16]">
         <Col :xs="12" :sm="12" :md="8" :lg="5">
-          <Card class="rounded-lg">
+          <Card class="rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
             <Statistic
               :loading="loading"
               :title="$t('page.ai.usage.kbCount')"
@@ -144,7 +144,7 @@ onMounted(loadStats);
           </Card>
         </Col>
         <Col :xs="12" :sm="12" :md="8" :lg="5">
-          <Card class="rounded-lg">
+          <Card class="rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
             <Statistic
               :loading="loading"
               :title="$t('page.ai.usage.docTotal')"
@@ -153,7 +153,7 @@ onMounted(loadStats);
           </Card>
         </Col>
         <Col :xs="12" :sm="12" :md="8" :lg="5">
-          <Card class="rounded-lg">
+          <Card class="rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
             <Statistic
               :loading="loading"
               :title="$t('page.ai.usage.chatCount')"
@@ -162,7 +162,7 @@ onMounted(loadStats);
           </Card>
         </Col>
         <Col :xs="12" :sm="12" :md="8" :lg="5">
-          <Card class="rounded-lg">
+          <Card class="rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
             <Statistic
               :loading="loading"
               :title="$t('page.ai.usage.queryCount')"
@@ -171,7 +171,7 @@ onMounted(loadStats);
           </Card>
         </Col>
         <Col :xs="24" :sm="12" :md="8" :lg="4">
-          <Card class="rounded-lg">
+          <Card class="rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
             <Statistic
               :loading="loading"
               :title="$t('page.ai.usage.totalTokens')"

@@ -558,7 +558,7 @@ defineExpose({ modalApi });
             <div
               v-for="(doc, idx) in recallList"
               :key="idx"
-              class="rounded-lg border border-border bg-muted/30 p-3"
+              class="rounded-lg border border-border bg-muted/30 p-3 transition-colors hover:bg-muted/50"
             >
               <div
                 class="mb-2 flex items-center gap-2 text-xs text-muted-foreground"

@@ -449,7 +449,7 @@ onMounted(loadKbs);
             v-model:value="keyword"
             :placeholder="$t('page.ai.knowledge.searchPlaceholder')"
             allow-clear
-            class="w-44"
+            class="w-full sm:w-44"
           />
           <Button
             v-access:code="['ai:knowledge:create']"

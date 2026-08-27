@@ -239,8 +239,9 @@ watch(open, (v) => {
     <div class="py-2">
       <Steps :current="current" :items="steps" size="small" class="mb-6" />
 
-      <!-- Step1 基本信息 -->
-      <div v-show="current === 0" class="space-y-4">
+      <div class="max-h-[58vh] overflow-y-auto pr-1">
+        <!-- Step1 基本信息 -->
+        <div v-if="current === 0" class="fade-step space-y-4">
         <div>
           <p class="mb-1.5 text-sm font-medium">
             {{ $t('page.ai.wizard.name') }}
@@ -291,7 +292,7 @@ watch(open, (v) => {
       </div>
 
       <!-- Step2 选择模型 -->
-      <div v-show="current === 1" class="space-y-5">
+      <div v-if="current === 1" class="fade-step space-y-5">
         <p class="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
           {{ $t('page.ai.wizard.modelHint') }}
         </p>
@@ -346,7 +347,7 @@ watch(open, (v) => {
       </div>
 
       <!-- Step3 导入文档 -->
-      <div v-show="current === 2" class="space-y-4">
+      <div v-if="current === 2" class="fade-step space-y-4">
         <p class="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
           {{ $t('page.ai.wizard.importHint') }}
         </p>
@@ -427,7 +428,7 @@ watch(open, (v) => {
       </div>
 
       <!-- Step4 检索配置 -->
-      <div v-show="current === 3" class="space-y-4">
+      <div v-if="current === 3" class="fade-step space-y-4">
         <p class="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
           {{ $t('page.ai.wizard.configHint') }}
         </p>
@@ -454,7 +455,7 @@ watch(open, (v) => {
       </div>
 
       <!-- Step5 测试问答 -->
-      <div v-show="current === 4" class="space-y-4">
+      <div v-if="current === 4" class="fade-step space-y-4">
         <p class="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
           {{ $t('page.ai.wizard.testHint') }}
         </p>
@@ -497,7 +498,7 @@ watch(open, (v) => {
       </div>
 
       <!-- Step6 分享设置 -->
-      <div v-show="current === 5" class="space-y-4">
+      <div v-if="current === 5" class="fade-step space-y-4">
         <p class="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
           {{ $t('page.ai.wizard.shareHint') }}
         </p>
@@ -518,7 +519,7 @@ watch(open, (v) => {
       </div>
 
       <!-- Step7 完成 -->
-      <div v-show="current === 6" class="flex flex-col items-center gap-3 py-8">
+      <div v-if="current === 6" class="fade-step flex flex-col items-center gap-3 py-8">
         <span
           class="flex size-16 items-center justify-center rounded-full bg-emerald-500/10 text-4xl"
         >
@@ -530,6 +531,7 @@ watch(open, (v) => {
         <p class="text-sm text-muted-foreground">
           {{ $t('page.ai.wizard.doneDesc') }}
         </p>
+        </div>
       </div>
 
       <!-- 底部操作 -->
@@ -557,3 +559,20 @@ watch(open, (v) => {
     </div>
   </Modal>
 </template>
+
+<style scoped>
+/* 步骤面板切换淡入微动效 */
+.fade-step {
+  animation: fade-step 0.25s ease-out;
+}
+@keyframes fade-step {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+</style>
