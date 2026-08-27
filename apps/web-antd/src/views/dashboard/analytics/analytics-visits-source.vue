@@ -24,7 +24,7 @@ onMounted(() => {
         animationEasing: 'exponentialInOut',
         animationType: 'scale',
         avoidLabelOverlap: false,
-        color: ['#5b8ff9', '#818cf8', '#22d3ee', '#67e0a3'],
+        color: ['#0066f5', '#7c7cf0', '#0ec9a3', '#f0b429'],
         data: [
           { name: $t('page.dashboard.searchEngine'), value: 1048 },
           { name: $t('page.dashboard.directAccess'), value: 735 },

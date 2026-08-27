@@ -30,49 +30,58 @@ const router = useRouter();
 
 const quickNavItems: WorkbenchQuickNavItem[] = [
   {
-    color: '#1fdaca',
+    color: '#0066f5',
     icon: 'carbon:user',
     title: $t('system.user.title'),
     url: '/system/user',
   },
   {
-    color: '#bf0c2c',
+    color: '#7c7cf0',
     icon: 'carbon:user-role',
     title: $t('system.role.title'),
     url: '/system/role',
   },
   {
-    color: '#e18525',
+    color: '#0ec9a3',
     icon: 'carbon:menu',
     title: $t('system.menu.title'),
     url: '/system/menu',
   },
   {
-    color: '#3fb27f',
+    color: '#f0b429',
     icon: 'carbon:container-services',
     title: $t('system.dept.title'),
     url: '/system/dept',
   },
   {
-    color: '#4daf1bc9',
+    color: '#f2547b',
     icon: 'carbon:document',
     title: $t('system.log.title'),
     url: '/system/log',
   },
   {
-    color: '#00d8ff',
+    color: '#5a6cf0',
     icon: 'carbon:user-online',
     title: $t('system.onlineUser.title'),
     url: '/system/online-user',
   },
 ];
 
-// ---- 项目卡片（演示数据）----
+// ---- 项目卡片（演示数据，颜色用统一数据色板循环）----
+const PROJECT_COLORS = [
+  '#0066f5', // 蓝（primary）
+  '#7c7cf0', // 靛紫
+  '#0ec9a3', // 青绿
+  '#f0b429', // 黄
+  '#f2547b', // 红
+  '#5a6cf0', // 蓝紫
+];
+
 const projectItems: WorkbenchProjectItem[] = [
   {
     title: 'AI 知识库',
     icon: 'carbon:database-enterprise',
-    color: 'hsl(217 91% 60%)',
+    color: PROJECT_COLORS[0],
     content: '12 个知识库 · 386 篇文档 · 向量化 100%',
     group: '知识管理',
     date: '2 小时前更新',
@@ -81,7 +90,7 @@ const projectItems: WorkbenchProjectItem[] = [
   {
     title: '智能对话',
     icon: 'carbon:chat-bot',
-    color: 'hsl(262 83% 62%)',
+    color: PROJECT_COLORS[1],
     content: '1,286 次会话 · 今日 46 次 · 平均延迟 1.2s',
     group: 'AI 应用',
     date: '刚刚',
@@ -90,7 +99,7 @@ const projectItems: WorkbenchProjectItem[] = [
   {
     title: '模型配置',
     icon: 'carbon:ai-status',
-    color: 'hsl(160 84% 39%)',
+    color: PROJECT_COLORS[2],
     content: '对话 2 个 · 向量化 1 个 · 全部在线',
     group: '资源配置',
     date: '昨天',
@@ -99,7 +108,7 @@ const projectItems: WorkbenchProjectItem[] = [
   {
     title: '数据统计',
     icon: 'carbon:chart-line',
-    color: 'hsl(32 95% 44%)',
+    color: PROJECT_COLORS[3],
     content: '本周问答 +18% · 热词 46 个',
     group: '运营分析',
     date: '今天 09:20',
@@ -108,7 +117,7 @@ const projectItems: WorkbenchProjectItem[] = [
   {
     title: '网页挂件',
     icon: 'carbon:web-services-container',
-    color: 'hsl(199 89% 48%)',
+    color: PROJECT_COLORS[4],
     content: '3 个站点已嵌入 · 累计问答 512 次',
     group: '对外集成',
     date: '3 天前',
@@ -117,7 +126,7 @@ const projectItems: WorkbenchProjectItem[] = [
   {
     title: '公开分享',
     icon: 'carbon:share',
-    color: 'hsl(292 84% 60%)',
+    color: PROJECT_COLORS[5],
     content: '2 个分享链接生效 · 今日访问 89',
     group: '对外集成',
     date: '5 天前',

@@ -27,8 +27,8 @@ onMounted(() => {
             y: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: 'rgba(91,177,239,0.45)' },
-              { offset: 1, color: 'rgba(91,177,239,0.02)' },
+              { offset: 0, color: 'rgba(0,102,245,0.45)' },
+              { offset: 1, color: 'rgba(0,102,245,0.02)' },
             ],
           },
         },
@@ -38,10 +38,10 @@ onMounted(() => {
           111,
         ],
         itemStyle: {
-          color: '#5ab1ef',
+          color: '#0066f5',
         },
         lineStyle: {
-          color: '#5ab1ef',
+          color: '#0066f5',
           width: 2.5,
         },
         smooth: true,
@@ -58,8 +58,8 @@ onMounted(() => {
             y: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: 'rgba(103,224,227,0.5)' },
-              { offset: 1, color: 'rgba(103,224,227,0.02)' },
+              { offset: 0, color: 'rgba(124,124,240,0.5)' },
+              { offset: 1, color: 'rgba(124,124,240,0.02)' },
             ],
           },
         },
@@ -68,10 +68,10 @@ onMounted(() => {
           11_000, 2221, 1201, 390, 198, 60, 30, 22, 11,
         ],
         itemStyle: {
-          color: '#67e0e3',
+          color: '#7c7cf0',
         },
         lineStyle: {
-          color: '#67e0e3',
+          color: '#7c7cf0',
           width: 2.5,
         },
         smooth: true,
@@ -83,7 +83,7 @@ onMounted(() => {
     tooltip: {
       axisPointer: {
         lineStyle: {
-          color: '#67e0e3',
+          color: '#7c7cf0',
           width: 1,
         },
       },

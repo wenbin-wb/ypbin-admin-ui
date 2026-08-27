@@ -50,27 +50,27 @@ onMounted(() => {
             y: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: 'rgba(129,140,248,0.5)' },
-              { offset: 1, color: 'rgba(129,140,248,0.05)' },
+              { offset: 0, color: 'rgba(124,124,240,0.5)' },
+              { offset: 1, color: 'rgba(124,124,240,0.05)' },
             ],
           },
           opacity: 1,
           shadowBlur: 12,
-          shadowColor: 'rgba(129,140,248,0.4)',
+          shadowColor: 'rgba(124,124,240,0.4)',
           shadowOffsetX: 0,
           shadowOffsetY: 6,
         },
         data: [
           {
             itemStyle: {
-              color: '#818cf8',
+              color: '#7c7cf0',
             },
             name: $t('page.dashboard.visitName'),
             value: [90, 50, 86, 40, 50, 20],
           },
           {
             itemStyle: {
-              color: '#22d3ee',
+              color: '#0ec9a3',
             },
             name: $t('page.dashboard.trendName'),
             value: [70, 75, 70, 76, 20, 85],

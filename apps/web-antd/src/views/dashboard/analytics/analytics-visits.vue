@@ -35,8 +35,8 @@ onMounted(() => {
             y: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: '#5b8ff9' },
-              { offset: 1, color: 'rgba(91,143,249,0.25)' },
+              { offset: 0, color: '#0066f5' },
+              { offset: 1, color: 'rgba(0,102,245,0.25)' },
             ],
           },
         },
@@ -46,7 +46,7 @@ onMounted(() => {
     tooltip: {
       axisPointer: {
         lineStyle: {
-          color: '#5b8ff9',
+          color: '#0066f5',
           width: 1,
         },
       },

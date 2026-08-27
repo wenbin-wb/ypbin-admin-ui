@@ -99,18 +99,18 @@ const dayBadges = [
         background: linear-gradient(
           120deg,
           hsl(var(--primary) / 14%),
-          hsl(262 83% 62% / 10%) 45%,
-          hsl(199 89% 48% / 12%)
+          hsl(245 82% 67% / 10%) 55%,
+          hsl(var(--primary) / 8%)
         );
       "
     >
       <span
         class="pointer-events-none absolute -right-8 -top-10 size-40 rounded-full opacity-30 blur-3xl"
-        style="background: hsl(262 83% 62% / 45%)"
+        style="background: hsl(245 82% 67% / 45%)"
       ></span>
       <span
         class="pointer-events-none absolute -bottom-12 right-32 size-36 rounded-full opacity-25 blur-3xl"
-        style="background: hsl(199 89% 48% / 40%)"
+        style="background: hsl(var(--primary) / 40%)"
       ></span>
       <div class="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -133,7 +133,7 @@ const dayBadges = [
                 background: linear-gradient(
                   135deg,
                   hsl(var(--primary)),
-                  hsl(262 83% 62%)
+                  hsl(245 82% 67%)
                 );
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;

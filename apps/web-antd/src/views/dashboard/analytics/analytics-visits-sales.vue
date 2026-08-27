@@ -20,7 +20,7 @@ onMounted(() => {
         animationEasing: 'exponentialInOut',
         animationType: 'scale',
         center: ['50%', '50%'],
-        color: ['#5b8ff9', '#818cf8', '#22d3ee', '#67e0a3'],
+        color: ['#0066f5', '#7c7cf0', '#0ec9a3', '#f0b429'],
         data: [
           { name: $t('page.dashboard.outsourcing'), value: 500 },
           { name: $t('page.dashboard.custom'), value: 310 },
