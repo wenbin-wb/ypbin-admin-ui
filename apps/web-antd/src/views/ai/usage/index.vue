@@ -5,7 +5,7 @@ import { computed, onMounted, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
-import { Card, Col, Empty, Row, Skeleton } from 'ant-design-vue';
+import { Col, Empty, Row, Skeleton } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -48,15 +48,47 @@ const totalDaily = computed(() =>
   daily.value.reduce((s, d) => s + d.chatCount + d.queryCount, 0),
 );
 
-/** 5 个概览指标（label/value），供指标条渲染 */
+// ---- 概览指标（图标 + 标签 + 渐变色）----
 const metrics = computed(() => [
-  { label: $t('page.ai.usage.kbCount'), value: String(summary.value.kbCount) },
-  { label: $t('page.ai.usage.docTotal'), value: String(summary.value.docTotal) },
-  { label: $t('page.ai.usage.chatCount'), value: String(summary.value.chatCount) },
-  { label: $t('page.ai.usage.queryCount'), value: String(summary.value.queryCount) },
   {
+    key: 'kbCount',
+    label: $t('page.ai.usage.kbCount'),
+    value: summary.value.kbCount,
+    icon: 'i-lucide-database',
+    grad: 'linear-gradient(135deg, hsl(var(--primary)), hsl(262 83% 62%))',
+    glow: 'hsl(var(--primary) / 30%)',
+  },
+  {
+    key: 'docTotal',
+    label: $t('page.ai.usage.docTotal'),
+    value: summary.value.docTotal,
+    icon: 'i-lucide-file-text',
+    grad: 'linear-gradient(135deg, hsl(217 91% 60%), hsl(199 89% 48%))',
+    glow: 'hsl(217 91% 60% / 30%)',
+  },
+  {
+    key: 'chatCount',
+    label: $t('page.ai.usage.chatCount'),
+    value: summary.value.chatCount,
+    icon: 'i-lucide-message-square',
+    grad: 'linear-gradient(135deg, hsl(262 83% 62%), hsl(292 84% 60%))',
+    glow: 'hsl(262 83% 62% / 30%)',
+  },
+  {
+    key: 'queryCount',
+    label: $t('page.ai.usage.queryCount'),
+    value: summary.value.queryCount,
+    icon: 'i-lucide-search',
+    grad: 'linear-gradient(135deg, hsl(160 84% 39%), hsl(152 76% 42%))',
+    glow: 'hsl(160 84% 39% / 30%)',
+  },
+  {
+    key: 'tokenTotal',
     label: $t('page.ai.usage.totalTokens'),
-    value: formatTokens(summary.value.tokenTotal),
+    value: summary.value.tokenTotal,
+    icon: 'i-lucide-zap',
+    grad: 'linear-gradient(135deg, hsl(32 95% 44%), hsl(16 90% 50%))',
+    glow: 'hsl(32 95% 44% / 30%)',
   },
 ]);
 
@@ -66,29 +98,54 @@ function formatTokens(n: number) {
   return String(n);
 }
 
-/** 柱高百分比（0-100%） */
-function barPct(value: number, max: number) {
-  return `${Math.round((value / max) * 100)}%`;
+// 数字滚动动画（rAF countup）：value 变化时从旧值渐变到新值
+const displayed = ref<Record<string, number>>({});
+let rafId = 0;
+function animateMetric(key: string, target: number) {
+  cancelAnimationFrame(rafId);
+  const from = displayed.value[key] ?? 0;
+  if (from === target) {
+    displayed.value[key] = target;
+    return;
+  }
+  const start = performance.now();
+  const duration = 600;
+  const tick = (now: number) => {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+    displayed.value[key] = Math.round(from + (target - from) * eased);
+    if (t < 1) rafId = requestAnimationFrame(tick);
+  };
+  rafId = requestAnimationFrame(tick);
 }
 
-/** 趋势底部标签：每 5 天显示一次，其余占位保持对齐 */
+function displayValue(m: (typeof metrics.value)[number]) {
+  const raw = displayed.value[m.key] ?? 0;
+  return m.key === 'tokenTotal' ? formatTokens(raw) : String(raw);
+}
+
+function barPct(value: number, max: number) {
+  return `${Math.max(2, Math.round((value / max) * 100))}%`;
+}
+
 function showTick(i: number) {
   return i % 5 === 0 || i === daily.value.length - 1;
 }
 
-/** 热词名次强调：前三名用主色加深，其余弱化 */
-function rankClass(i: number) {
-  if (i === 0) return 'text-primary';
-  if (i === 1) return 'text-primary/70';
-  if (i === 2) return 'text-primary/50';
-  return 'text-muted-foreground/60';
+// 热词前三名奖牌色
+const MEDAL = [
+  'linear-gradient(135deg, hsl(45 93% 47%), hsl(38 92% 50%))',
+  'linear-gradient(135deg, hsl(215 13% 47%), hsl(217 13% 55%))',
+  'linear-gradient(135deg, hsl(28 87% 50%), hsl(25 90% 52%))',
+];
+function medal(i: number) {
+  return i < 3 ? MEDAL[i] : 'hsl(var(--muted-foreground) / 25%)';
 }
-
-function barClass(i: number) {
-  if (i === 0) return 'bg-primary';
-  if (i === 1) return 'bg-primary/70';
-  if (i === 2) return 'bg-primary/50';
-  return 'bg-primary/30';
+function medalGlow(i: number) {
+  if (i === 0) return 'hsl(45 93% 47% / 35%)';
+  if (i === 1) return 'hsl(215 13% 47% / 30%)';
+  if (i === 2) return 'hsl(28 87% 50% / 30%)';
+  return 'transparent';
 }
 
 async function loadStats() {
@@ -101,6 +158,7 @@ async function loadStats() {
       getAiStatsKbDocs(),
     ]);
     summary.value = s;
+    metrics.value.forEach((m) => animateMetric(m.key, m.value));
     daily.value = d;
     hotQueries.value = h;
     kbDocs.value = k;
@@ -145,92 +203,144 @@ onMounted(loadStats);
 <template>
   <Page auto-content-height>
     <div class="space-y-5 p-5">
-      <!-- 概览指标条（单一容器，间距即分隔） -->
-      <div class="grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border bg-card px-6 py-5 sm:grid-cols-3 lg:grid-cols-5">
-        <div v-for="m in metrics" :key="m.label" class="min-w-0">
-          <p class="truncate text-xs text-muted-foreground">{{ m.label }}</p>
-          <p class="mt-1.5 truncate text-2xl font-semibold tabular-nums tracking-tight">
-            <Skeleton v-if="loading" :paragraph="false" :title="{ width: 56 }" active class="!w-16" />
-            <template v-else>{{ m.value }}</template>
-          </p>
+      <!-- ===== 概览指标卡（渐变 + 发光 + 数字动画）===== -->
+      <div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+        <div
+          v-for="(m, i) in metrics"
+          :key="m.key"
+          class="metric-card group relative overflow-hidden rounded-xl border border-border/80 bg-card p-4"
+          :style="{ '--glow': m.glow, animationDelay: `${i * 60}ms` }"
+        >
+          <!-- 装饰光斑 -->
+          <span
+            class="pointer-events-none absolute -right-6 -top-6 size-20 rounded-full opacity-60 blur-2xl transition-opacity duration-300 group-hover:opacity-90"
+            :style="{ background: m.grad }"
+          ></span>
+          <div class="relative">
+            <div
+              class="inline-flex size-9 items-center justify-center rounded-lg text-white shadow-lg"
+              :style="{ background: m.grad, boxShadow: `0 6px 16px ${m.glow}` }"
+            >
+              <span :class="`${m.icon} size-[18px]`"></span>
+            </div>
+            <p class="mt-3 truncate text-xs text-muted-foreground">{{ m.label }}</p>
+            <p
+              class="mt-1 truncate text-[26px] font-bold tabular-nums leading-tight tracking-tight"
+              :style="{
+                background: m.grad,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }"
+            >
+              <Skeleton
+                v-if="loading"
+                :paragraph="false"
+                :title="{ width: 60 }"
+                active
+                class="!w-16"
+              />
+              <template v-else>{{ displayValue(m) }}</template>
+            </p>
+          </div>
         </div>
       </div>
 
-      <!-- 趋势 + 热词 -->
+      <!-- ===== 趋势 + 热词 ===== -->
       <Row :gutter="[16, 16]">
         <Col :xs="24" :lg="16">
-          <Card :title="$t('page.ai.usage.trend')" size="small">
-            <template v-if="loading">
-              <Skeleton :paragraph="{ rows: 6 }" active />
-            </template>
-            <template v-else-if="totalDaily > 0">
-              <div class="flex h-44 items-end gap-[3px]">
-                <div
-                  v-for="d in daily"
-                  :key="d.date"
-                  class="group relative flex h-full flex-1 flex-col justify-end gap-[2px]"
-                  :title="`${d.date} ${$t('page.ai.usage.trendQuery')}: ${d.queryCount} / ${$t('page.ai.usage.trendChat')}: ${d.chatCount}`"
-                >
+          <div class="panel-card relative overflow-hidden rounded-xl border border-border/80 bg-card p-5">
+            <span class="pointer-events-none absolute -left-10 -top-10 size-32 rounded-full opacity-25 blur-3xl"
+              :style="{ background: 'hsl(var(--primary) / 40%)' }"></span>
+            <div class="relative">
+              <h3 class="text-sm font-semibold">{{ $t('page.ai.usage.trend') }}</h3>
+              <div v-if="loading" class="mt-4">
+                <Skeleton :paragraph="{ rows: 6 }" active />
+              </div>
+              <template v-else-if="totalDaily > 0">
+                <div class="mt-4 flex h-44 items-end gap-[3px]">
                   <div
-                    class="w-full rounded-t-[3px] bg-primary/35 transition-colors group-hover:bg-primary/55"
-                    :style="{ height: barPct(d.queryCount, maxDaily) }"
-                  ></div>
-                  <div
-                    class="w-full rounded-t-[3px] bg-primary transition-colors group-hover:bg-primary/85"
-                    :style="{ height: barPct(d.chatCount, maxDaily) }"
-                  ></div>
+                    v-for="d in daily"
+                    :key="d.date"
+                    class="group relative flex h-full flex-1 flex-col justify-end gap-[2px]"
+                    :title="`${d.date} ${$t('page.ai.usage.trendQuery')}: ${d.queryCount} / ${$t('page.ai.usage.trendChat')}: ${d.chatCount}`"
+                  >
+                    <div
+                      class="w-full rounded-t-[3px] transition-all duration-200 group-hover:brightness-125"
+                      :style="{
+                        background: `linear-gradient(to top, hsl(var(--primary) / 55%), hsl(var(--primary) / 25%))`,
+                        height: barPct(d.queryCount, maxDaily),
+                      }"
+                    ></div>
+                    <div
+                      class="w-full rounded-t-[3px] transition-all duration-200 group-hover:brightness-125"
+                      :style="{
+                        background: `linear-gradient(to top, hsl(262 83% 62% / 90%), hsl(262 83% 62% / 45%))`,
+                        height: barPct(d.chatCount, maxDaily),
+                        boxShadow: '0 0 10px hsl(262 83% 62% / 25%)',
+                      }"
+                    ></div>
+                  </div>
                 </div>
-              </div>
-              <div class="mt-1.5 flex">
-                <span
-                  v-for="(d, i) in daily"
-                  :key="d.date"
-                  class="flex-1 text-center text-[10px] leading-none text-muted-foreground"
-                  :class="showTick(i) ? '' : 'invisible'"
-                  >{{ d.date.slice(5) }}</span
-                >
-              </div>
-              <div class="mt-3 flex items-center gap-5 border-t border-border pt-3 text-xs text-muted-foreground">
-                <span class="flex items-center gap-1.5">
-                  <span class="size-2 rounded-sm bg-primary"></span>
-                  {{ $t('page.ai.usage.trendChat') }}
-                </span>
-                <span class="flex items-center gap-1.5">
-                  <span class="size-2 rounded-sm bg-primary/35"></span>
-                  {{ $t('page.ai.usage.trendQuery') }}
-                </span>
-              </div>
-            </template>
-            <Empty v-else :description="$t('page.ai.usage.hotEmpty')" class="py-10" />
-          </Card>
+                <div class="mt-1.5 flex">
+                  <span
+                    v-for="(d, i) in daily"
+                    :key="d.date"
+                    class="flex-1 text-center text-[10px] leading-none text-muted-foreground"
+                    :class="showTick(i) ? '' : 'invisible'"
+                    >{{ d.date.slice(5) }}</span
+                  >
+                </div>
+                <div class="mt-3 flex items-center gap-5 border-t border-border pt-3 text-xs text-muted-foreground">
+                  <span class="flex items-center gap-1.5">
+                    <span class="size-2 rounded-sm"
+                      :style="{ background: 'linear-gradient(135deg, hsl(262 83% 62%), hsl(292 84% 60%))' }"></span>
+                    {{ $t('page.ai.usage.trendChat') }}
+                  </span>
+                  <span class="flex items-center gap-1.5">
+                    <span class="size-2 rounded-sm"
+                      :style="{ background: 'hsl(var(--primary) / 40%)' }"></span>
+                    {{ $t('page.ai.usage.trendQuery') }}
+                  </span>
+                </div>
+              </template>
+              <Empty v-else :description="$t('page.ai.usage.hotEmpty')" class="py-10" />
+            </div>
+          </div>
         </Col>
+
         <Col :xs="24" :lg="8">
-          <Card :title="$t('page.ai.usage.hotQueries')" size="small">
-            <template v-if="loading">
+          <div class="panel-card rounded-xl border border-border/80 bg-card p-5">
+            <h3 class="text-sm font-semibold">{{ $t('page.ai.usage.hotQueries') }}</h3>
+            <div v-if="loading" class="mt-4">
               <Skeleton :paragraph="{ rows: 6 }" active />
-            </template>
+            </div>
             <template v-else-if="hotQueries.length">
-              <div class="flex flex-col">
+              <div class="mt-2 flex flex-col">
                 <div
                   v-for="(h, i) in hotQueries"
                   :key="h.query"
-                  class="flex items-center gap-3 py-1.5"
+                  class="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40"
                 >
-                  <span class="w-5 shrink-0 text-center text-sm font-semibold tabular-nums" :class="rankClass(i)">{{
-                    i + 1
-                  }}</span>
+                  <span
+                    class="flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white tabular-nums"
+                    :style="{
+                      background: medal(i),
+                      boxShadow: `0 3px 8px ${medalGlow(i)}`,
+                    }"
+                    >{{ i + 1 }}</span>
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center justify-between gap-2">
-                      <span class="truncate text-sm">{{ h.query }}</span>
-                      <span class="shrink-0 text-xs text-muted-foreground tabular-nums">{{
-                        h.count
-                      }}</span>
+                      <span class="truncate text-[13px] font-medium">{{ h.query }}</span>
+                      <span class="shrink-0 text-xs text-muted-foreground tabular-nums">{{ h.count }}</span>
                     </div>
-                    <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-muted/60">
+                    <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted/60">
                       <div
-                        class="h-full rounded-full transition-all"
-                        :class="barClass(i)"
-                        :style="{ width: barPct(h.count, maxHot) }"
+                        class="h-full rounded-full transition-all duration-500"
+                        :style="{
+                          width: barPct(h.count, maxHot),
+                          background: `linear-gradient(90deg, hsl(var(--primary) / 70%), hsl(262 83% 62%))`,
+                          boxShadow: i === 0 ? '0 0 8px hsl(var(--primary) / 40%)' : 'none',
+                        }"
                       ></div>
                     </div>
                   </div>
@@ -238,25 +348,29 @@ onMounted(loadStats);
               </div>
             </template>
             <Empty v-else :description="$t('page.ai.usage.hotEmpty')" class="py-10" />
-          </Card>
+          </div>
         </Col>
       </Row>
 
-      <!-- 文档分布 + 按模型分布 -->
+      <!-- ===== 文档分布 + 按模型分布 ===== -->
       <Row :gutter="[16, 16]">
         <Col :xs="24" :lg="12">
-          <Card :title="$t('page.ai.usage.kbDistribution')" size="small">
-            <template v-if="loading">
+          <div class="panel-card rounded-xl border border-border/80 bg-card p-5">
+            <h3 class="text-sm font-semibold">{{ $t('page.ai.usage.kbDistribution') }}</h3>
+            <div v-if="loading" class="mt-4">
               <Skeleton :paragraph="{ rows: 5 }" active />
-            </template>
+            </div>
             <template v-else-if="kbDocs.length">
-              <div class="flex flex-col gap-3">
+              <div class="mt-3 flex flex-col gap-3.5">
                 <div v-for="k in kbDocs" :key="k.name" class="flex items-center gap-3">
-                  <span class="w-32 shrink-0 truncate text-sm">{{ k.name }}</span>
+                  <span class="w-32 shrink-0 truncate text-[13px]">{{ k.name }}</span>
                   <div class="h-2 flex-1 overflow-hidden rounded-full bg-muted/60">
                     <div
-                      class="h-full rounded-full bg-primary/50 transition-all"
-                      :style="{ width: barPct(k.docCount, maxKbDocs) }"
+                      class="h-full rounded-full transition-all duration-500"
+                      :style="{
+                        width: barPct(k.docCount, maxKbDocs),
+                        background: `linear-gradient(90deg, hsl(217 91% 60%), hsl(199 89% 48%))`,
+                      }"
                     ></div>
                   </div>
                   <span class="w-16 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
@@ -266,31 +380,79 @@ onMounted(loadStats);
               </div>
             </template>
             <Empty v-else :description="$t('page.ai.usage.kbEmpty')" class="py-10" />
-          </Card>
+          </div>
         </Col>
+
         <Col :xs="24" :lg="12">
-          <Card :title="$t('page.ai.usage.byModel')" size="small">
-            <ModelGrid>
-              <template #modelTokens="{ row }">
-                <span class="tabular-nums">{{ formatTokens(row.tokens) }}</span>
-              </template>
-              <template #percent="{ row }">
-                <div class="flex items-center gap-2">
-                  <span class="w-8 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{{
-                    row.percent
-                  }}%</span>
-                  <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/60">
-                    <div
-                      class="h-full rounded-full bg-primary/70 transition-all"
-                      :style="{ width: `${Math.min(100, Math.max(0, row.percent))}%` }"
-                    ></div>
+          <div class="panel-card rounded-xl border border-border/80 bg-card p-5">
+            <h3 class="text-sm font-semibold">{{ $t('page.ai.usage.byModel') }}</h3>
+            <div class="mt-3">
+              <ModelGrid>
+                <template #modelTokens="{ row }">
+                  <span class="tabular-nums font-medium">{{ formatTokens(row.tokens) }}</span>
+                </template>
+                <template #percent="{ row }">
+                  <div class="flex items-center gap-2">
+                    <span class="w-8 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{{
+                      row.percent
+                    }}%</span>
+                    <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/60">
+                      <div
+                        class="h-full rounded-full transition-all duration-500"
+                        :style="{
+                          width: `${Math.min(100, Math.max(0, row.percent))}%`,
+                          background: `linear-gradient(90deg, hsl(var(--primary)), hsl(262 83% 62%))`,
+                        }"
+                      ></div>
+                    </div>
                   </div>
-                </div>
-              </template>
-            </ModelGrid>
-          </Card>
+                </template>
+              </ModelGrid>
+            </div>
+          </div>
         </Col>
       </Row>
     </div>
   </Page>
 </template>
+
+<style scoped>
+/* 指标卡：入场渐显 + hover 发光描边 */
+.metric-card {
+  animation: metric-in 0.4s ease-out both;
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+.metric-card:hover {
+  transform: translateY(-2px);
+  border-color: hsl(var(--primary) / 45%);
+  box-shadow:
+    0 8px 24px hsl(var(--foreground) / 8%),
+    0 0 24px var(--glow);
+}
+@keyframes metric-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 面板卡：hover 轻微上浮 */
+.panel-card {
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+.panel-card:hover {
+  transform: translateY(-1px);
+  border-color: hsl(var(--primary) / 30%);
+  box-shadow: 0 6px 20px hsl(var(--foreground) / 6%);
+}
+</style>
