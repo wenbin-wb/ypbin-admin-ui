@@ -1,14 +1,9 @@
 <script lang="ts" setup>
-import type { AnalysisOverviewItem } from '@vben/common-ui';
 import type { TabOption } from '@vben/types';
 
 import { computed } from 'vue';
 
-import {
-  AnalysisChartCard,
-  AnalysisChartsTabs,
-  AnalysisOverview,
-} from '@vben/common-ui';
+import { AnalysisChartCard, AnalysisChartsTabs } from '@vben/common-ui';
 import {
   SvgBellIcon,
   SvgCakeIcon,
@@ -24,36 +19,52 @@ import AnalyticsVisitsSales from './analytics-visits-sales.vue';
 import AnalyticsVisitsSource from './analytics-visits-source.vue';
 import AnalyticsVisits from './analytics-visits.vue';
 
-const overviewItems: AnalysisOverviewItem[] = [
+// ---- 统一视觉（与统计看板/工作台同一套语言）----
+const BRAND_GRAD =
+  'linear-gradient(135deg, hsl(var(--primary)), hsl(245 82% 67%))';
+
+const overviewCards = computed(() => [
   {
+    key: 'user',
     icon: SvgCardIcon,
     title: $t('page.dashboard.user'),
-    totalTitle: $t('page.dashboard.userTotal'),
-    totalValue: 120_000,
     value: 2000,
+    total: $t('page.dashboard.userTotal'),
+    totalValue: 120_000,
+    grad: 'linear-gradient(135deg, hsl(var(--primary)), hsl(245 82% 67%))',
+    glow: 'hsl(var(--primary) / 30%)',
   },
   {
+    key: 'visit',
     icon: SvgCakeIcon,
     title: $t('page.dashboard.visit'),
-    totalTitle: $t('page.dashboard.visitTotal'),
-    totalValue: 500_000,
     value: 20_000,
+    total: $t('page.dashboard.visitTotal'),
+    totalValue: 500_000,
+    grad: 'linear-gradient(135deg, hsl(245 82% 67%), hsl(161 90% 43%))',
+    glow: 'hsl(245 82% 67% / 30%)',
   },
   {
+    key: 'download',
     icon: SvgDownloadIcon,
     title: $t('page.dashboard.download'),
-    totalTitle: $t('page.dashboard.downloadTotal'),
-    totalValue: 120_000,
     value: 8000,
+    total: $t('page.dashboard.downloadTotal'),
+    totalValue: 120_000,
+    grad: 'linear-gradient(135deg, hsl(199 89% 48%), hsl(161 90% 43%))',
+    glow: 'hsl(199 89% 48% / 30%)',
   },
   {
+    key: 'usage',
     icon: SvgBellIcon,
     title: $t('page.dashboard.usage'),
-    totalTitle: $t('page.dashboard.usageTotal'),
-    totalValue: 50_000,
     value: 5000,
+    total: $t('page.dashboard.usageTotal'),
+    totalValue: 50_000,
+    grad: 'linear-gradient(135deg, hsl(32 95% 44%), hsl(16 90% 50%))',
+    glow: 'hsl(32 95% 44% / 30%)',
   },
-];
+]);
 
 const chartTabs: TabOption[] = [
   {
@@ -66,18 +77,10 @@ const chartTabs: TabOption[] = [
   },
 ];
 
-// 欢迎横幅：日期 + 问候 + 当日徽章
+// 页头：日期 + 当日徽章
 const now = computed(() => {
   const d = new Date();
-  const week = [
-    '周日',
-    '周一',
-    '周二',
-    '周三',
-    '周四',
-    '周五',
-    '周六',
-  ];
+  const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${week[d.getDay()]}`;
 });
@@ -88,34 +91,40 @@ const dayBadges = [
   { label: '今日问答', value: '128' },
   { label: '在线人数', value: '36' },
 ];
+
+function fmt(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(n);
+}
 </script>
 
 <template>
   <div class="p-5">
-    <!-- 渐变欢迎横幅 -->
+    <!-- 炫彩浅色页头：淡渐变底 + 光斑 + 徽章 -->
     <div
-      class="relative overflow-hidden rounded-xl border border-primary/20 p-6"
+      class="relative overflow-hidden rounded-2xl border border-border/70 px-6 py-5"
       style="
         background: linear-gradient(
           120deg,
-          hsl(var(--primary) / 14%),
-          hsl(245 82% 67% / 10%) 55%,
-          hsl(var(--primary) / 8%)
+          hsl(var(--primary) / 10%),
+          hsl(245 82% 67% / 8%) 50%,
+          hsl(199 89% 48% / 10%)
         );
       "
     >
       <span
-        class="pointer-events-none absolute -right-8 -top-10 size-40 rounded-full opacity-30 blur-3xl"
-        style="background: hsl(245 82% 67% / 45%)"
+        class="pointer-events-none absolute -right-10 -top-12 size-44 rounded-full opacity-40 blur-3xl"
+        style="background: hsl(245 82% 67% / 35%)"
       ></span>
       <span
-        class="pointer-events-none absolute -bottom-12 right-32 size-36 rounded-full opacity-25 blur-3xl"
-        style="background: hsl(var(--primary) / 40%)"
+        class="pointer-events-none absolute -bottom-14 right-40 size-36 rounded-full opacity-30 blur-3xl"
+        style="background: hsl(var(--primary) / 35%)"
       ></span>
       <div class="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p class="text-xs text-muted-foreground">{{ now }}</p>
-          <h2 class="mt-1 text-xl font-semibold tracking-tight">数据分析总览</h2>
+          <h2 class="mt-1 text-2xl font-bold tracking-tight">数据分析总览</h2>
           <p class="mt-1 text-sm text-muted-foreground">
             平台整体运行态势与趋势洞察（演示数据）
           </p>
@@ -124,20 +133,16 @@ const dayBadges = [
           <div
             v-for="b in dayBadges"
             :key="b.label"
-            class="rounded-lg border border-border/70 bg-background/60 px-4 py-2 backdrop-blur"
+            class="rounded-xl border border-border/70 bg-background/70 px-4 py-2 shadow-sm backdrop-blur"
           >
             <p class="text-xs text-muted-foreground">{{ b.label }}</p>
             <p
               class="mt-0.5 text-lg font-bold tabular-nums leading-none"
-              style="
-                background: linear-gradient(
-                  135deg,
-                  hsl(var(--primary)),
-                  hsl(245 82% 67%)
-                );
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-              "
+              :style="{
+                background: BRAND_GRAD,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }"
             >
               {{ b.value }}
             </p>
@@ -146,7 +151,47 @@ const dayBadges = [
       </div>
     </div>
 
-    <AnalysisOverview :items="overviewItems" class="mt-5" />
+    <!-- 指标卡（炫彩：渐变图标 + 光晕 + 大数字） -->
+    <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div
+        v-for="c in overviewCards"
+        :key="c.key"
+        class="metric-card group relative overflow-hidden rounded-xl border border-border/80 bg-card p-5"
+        :style="{ '--glow': c.glow }"
+      >
+        <span
+          class="pointer-events-none absolute -right-8 -top-8 size-24 rounded-full opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-80"
+          :style="{ background: c.grad }"
+        ></span>
+        <div class="relative flex items-start justify-between">
+          <div>
+            <p class="text-sm text-muted-foreground">{{ c.title }}</p>
+            <p
+              class="mt-2 text-3xl font-bold tabular-nums leading-none tracking-tight"
+              :style="{
+                background: c.grad,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }"
+            >
+              {{ fmt(c.value) }}
+            </p>
+          </div>
+          <span
+            class="inline-flex size-10 items-center justify-center rounded-xl text-white shadow-lg"
+            :style="{ background: c.grad, boxShadow: `0 8px 20px ${c.glow}` }"
+          >
+            <component :is="c.icon" class="size-5" />
+          </span>
+        </div>
+        <div
+          class="relative mt-4 flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground"
+        >
+          <span>{{ c.total }}</span>
+          <span class="font-semibold tabular-nums">{{ fmt(c.totalValue) }}</span>
+        </div>
+      </div>
+    </div>
 
     <AnalysisChartsTabs :tabs="chartTabs" class="mt-5">
       <template #trends>
@@ -179,3 +224,30 @@ const dayBadges = [
     </div>
   </div>
 </template>
+
+<style scoped>
+.metric-card {
+  animation: metric-in 0.4s ease-out both;
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+.metric-card:hover {
+  transform: translateY(-2px);
+  border-color: hsl(var(--primary) / 40%);
+  box-shadow:
+    0 8px 24px hsl(var(--foreground) / 8%),
+    0 0 24px var(--glow);
+}
+@keyframes metric-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+</style>
