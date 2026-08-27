@@ -29,6 +29,7 @@ import {
 } from '#/api/ai';
 import { $t } from '#/locales';
 
+import CreateWizard from './modules/create-wizard.vue';
 import Documents from './modules/documents.vue';
 import Form from './modules/form.vue';
 
@@ -41,6 +42,8 @@ const [DocumentsModal, documentsModalApi] = useVbenModal({
   connectedComponent: Documents,
   destroyOnClose: false,
 });
+
+const createWizardRef = ref<InstanceType<typeof CreateWizard>>();
 
 const knowledgeBases = ref<AiApi.KnowledgeBase[]>([]);
 const loading = ref(false);
@@ -66,7 +69,11 @@ async function loadKbs() {
 }
 
 function onCreate() {
-  formDrawerApi.setData(null).open();
+  createWizardRef.value?.openWizard();
+}
+
+function onOpenDocsFromWizard(kb: AiApi.KnowledgeBase) {
+  documentsModalApi.setData(kb).open();
 }
 
 function onEdit(kb: AiApi.KnowledgeBase, e: Event) {
@@ -280,6 +287,11 @@ onMounted(loadKbs);
   <Page auto-content-height content-class="p-4">
     <FormDrawer @reload="loadKbs" />
     <DocumentsModal @reload="loadKbs" />
+    <CreateWizard
+      ref="createWizardRef"
+      @reload="loadKbs"
+      @open-docs="onOpenDocsFromWizard"
+    />
 
     <!-- 网页挂件弹窗 -->
     <Modal
