@@ -732,3 +732,9 @@ export function getDocumentContent(kbId: string, docId: string) {
     `/ai/knowledge-bases/${kbId}/documents/${docId}/content`,
   );
 }
+
+export function getDocumentChunks(kbId: string, docId: string) {
+  return requestClient.get<
+    Array<{ chunkIndex: number; content: string; charCount: number }>
+  >(`/ai/knowledge-bases/${kbId}/documents/${docId}/chunks`);
+}

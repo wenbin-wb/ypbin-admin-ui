@@ -18,6 +18,7 @@ import {
   Input,
   InputNumber,
   message,
+  Spin,
   Tabs,
   Tooltip,
   Upload,
@@ -27,6 +28,7 @@ import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
   batchUploadDocuments,
   deleteDocument,
+  getDocumentChunks,
   getDocumentList,
   importDocumentFromUrl,
   queryKnowledgeBase,
@@ -121,6 +123,9 @@ const [Modal, modalApi] = useVbenModal<AiApi.KnowledgeBase | null>({
   },
 });
 
+// 文档名模糊搜索
+const docKeyword = ref('');
+
 const [Grid, gridApi] = useVbenVxeGrid({
   gridOptions: {
     columns: [
@@ -172,6 +177,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
           const res = await getDocumentList(kb.id, {
             page: page.currentPage,
             pageSize: page.pageSize,
+            keyword: docKeyword.value.trim() || undefined,
           });
           // 有处理中的文档则轮询，全部就绪/失败则停止
           const hasProcessing = res.items.some((d) => d.status === 0);
@@ -355,6 +361,30 @@ async function onImportSubmit() {
   }
 }
 
+// ---- 分块可视化弹窗 ----
+const chunkVisible = ref(false);
+const chunkLoading = ref(false);
+const chunkDocName = ref('');
+const chunkList = ref<
+  Array<{ chunkIndex: number; content: string; charCount: number }>
+>([]);
+
+async function openChunks(row: { docId: string; filename?: string }) {
+  const kb = modalApi.getData();
+  if (!kb) return;
+  chunkVisible.value = true;
+  chunkLoading.value = true;
+  chunkDocName.value = row.filename ?? '';
+  chunkList.value = [];
+  try {
+    chunkList.value = await getDocumentChunks(kb.id, row.docId);
+  } catch (error: any) {
+    message.error(error?.message || $t('common.requestFailed'));
+  } finally {
+    chunkLoading.value = false;
+  }
+}
+
 defineExpose({ modalApi });
 </script>
 
@@ -407,14 +437,23 @@ defineExpose({ modalApi });
           <span class="text-xs text-muted-foreground">
             {{ $t('page.ai.knowledge.uploadHint') }}
           </span>
-          <span
-            v-if="pollTimer !== null"
-            class="ml-auto flex items-center gap-1 text-xs text-muted-foreground"
-          >
+          <span class="ml-auto flex items-center gap-2">
+            <Input
+              v-model:value="docKeyword"
+              :placeholder="$t('page.ai.knowledge.docSearchPlaceholder')"
+              allow-clear
+              class="w-44"
+              @change="gridApi.query()"
+            />
             <span
-              class="inline-block size-1.5 animate-ping rounded-full bg-primary"
-            ></span>
-            {{ $t('page.ai.knowledge.pollingHint') }}
+              v-if="pollTimer !== null"
+              class="flex items-center gap-1 text-xs text-muted-foreground"
+            >
+              <span
+                class="inline-block size-1.5 animate-ping rounded-full bg-primary"
+              ></span>
+              {{ $t('page.ai.knowledge.pollingHint') }}
+            </span>
           </span>
         </div>
 
@@ -448,6 +487,15 @@ defineExpose({ modalApi });
           <template #action="{ row }">
             <VbenTableAction
               :actions="[
+                ...(row.status === 1
+                  ? [
+                      {
+                        text: $t('page.ai.knowledge.chunks'),
+                        icon: 'lucide:list-tree',
+                        onClick: () => openChunks(row),
+                      },
+                    ]
+                  : []),
                 ...(row.status === 2
                   ? [
                       {
@@ -667,5 +715,43 @@ defineExpose({ modalApi });
         />
       </Form.Item>
     </Form>
+  </AntModal>
+
+  <!-- 分块可视化弹窗 -->
+  <AntModal
+    v-model:open="chunkVisible"
+    :title="`${$t('page.ai.knowledge.chunks')} · ${chunkDocName}`"
+    :footer="null"
+    width="720px"
+  >
+    <Spin :spinning="chunkLoading">
+      <div v-if="chunkList.length" class="flex flex-col gap-2">
+        <div
+          v-for="chunk in chunkList"
+          :key="chunk.chunkIndex"
+          class="rounded-lg border border-border bg-muted/30 p-3"
+        >
+          <div
+            class="mb-1.5 flex items-center gap-2 text-xs text-muted-foreground"
+          >
+            <span
+              class="inline-flex size-5 shrink-0 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary"
+              >#{{ chunk.chunkIndex + 1 }}</span
+            >
+            <span class="ml-auto shrink-0 text-[10px]">
+              {{ chunk.charCount ?? 0 }} chars
+            </span>
+          </div>
+          <p class="m-0 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/80">
+            {{ chunk.content }}
+          </p>
+        </div>
+      </div>
+      <Empty
+        v-else-if="!chunkLoading"
+        :description="$t('page.ai.knowledge.chunksEmpty')"
+        class="py-10"
+      />
+    </Spin>
   </AntModal>
 </template>

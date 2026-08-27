@@ -1,0 +1,5 @@
+feat(@vben/web-antd): AI 模块打磨（文档分块查看 + 文件名搜索）
+
+- 文档操作列新增"分块"入口（就绪文档显示），弹窗展示全量分块（序号/字符数/内容）
+- 文档 Tab 新增按文件名模糊搜索框（输入即查，keyword 透传后端）
+- api 新增 getDocumentChunks；locales 扩充 chunks/docSearch 词条
