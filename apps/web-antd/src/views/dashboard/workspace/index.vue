@@ -255,6 +255,25 @@ const envItems = [
   },
 ];
 
+// ---- 系统公告（演示数据）----
+const notices = [
+  {
+    title: 'AI 模型已接入，可在【AI 配置】中切换对话模型',
+    date: '10 分钟前',
+    color: '#0066f5',
+  },
+  {
+    title: '知识库分享功能上线：支持有效期与访问密码',
+    date: '2 小时前',
+    color: '#7c7cf0',
+  },
+  {
+    title: '演示环境说明：数据为模拟数据，仅供体验',
+    date: '昨天 17:00',
+    color: '#f0b429',
+  },
+];
+
 // ---- 动态趋势（后端日志为空时用演示数据兜底）----
 const avatars = [
   'svg:avatar-1',
@@ -450,7 +469,7 @@ function onProjectClick(item: WorkbenchProjectItem) {
       </div>
     </div>
 
-    <!-- 动态趋势 + 快捷导航 -->
+    <!-- 动态趋势 + 快捷导航/环境信息 -->
     <div class="mt-5 flex flex-col gap-4 xl:flex-row">
       <div class="min-w-0 flex-1">
         <Spin :spinning="trendLoading">
@@ -480,12 +499,43 @@ function onProjectClick(item: WorkbenchProjectItem) {
           />
         </Spin>
       </div>
-      <div class="w-full xl:w-[320px]">
+      <div class="flex w-full flex-col gap-4 xl:w-[320px]">
         <WorkbenchQuickNav
           :items="quickNavItems"
           :title="$t('page.dashboard.quickNav')"
           @click="navTo"
         />
+        <!-- 环境信息 -->
+        <div class="flex-1 rounded-xl border border-border/80 bg-card p-5">
+          <h3 class="text-base font-semibold">环境信息</h3>
+          <ul class="mt-3 flex flex-col divide-y divide-border/70">
+            <li
+              v-for="e in envItems"
+              :key="e.label"
+              class="flex items-center justify-between gap-3 py-2"
+            >
+              <span class="flex min-w-0 items-center gap-2.5">
+                <span
+                  class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-white"
+                  :style="{ background: e.color }"
+                >
+                  <span :class="`${e.icon} size-3.5`"></span>
+                </span>
+                <span class="truncate text-[13px]">{{ e.label }}</span>
+              </span>
+              <span
+                class="flex shrink-0 items-center gap-1.5 text-xs"
+                :class="e.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'"
+              >
+                <span
+                  class="size-1.5 rounded-full"
+                  :class="e.ok ? 'bg-emerald-500' : 'bg-amber-500'"
+                ></span>
+                {{ e.value }}
+              </span>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
 
@@ -513,39 +563,34 @@ function onProjectClick(item: WorkbenchProjectItem) {
       </WorkbenchProject>
     </div>
 
-    <!-- 待办事项 + 环境信息 -->
+    <!-- 待办事项 + 公告 -->
     <div class="mt-5 flex flex-col gap-4 xl:flex-row">
       <div class="min-w-0 flex-1">
         <WorkbenchTodo :items="todoItems" title="待办事项" />
       </div>
       <div class="w-full xl:w-[340px]">
         <div class="rounded-xl border border-border/80 bg-card p-5">
-          <h3 class="text-base font-semibold">环境信息</h3>
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-semibold">系统公告</h3>
+            <span
+              class="rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+              >3 条新</span
+            >
+          </div>
           <ul class="mt-3 flex flex-col divide-y divide-border/70">
             <li
-              v-for="e in envItems"
-              :key="e.label"
-              class="flex items-center justify-between gap-3 py-2.5"
+              v-for="n in notices"
+              :key="n.title"
+              class="cursor-pointer py-3 transition-colors hover:bg-muted/30"
             >
-              <span class="flex min-w-0 items-center gap-2.5">
+              <div class="flex items-center gap-2">
                 <span
-                  class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-white"
-                  :style="{ background: e.color }"
-                >
-                  <span :class="`${e.icon} size-3.5`"></span>
-                </span>
-                <span class="truncate text-[13px]">{{ e.label }}</span>
-              </span>
-              <span
-                class="flex shrink-0 items-center gap-1.5 text-xs"
-                :class="e.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'"
-              >
-                <span
-                  class="size-1.5 rounded-full"
-                  :class="e.ok ? 'bg-emerald-500' : 'bg-amber-500'"
+                  class="size-1.5 shrink-0 rounded-full"
+                  :style="{ background: n.color }"
                 ></span>
-                {{ e.value }}
-              </span>
+                <p class="truncate text-[13px] font-medium">{{ n.title }}</p>
+              </div>
+              <p class="mt-1 pl-3.5 text-xs text-muted-foreground">{{ n.date }}</p>
             </li>
           </ul>
         </div>
