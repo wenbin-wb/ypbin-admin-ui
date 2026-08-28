@@ -232,7 +232,8 @@
     "fail": "失败",
     "export": "导出",
     "exportFailed": "导出失败",
-    "exportFileName": "操作日志.xlsx"
+    "exportFileName": "操作日志.xlsx",
+    "description": "操作内容"
   },
   "onlineUser": {
     "title": "在线用户",
@@ -261,6 +262,7 @@
   "notice": {
     "title": "通知公告",
     "name": "公告",
+    "noticeTitle": "公告标题",
     "noticeType": "公告类型",
     "typeNotice": "通知",
     "typeAnnouncement": "公告",

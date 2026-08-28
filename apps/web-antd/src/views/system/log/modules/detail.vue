@@ -31,7 +31,7 @@ defineExpose({ drawerApi });
 <template>
   <Drawer>
     <Descriptions bordered :column="1">
-      <DescriptionsItem :label="$t('system.log.title')">
+      <DescriptionsItem :label="$t('system.log.description')">
         {{ record.description }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('system.log.module')">

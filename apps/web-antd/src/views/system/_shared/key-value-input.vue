@@ -3,6 +3,8 @@ import { shallowRef, watch } from 'vue';
 
 import { IconifyIcon } from '@vben/icons';
 
+// vben-ui-dev-exempt: R2 动态行键值对录入（Record<string, V> 每行独立 Input/InputNumber），
+// useVbenForm schema 无法表达行内集合编辑，属共享复合组件，走表单具名 slot 接入
 import { Button, Input, InputNumber } from 'ant-design-vue';
 
 import { $t } from '#/locales';

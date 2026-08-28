@@ -9,7 +9,11 @@ import { $t } from '#/locales';
 
 export function useColumns(): VxeTableGridColumns {
   return [
-    { field: 'description', title: $t('system.log.title'), minWidth: 120 },
+    {
+      field: 'description',
+      title: $t('system.log.description'),
+      minWidth: 120,
+    },
     {
       field: 'operateUserIdName',
       title: $t('common.operator'),

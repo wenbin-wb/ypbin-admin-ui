@@ -232,7 +232,8 @@
     "fail": "Failed",
     "export": "Export",
     "exportFailed": "Export failed",
-    "exportFileName": "operation-logs.xlsx"
+    "exportFileName": "operation-logs.xlsx",
+    "description": "Content"
   },
   "onlineUser": {
     "title": "Online Users",
@@ -261,6 +262,7 @@
   "notice": {
     "title": "Notices",
     "name": "Notice",
+    "noticeTitle": "Notice Title",
     "noticeType": "Notice Type",
     "typeNotice": "Notification",
     "typeAnnouncement": "Announcement",

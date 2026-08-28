@@ -68,8 +68,8 @@ const [Drawer, drawerApi] = useVbenDrawer<TenantFormData>({
       formApi.reset();
       drawerApi.setState({
         title: data?.id
-          ? $t('ui.actionTitle.edit', [$t('system.tenant.title')])
-          : $t('ui.actionTitle.create', [$t('system.tenant.title')]),
+          ? $t('ui.actionTitle.edit', [$t('system.tenant.name')])
+          : $t('ui.actionTitle.create', [$t('system.tenant.name')]),
       });
       await nextTick();
       if (data) {

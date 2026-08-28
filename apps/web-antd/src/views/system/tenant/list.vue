@@ -69,7 +69,7 @@ function onDelete(row: SystemTenantApi.TenantResp) {
           @click="onCreate"
         >
           <Plus class="size-5" />
-          {{ $t('ui.actionTitle.create', [$t('system.tenant.title')]) }}
+          {{ $t('ui.actionTitle.create', [$t('system.tenant.name')]) }}
         </Button>
       </template>
 

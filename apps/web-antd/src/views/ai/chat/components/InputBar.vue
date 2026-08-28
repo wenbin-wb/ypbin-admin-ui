@@ -3,6 +3,8 @@ import type { AiApi } from '#/api/ai';
 
 import { IconifyIcon, Square } from '@vben/icons';
 
+// vben-ui-dev-exempt: R2 AI 聊天气泡输入区为自定义复合交互（多行输入 + 模型/知识库选择器 + 发送/停止），
+// 非 useVbenForm schema 管理场景，直接组合 antd Input.TextArea/Select 属合理形态
 import { Button, Input, Select, Tooltip } from 'ant-design-vue';
 
 import { $t } from '#/locales';
@@ -11,14 +13,14 @@ defineOptions({ name: 'ChatInputBar' });
 
 const props = withDefaults(
   defineProps<{
-    activeKbId: string;
-    activeModelId: string;
-    activeRoleName: string;
-    inputText: string;
-    isStreaming: boolean;
-    knowledgeBases: AiApi.KnowledgeBase[];
-    models: AiApi.ModelConfig[];
-    roleDrawerOpen: boolean;
+    activeKbId?: string;
+    activeModelId?: string;
+    activeRoleName?: string;
+    inputText?: string;
+    isStreaming?: boolean;
+    knowledgeBases?: AiApi.KnowledgeBase[];
+    models?: AiApi.ModelConfig[];
+    roleDrawerOpen?: boolean;
   }>(),
   {
     activeKbId: '',
@@ -33,12 +35,11 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: 'send'): void;
-  (e: 'stop'): void;
-  (e: 'update:input-text', value: string): void;
-  (e: 'toggle-role'): void;
-  (e: 'update:model-id', value: string): void;
-  (e: 'update:kb-id', value: string): void;
+  (e: 'send' | 'stop' | 'toggleRole'): void;
+  (
+    e: 'update:inputText' | 'update:kbId' | 'update:modelId',
+    value: string,
+  ): void;
 }>();
 
 function handleKeydown(e: KeyboardEvent) {
@@ -58,7 +59,7 @@ function handleKeydown(e: KeyboardEvent) {
         :placeholder="$t('page.ai.chat.placeholder')"
         :auto-size="{ minRows: 1, maxRows: 6 }"
         class="ym-ai__textarea"
-        @update:model-value="emit('update:input-text', $event)"
+        @update:model-value="emit('update:inputText', $event)"
         @keydown="handleKeydown"
       />
       <div class="ym-ai__input-toolbar">
@@ -69,7 +70,7 @@ function handleKeydown(e: KeyboardEvent) {
             <button
               class="ym-ai__tool-btn"
               :class="{ 'ym-ai__tool-btn--active': roleDrawerOpen }"
-              @click="emit('toggle-role')"
+              @click="emit('toggleRole')"
             >
               <IconifyIcon icon="lucide:users" class="size-4" />
               <span v-if="activeRoleName" class="ym-ai__tool-label">{{
@@ -96,7 +97,7 @@ function handleKeydown(e: KeyboardEvent) {
                 class="ym-ai__kb-select"
                 :bordered="false"
                 :placeholder="$t('page.ai.chat.attachKbPlaceholder')"
-                @update:model-value="emit('update:kb-id', $event)"
+                @update:model-value="emit('update:kbId', $event)"
               />
             </div>
           </Tooltip>
@@ -112,7 +113,7 @@ function handleKeydown(e: KeyboardEvent) {
             size="small"
             class="ym-ai__model-select"
             :bordered="false"
-            @update:model-value="emit('update:model-id', $event)"
+            @update:model-value="emit('update:modelId', $event)"
           />
         </div>
         <!-- 右侧：发送/停止 -->

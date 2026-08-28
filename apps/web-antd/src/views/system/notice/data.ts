@@ -37,7 +37,7 @@ export function useColumns(): VxeTableGridColumns {
         ],
       },
     },
-    { field: 'title', title: $t('system.notice.title'), minWidth: 180 },
+    { field: 'title', title: $t('system.notice.noticeTitle'), minWidth: 180 },
     {
       field: 'noticeType',
       title: $t('system.notice.noticeType'),
@@ -92,7 +92,7 @@ export function useGridFormSchema(): FormSchema[] {
     {
       component: 'Input',
       fieldName: 'title',
-      label: $t('system.notice.title'),
+      label: $t('system.notice.noticeTitle'),
       componentProps: { allowClear: true },
     },
     {
@@ -109,7 +109,7 @@ export function useFormSchema(): FormSchema[] {
     {
       component: 'Input',
       fieldName: 'title',
-      label: $t('system.notice.title'),
+      label: $t('system.notice.noticeTitle'),
       rules: 'required',
     },
     {

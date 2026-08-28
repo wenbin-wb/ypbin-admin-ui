@@ -34,16 +34,10 @@ async function onDownloadTemplate() {
   downloadLoading.value = true;
   try {
     const blob = await downloadImportTemplate();
-    downloadByBlob(
-      blob as Blob,
-      $t('system.user.importTemplateFileName') || '用户导入模板.xlsx',
-    );
+    downloadByBlob(blob as Blob, $t('system.user.importTemplateFileName'));
     message.success($t('common.success'));
   } catch {
-    message.error(
-      $t('system.user.templateDownloadFailed') ||
-        $t('system.user.exportFailed'),
-    );
+    message.error($t('system.user.templateDownloadFailed'));
   } finally {
     downloadLoading.value = false;
   }
@@ -59,19 +53,15 @@ async function handleImport(file: File) {
     if (failCount > 0) {
       failDetails.value = failList;
       message.warning(
-        $t('system.user.importResult', [successCount, failCount, '']) ||
-          `导入完成：成功 ${successCount} 条，失败 ${failCount} 条`,
+        $t('system.user.importResult', [successCount, failCount, '']),
       );
     } else {
-      message.success(
-        $t('system.user.importSuccessCount', [successCount]) ||
-          `导入成功 ${successCount} 条`,
-      );
+      message.success($t('system.user.importSuccessCount', [successCount]));
       modalApi.close();
     }
     emit('success');
   } catch {
-    message.error($t('system.user.importFailed') || '导入失败');
+    message.error($t('system.user.importFailed'));
   } finally {
     uploading.value = false;
   }

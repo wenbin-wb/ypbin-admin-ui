@@ -91,8 +91,8 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemDictApi.DictResp>({
       formApi.reset();
       drawerApi.setState({
         title: isUpdate
-          ? $t('ui.actionTitle.edit', [$t('system.dict.title')])
-          : $t('ui.actionTitle.create', [$t('system.dict.title')]),
+          ? $t('ui.actionTitle.edit', [$t('system.dict.name')])
+          : $t('ui.actionTitle.create', [$t('system.dict.name')]),
       });
       await nextTick();
       if (data) {
