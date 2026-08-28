@@ -118,7 +118,8 @@ async function assignUserRoles(id: string, roleIds: string[]) {
  * 导出用户列表（下载 Excel 文件）
  */
 async function exportUsers(params: SystemUserApi.UserQuery) {
-  return requestClient.post('/system/user/export', params, {
+  return requestClient.get('/system/user/export', {
+    params,
     responseType: 'blob',
   });
 }

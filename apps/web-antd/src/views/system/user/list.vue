@@ -10,29 +10,31 @@ import { onMounted, ref, watch } from 'vue';
 
 import { useAccess } from '@vben/access';
 import { Page, Tree, useVbenDrawer, useVbenModal } from '@vben/common-ui';
-import { Plus } from '@vben/icons';
+import { createIconifyIcon, Download, Plus } from '@vben/icons';
 
-import { Button, Card, InputSearch, message, Upload } from 'ant-design-vue';
+import { Button, Card, InputSearch, message } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
   deleteUser,
-  downloadImportTemplate,
   exportUsers,
   getDeptList,
   getUserList,
-  importUsers,
   updateUserStatus,
 } from '#/api';
 import { $t } from '#/locales';
 import { createDateRangeCodec } from '#/utils/date-range-codec';
+import { downloadByBlob } from '#/utils/file';
 import { useConfirm } from '#/views/system/_shared/confirm';
 
 import { useColumns, useGridFormSchema } from './data';
 import AssignRoles from './modules/assign-roles.vue';
 import Detail from './modules/detail.vue';
 import Form from './modules/form.vue';
+import Import from './modules/import.vue';
 import ResetPassword from './modules/reset-password.vue';
+
+const UploadIcon = createIconifyIcon('lucide:upload');
 
 interface UserSearchFormValues extends Record<string, unknown> {
   createTime?: [Dayjs, Dayjs];
@@ -66,40 +68,64 @@ const [DetailDrawer, detailDrawerApi] = useVbenDrawer({
 
 const [AssignRolesModal, assignRolesModalApi] = useVbenModal({
   connectedComponent: AssignRoles,
-  destroyOnClose: true,
+  destroyOnClose: false,
 });
 
 const [ResetPasswordModal, resetPasswordModalApi] = useVbenModal({
   connectedComponent: ResetPassword,
-  destroyOnClose: true,
+  destroyOnClose: false,
 });
+
+const [ImportModal, importModalApi] = useVbenModal({
+  connectedComponent: Import,
+  destroyOnClose: false,
+});
+
+async function onStatusChange(newStatus: 0 | 1, row: SystemUserApi.SystemUser) {
+  const statusText =
+    newStatus === 1 ? $t('common.enabled') : $t('common.disabled');
+  try {
+    await useConfirm(
+      $t('system.user.statusChangeContent', [
+        row.realName || row.username,
+        statusText,
+      ]),
+      $t('system.user.statusChangeTitle'),
+    );
+    await updateUserStatus(row.id, { status: newStatus });
+    row.status = newStatus;
+    message.success($t('common.success'));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
-    codec: userSearchCodec,
     schema: useGridFormSchema(),
     submitOnChange: true,
   },
   gridOptions: {
-    columns: useColumns(canEdit ? onStatusChange : undefined),
+    columns: useColumns(onStatusChange),
     height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
-        query: async ({ page }, formValues: UserSearchSubmitValues) => {
-          return await getUserList({
+        query: async ({ page }, formValues: Recordable<any>) => {
+          const params: SystemUserApi.UserQuery = {
+            ...userSearchCodec.encode(formValues as UserSearchSubmitValues),
+            deptId: selectedDeptId.value,
             page: page.currentPage,
             pageSize: page.pageSize,
-            ...formValues,
-            deptId: selectedDeptId.value,
-          });
+          };
+          return await getUserList(params);
         },
       },
     },
     rowConfig: {
       keyField: 'id',
     },
-
     toolbarConfig: {
       custom: true,
       export: false,
@@ -110,33 +136,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
   } as VxeTableGridOptions<SystemUserApi.SystemUser>,
 });
 
-/**
- * 状态开关即将改变
- * @param newStatus 期望改变的状态值
- * @param row 行数据
- * @returns 返回false则中止改变，返回其他值（undefined、true）则允许改变
- */
-async function onStatusChange(
-  newStatus: 0 | 1,
-  row: SystemUserApi.SystemUser,
-): Promise<boolean> {
-  const status: Recordable<string> = {
-    0: $t('common.disabled'),
-    1: $t('common.enabled'),
-  };
-  try {
-    await useConfirm(
-      $t('system.user.statusChangeContent', [
-        row.realName,
-        status[newStatus.toString()],
-      ]),
-      $t('system.user.statusChangeTitle'),
-    );
-    await updateUserStatus(row.id, { status: newStatus });
-    return true;
-  } catch {
-    return false;
-  }
+function onRefresh() {
+  gridApi.query();
+}
+
+function onCreate() {
+  formDrawerApi.open();
 }
 
 function onEdit(row: SystemUserApi.SystemUser) {
@@ -147,116 +152,46 @@ function onDetail(row: SystemUserApi.SystemUser) {
   detailDrawerApi.setData(row).open();
 }
 
-function onDelete(row: SystemUserApi.SystemUser) {
-  const hideLoading = message.loading({
-    content: $t('ui.actionMessage.deleting', [row.realName]),
-    duration: 0,
-    key: 'action_process_msg',
-  });
-  deleteUser(row.id)
-    .then(() => {
-      message.success({
-        content: $t('ui.actionMessage.deleteSuccess', [row.realName]),
-        key: 'action_process_msg',
-      });
-      onRefresh();
-    })
-    .catch(() => {
-      hideLoading();
-    });
-}
-
-function onRefresh() {
-  gridApi.query();
-}
-
-function onCreate() {
-  formDrawerApi.setData(null).open();
+async function onDelete(row: SystemUserApi.SystemUser) {
+  await deleteUser(row.id);
+  message.success($t('ui.actionMessage.deleteSuccess', [row.realName]));
+  onRefresh();
 }
 
 function onAssignRoles(row: SystemUserApi.SystemUser) {
-  assignRolesModalApi
-    .setData({
-      id: row.id,
-      realName: row.realName,
-      roleIds: row.roleIds ?? [],
-    })
-    .open();
+  assignRolesModalApi.setData({ id: row.id, roleIds: row.roleIds }).open();
 }
 
 function onResetPassword(row: SystemUserApi.SystemUser) {
   resetPasswordModalApi.setData({ id: row.id, realName: row.realName }).open();
 }
 
-const importModalVisible = ref(false);
-const importLoading = ref(false);
+function onOpenImport() {
+  importModalApi.open();
+}
+
+const exportLoading = ref(false);
 
 /** 导出用户 Excel */
 async function onExport() {
+  exportLoading.value = true;
   try {
     const formValues = gridApi.formApi?.form?.values ?? {};
     const blob = await exportUsers({
-      ...formValues,
+      ...userSearchCodec.encode(formValues as UserSearchSubmitValues),
       deptId: selectedDeptId.value,
     } as any);
-    const url = URL.createObjectURL(blob as Blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = $t('system.user.exportFileName');
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadByBlob(
+      blob as Blob,
+      $t('system.user.exportFileName') || '用户列表.xlsx',
+    );
+    message.success($t('common.success'));
   } catch (error) {
     console.error('Failed to export users:', error);
     message.error($t('system.user.exportFailed'));
-  }
-}
-
-/** 下载用户导入模板 */
-async function onDownloadTemplate() {
-  try {
-    const blob = await downloadImportTemplate();
-    const url = URL.createObjectURL(blob as Blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = $t('system.user.importTemplateFileName');
-    a.click();
-    URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Failed to download import template:', error);
-    message.error($t('system.user.templateDownloadFailed'));
-  }
-}
-
-/** 导入用户 */
-async function onImportFile(file: File) {
-  importLoading.value = true;
-  try {
-    const result: any = await importUsers(file);
-    const {
-      successCount = 0,
-      failureCount = 0,
-      failureMessages = [],
-    } = result ?? {};
-    if (failureCount > 0) {
-      const errMsg = failureMessages
-        .slice(0, 5)
-        .map((msg: string) => msg)
-        .join('\n');
-      message.warning(
-        $t('system.user.importResult', [successCount, failureCount, errMsg]),
-      );
-    } else {
-      message.success($t('system.user.importSuccessCount', [successCount]));
-    }
-    onRefresh();
-  } catch (error) {
-    console.error('Failed to import users:', error);
-    message.error($t('system.user.importFailed'));
   } finally {
-    importLoading.value = false;
-    importModalVisible.value = false;
+    exportLoading.value = false;
   }
-  return false; // 阻止 antd Upload 自动上传
 }
 
 async function loadDeptList() {
@@ -292,38 +227,14 @@ watch(inputSearchValue, (value) => {
   searchDept(value);
 });
 </script>
+
 <template>
   <Page auto-content-height data-testid="page-system-user">
     <FormDrawer @success="onRefresh" />
     <DetailDrawer @success="onRefresh" />
     <AssignRolesModal @success="onRefresh" />
     <ResetPasswordModal @success="onRefresh" />
-
-    <!-- 导入用户弹窗 -->
-    <Modal
-      v-model:open="importModalVisible"
-      :confirm-loading="importLoading"
-      :footer="null"
-      :title="$t('system.user.importTitle')"
-    >
-      <div class="mb-3">
-        <Button type="link" @click="onDownloadTemplate">
-          {{ $t('system.user.importDownloadTemplate') }}
-        </Button>
-      </div>
-      <Upload
-        :before-upload="onImportFile"
-        :show-upload-list="false"
-        accept=".xlsx,.xls"
-      >
-        <Button :loading="importLoading" type="primary">
-          {{ $t('system.user.importChooseFile') }}
-        </Button>
-      </Upload>
-      <p class="mt-2 text-gray-500 text-sm">
-        {{ $t('system.user.importHint') }}
-      </p>
-    </Modal>
+    <ImportModal @success="onRefresh" />
 
     <div class="flex size-full">
       <Card class="w-1/6">
@@ -352,18 +263,21 @@ watch(inputSearchValue, (value) => {
               {{ $t('ui.actionTitle.create', [$t('system.user.name')]) }}
             </Button>
             <Button
-              v-access:code="['system:user:export']"
+              v-access:code="['system:user:add']"
               class="ml-2"
-              @click="onExport"
+              @click="onOpenImport"
             >
-              {{ $t('system.user.export') }}
+              <UploadIcon class="mr-1 size-4" />
+              {{ $t('system.user.import') }}
             </Button>
             <Button
-              v-access:code="['system:user:import']"
+              v-access:code="['system:user:list']"
               class="ml-2"
-              @click="importModalVisible = true"
+              :loading="exportLoading"
+              @click="onExport"
             >
-              {{ $t('system.user.import') }}
+              <Download class="mr-1 size-4" />
+              {{ $t('system.user.export') }}
             </Button>
           </template>
           <template #action="{ row }">
