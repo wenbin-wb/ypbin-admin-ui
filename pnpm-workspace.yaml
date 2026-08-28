@@ -174,7 +174,7 @@ catalog:
   secure-ls: ^2.0.0
   sortablejs: ^1.15.7
   stylelint: ^17.14.1
-  stylelint-config-recess-order: ^7.7.0
+  stylelint-config-recess-order: ^7.8.0
   stylelint-config-recommended: ^18.0.0
   stylelint-config-recommended-scss: ^17.0.1
   stylelint-config-recommended-vue: ^1.6.1
