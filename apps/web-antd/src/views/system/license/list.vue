@@ -18,6 +18,7 @@ import {
   submitLicense,
 } from '#/api/system/license';
 import { $t } from '#/locales';
+import { downloadByBlob } from '#/utils/file';
 
 import { showKeyPairOnce, showLicenseDelivery } from '../_shared/show-secret';
 import { useColumns, useGridFormSchema } from './data';
@@ -134,12 +135,7 @@ async function onDownload(row: SystemLicenseApi.SystemLicense) {
         // 非 JSON 说明是正常授权串，继续走下载
       }
     }
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${row.licenseId ?? row.id}.lic`;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadByBlob(blob, `${row.licenseId ?? row.id}.lic`);
   } catch {
     // 请求级失败已由全局错误拦截器统一提示
   }
