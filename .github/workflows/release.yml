@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: 自动发布 Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 配置 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.16.0
+          run_install: false
+
+      - name: 配置 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck（web-antd）
+        run: pnpm -F @vben/web-antd run typecheck
+
+      - name: 构建（web-antd）
+        run: pnpm -F @vben/web-antd run build
+
+      - name: 提取 Release Notes 并发布 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: false
+          prerelease: false

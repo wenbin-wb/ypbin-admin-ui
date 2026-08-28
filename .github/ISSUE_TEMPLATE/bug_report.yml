@@ -1,0 +1,41 @@
+name: "🐛 Bug 报告 (ypbin-admin-ui)"
+description: 发现前端页面渲染、交互、表单或多语言显示问题？请提交报告。
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢提交前端 Bug 反馈！
+  - type: input
+    id: browser
+    attributes:
+      label: 浏览器与环境
+      placeholder: "Chrome 125 / Edge / Firefox / macOS / Windows 11"
+    validations:
+      required: true
+  - type: dropdown
+    id: module
+    attributes:
+      label: 涉及页面/功能
+      options:
+        - "AI 智能工作台 (Chat/Knowledge/Config)"
+        - "系统管理 (User/Role/Menu/Dept/Dict/Log)"
+        - "登录与认证 (Login/Captcha/Social/Register)"
+        - "通用组件 (ImportModal/Table/Form/Modal)"
+        - "国际化多语言 (zh-CN / en-US)"
+        - "其他"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤
+      placeholder: "1. 打开页面 ...\n2. 点击按钮 ...\n3. 出现异常行为 ..."
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 控制台 Console 报错信息
+      render: shell
