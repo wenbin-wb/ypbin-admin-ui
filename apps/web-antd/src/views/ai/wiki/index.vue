@@ -161,7 +161,9 @@ onMounted(loadKbs);
         <!-- 头部 -->
         <div class="flex items-center gap-2 border-b border-border px-4 py-3">
           <IconifyIcon icon="lucide:book-open" class="text-base" />
-          <span class="text-base font-bold">{{ $t('page.ai.wiki.wikiTitle') }}</span>
+          <span class="text-base font-bold">{{
+            $t('page.ai.wiki.wikiTitle')
+          }}</span>
         </div>
 
         <!-- 知识库切换 -->
@@ -288,9 +290,11 @@ onMounted(loadKbs);
             class="i-lucide-alert-circle size-10 text-destructive/60"
           ></span>
           <p class="text-sm">{{ docError }}</p>
-          <Button @click="openDoc(activeDocId)">{{
+          <Button @click="openDoc(activeDocId)">
+{{
             $t('page.ai.wiki.reload')
-          }}</Button>
+          }}
+</Button>
         </div>
 
         <!-- 无文档 -->

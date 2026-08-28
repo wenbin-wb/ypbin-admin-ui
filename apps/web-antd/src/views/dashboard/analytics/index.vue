@@ -106,7 +106,10 @@ const now = computed(() => {
 const dayBadges = computed(() => [
   { label: $t('page.dashboard.user'), value: String(stats.value.userCount) },
   { label: $t('page.dashboard.role'), value: String(stats.value.roleCount) },
-  { label: $t('page.dashboard.online'), value: String(stats.value.onlineCount) },
+  {
+    label: $t('page.dashboard.online'),
+    value: String(stats.value.onlineCount),
+  },
   { label: $t('page.dashboard.logs'), value: String(stats.value.logCount) },
 ]);
 
@@ -135,20 +138,22 @@ onMounted(async () => {
         background: linear-gradient(
           120deg,
           hsl(var(--primary) / 10%),
-          hsl(245 82% 67% / 8%) 50%,
-          hsl(199 89% 48% / 10%)
+          hsl(245deg 82% 67% / 8%) 50%,
+          hsl(199deg 89% 48% / 10%)
         );
       "
     >
       <span
         class="pointer-events-none absolute -right-10 -top-12 size-44 rounded-full opacity-40 blur-3xl"
-        style="background: hsl(245 82% 67% / 35%)"
+        style="background: hsl(245deg 82% 67% / 35%)"
       ></span>
       <span
         class="pointer-events-none absolute -bottom-14 right-40 size-36 rounded-full opacity-30 blur-3xl"
         style="background: hsl(var(--primary) / 35%)"
       ></span>
-      <div class="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div
+        class="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+      >
         <div>
           <p class="text-xs text-muted-foreground">{{ now }}</p>
           <h2 class="mt-1 text-2xl font-bold tracking-tight">
@@ -217,7 +222,9 @@ onMounted(async () => {
           class="relative mt-4 flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground"
         >
           <span>{{ c.total }}</span>
-          <span class="font-semibold tabular-nums">{{ fmt(c.totalValue) }}</span>
+          <span class="font-semibold tabular-nums">{{
+            fmt(c.totalValue)
+          }}</span>
         </div>
       </div>
     </div>
@@ -256,24 +263,27 @@ onMounted(async () => {
 
 <style scoped>
 .metric-card {
-  animation: metric-in 0.4s ease-out both;
   transition:
     transform 0.25s ease,
     border-color 0.25s ease,
     box-shadow 0.25s ease;
+  animation: metric-in 0.4s ease-out both;
 }
+
 .metric-card:hover {
-  transform: translateY(-2px);
   border-color: hsl(var(--primary) / 40%);
   box-shadow:
     0 8px 24px hsl(var(--foreground) / 8%),
     0 0 24px var(--glow);
+  transform: translateY(-2px);
 }
+
 @keyframes metric-in {
   from {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: none;

@@ -15,10 +15,10 @@ defineOptions({ name: 'ChatRolePicker' });
 const props = withDefaults(
   defineProps<{
     activeRoleId: string;
+    category: string;
     open: boolean;
     roles: AiApi.ChatRole[];
     search: string;
-    category: string;
   }>(),
   {
     activeRoleId: '',
@@ -78,9 +78,7 @@ function categoryLabel(cat: string): string {
     <div v-if="open" class="ym-role-overlay" @click.self="emit('close')">
       <div class="ym-role-panel">
         <div class="ym-role-header">
-          <span class="ym-role-title">{{
-            $t('page.ai.chat.selectRole')
-          }}</span>
+          <span class="ym-role-title">{{ $t('page.ai.chat.selectRole') }}</span>
           <Button size="small" type="text" @click="emit('close')">
             <X class="size-4" />
           </Button>

@@ -4,6 +4,7 @@ import type { AiApi } from '#/api/ai';
 import { ref } from 'vue';
 
 import { IconifyIcon } from '@vben/icons';
+
 import { message } from 'ant-design-vue';
 
 import { $t } from '#/locales';

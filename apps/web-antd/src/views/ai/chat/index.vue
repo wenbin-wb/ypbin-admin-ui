@@ -23,12 +23,13 @@ import {
 } from '#/api/ai';
 import { $t } from '#/locales';
 import { roleBadge } from '#/views/ai/_shared/role-badge';
-import '#/views/ai/_shared/role-badge.css';
 
 import InputBar from './components/InputBar.vue';
 import MessageList from './components/MessageList.vue';
 import RolePicker from './components/RolePicker.vue';
 import SessionSidebar from './components/SessionSidebar.vue';
+
+import '#/views/ai/_shared/role-badge.css';
 
 defineOptions({ name: 'AiChat' });
 
@@ -453,10 +454,7 @@ async function scrollToBottom(force = false) {
                   class="ym-ai__role-card"
                   @click="handleNewChatWithRole(role.id)"
                 >
-                  <span
-                    class="ym-badge"
-                    :class="roleBadge(role.category).cls"
-                  >
+                  <span class="ym-badge" :class="roleBadge(role.category).cls">
                     {{ roleBadge(role.category).char }}
                   </span>
                   <span class="ym-ai__role-card-name">{{ role.name }}</span>

@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { Dayjs } from 'dayjs';
+
 import type { AiApi } from '#/api/ai';
 
 import { computed, onMounted, ref } from 'vue';
@@ -19,7 +21,7 @@ import {
   Switch,
   Tooltip,
 } from 'ant-design-vue';
-import dayjs, { type Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 
 import {
   deleteKnowledgeBase,
@@ -177,7 +179,9 @@ function onShare(row: AiApi.KnowledgeBase, e: Event) {
   shareKb.value = row;
   shareEnabled.value = row.shareEnabled === 1;
   shareToken.value = row.shareToken || '';
-  shareExpire.value = row.shareExpireTime ? dayjs(row.shareExpireTime) : undefined;
+  shareExpire.value = row.shareExpireTime
+    ? dayjs(row.shareExpireTime)
+    : undefined;
   sharePassword.value = '';
   shareOpen.value = true;
 }
@@ -406,18 +410,10 @@ onMounted(loadKbs);
           </div>
 
           <div class="flex justify-end gap-2">
-            <Button
-              danger
-              :loading="shareSaving"
-              @click="onShareDisable"
-            >
+            <Button danger :loading="shareSaving" @click="onShareDisable">
               {{ $t('page.ai.knowledge.shareDisable') }}
             </Button>
-            <Button
-              :loading="shareSaving"
-              type="primary"
-              @click="onShareSave"
-            >
+            <Button :loading="shareSaving" type="primary" @click="onShareSave">
               {{ $t('page.ai.knowledge.shareSave') }}
             </Button>
           </div>
@@ -447,9 +443,9 @@ onMounted(loadKbs);
           <h2 class="text-base font-semibold leading-none">
             {{ $t('page.ai.knowledge.title') }}
           </h2>
-          <span class="text-sm text-muted-foreground"
-            >{{ $t('page.ai.knowledge.countSuffix', [knowledgeBases.length]) }}</span
-          >
+          <span class="text-sm text-muted-foreground">{{
+            $t('page.ai.knowledge.countSuffix', [knowledgeBases.length])
+          }}</span>
         </div>
         <div class="flex items-center gap-2">
           <Input

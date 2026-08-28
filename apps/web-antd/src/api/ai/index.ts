@@ -65,7 +65,7 @@ export namespace AiApi {
   export interface ShareSettingReq {
     enabled: boolean;
     /** 过期时间 ISO 字符串；null/缺省=永不过期 */
-    expireTime?: string | null;
+    expireTime?: null | string;
     /** 访问密码（明文）；空=无需密码 */
     password?: string;
   }
@@ -369,13 +369,13 @@ async function shareRequest(
 /** 分享配置：知识库名称、是否需要密码、是否过期等 */
 export function getShareConfig(token: string) {
   return shareRequest(`/share/${token}/config`) as Promise<{
-    name: string;
     description: string;
-    icon: string;
     docCount: number;
-    requirePassword: boolean;
     expired: boolean;
     expireTime: string;
+    icon: string;
+    name: string;
+    requirePassword: boolean;
   }>;
 }
 
@@ -572,9 +572,9 @@ export function getUsageSummary() {
 // AI 统计看板
 export function getAiStatsSummary() {
   return requestClient.get<{
-    kbCount: number;
-    docTotal: number;
     chatCount: number;
+    docTotal: number;
+    kbCount: number;
     queryCount: number;
     tokenTotal: number;
   }>('/ai/stats/summary');
@@ -582,19 +582,24 @@ export function getAiStatsSummary() {
 
 export function getAiStatsDaily(days = 30) {
   return requestClient.get<
-    Array<{ date: string; chatCount: number; queryCount: number; tokenCount: number }>
+    Array<{
+      chatCount: number;
+      date: string;
+      queryCount: number;
+      tokenCount: number;
+    }>
   >('/ai/stats/daily', { params: { days } });
 }
 
 export function getAiStatsHotQueries(limit = 10) {
-  return requestClient.get<Array<{ query: string; count: number }>>(
+  return requestClient.get<Array<{ count: number; query: string; }>>(
     '/ai/stats/hot-queries',
     { params: { limit } },
   );
 }
 
 export function getAiStatsKbDocs() {
-  return requestClient.get<Array<{ name: string; docCount: number }>>(
+  return requestClient.get<Array<{ docCount: number; name: string; }>>(
     '/ai/stats/kb-docs',
   );
 }
@@ -685,6 +690,6 @@ export function getDocumentContent(kbId: string, docId: string) {
 
 export function getDocumentChunks(kbId: string, docId: string) {
   return requestClient.get<
-    Array<{ chunkIndex: number; content: string; charCount: number }>
+    Array<{ charCount: number; chunkIndex: number; content: string; }>
   >(`/ai/knowledge-bases/${kbId}/documents/${docId}/chunks`);
 }

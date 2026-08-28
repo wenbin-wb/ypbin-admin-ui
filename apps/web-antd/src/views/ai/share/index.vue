@@ -4,8 +4,17 @@ import type { AiApi } from '#/api/ai';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
-import { Button, Drawer, Empty, Input, message, Skeleton, Spin } from 'ant-design-vue';
 import { IconifyIcon } from '@vben/icons';
+
+import {
+  Button,
+  Drawer,
+  Empty,
+  Input,
+  message,
+  Skeleton,
+  Spin,
+} from 'ant-design-vue';
 
 import {
   getShareConfig,
@@ -22,15 +31,15 @@ const { renderMarkdown } = useMarkdownRenderer();
 const route = useRoute();
 const token = String(route.params.token ?? '');
 
-const config = ref<{
-  name: string;
+const config = ref<null | {
   description: string;
-  icon: string;
   docCount: number;
-  requirePassword: boolean;
   expired: boolean;
   expireTime: string;
-} | null>(null);
+  icon: string;
+  name: string;
+  requirePassword: boolean;
+}>(null);
 const configError = ref('');
 
 const password = ref(sessionStorage.getItem(`ypbin-share-pwd-${token}`) ?? '');
@@ -174,7 +183,11 @@ onMounted(async () => {
 <template>
   <!-- 加载/错误/过期/密码门 -->
   <div v-if="!config && !configError" class="share-stage">
-    <Skeleton :active="true" :paragraph="{ rows: 8 }" class="w-full max-w-2xl" />
+    <Skeleton
+      :active="true"
+      :paragraph="{ rows: 8 }"
+      class="w-full max-w-2xl"
+    />
   </div>
 
   <div v-else-if="configError" class="share-stage">
@@ -222,7 +235,9 @@ onMounted(async () => {
 
   <!-- 主阅读布局 -->
   <div v-else class="share-layout">
-    <aside class="share-sidebar flex h-full flex-col border-r border-border bg-card">
+    <aside
+      class="share-sidebar flex h-full flex-col border-r border-border bg-card"
+    >
       <div class="flex items-center gap-2 border-b border-border px-4 py-3">
         <IconifyIcon icon="lucide:book-open" class="text-xl leading-none" />
         <span class="truncate text-sm font-bold">{{ config?.name }}</span>
@@ -275,13 +290,17 @@ onMounted(async () => {
       </div>
     </aside>
 
-    <main class="share-content flex h-full flex-col overflow-hidden bg-background">
+    <main
+      class="share-content flex h-full flex-col overflow-hidden bg-background"
+    >
       <div
         v-if="activeDoc"
         class="flex items-center gap-3 border-b border-border px-6 py-3"
       >
         <span class="i-lucide-file-text size-4 text-muted-foreground"></span>
-        <span class="truncate text-sm font-medium">{{ activeDoc.filename }}</span>
+        <span class="truncate text-sm font-medium">{{
+          activeDoc.filename
+        }}</span>
       </div>
 
       <div v-if="docLoading" class="flex-1 overflow-y-auto px-8 py-6">
@@ -294,7 +313,11 @@ onMounted(async () => {
       >
         <span class="i-lucide-alert-circle size-10 text-destructive/60"></span>
         <p class="text-sm">{{ docError }}</p>
-        <Button @click="openDoc(activeDocId)">{{ $t('page.ai.share.reload') }}</Button>
+        <Button @click="openDoc(activeDocId)">
+{{
+          $t('page.ai.share.reload')
+        }}
+</Button>
       </div>
 
       <div

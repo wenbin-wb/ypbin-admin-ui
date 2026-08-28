@@ -10,10 +10,11 @@ import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import { deleteRole, getRoleList, toggleRoleFavorite } from '#/api/ai';
 import { $t } from '#/locales';
 import { roleBadge } from '#/views/ai/_shared/role-badge';
-import '#/views/ai/_shared/role-badge.css';
 
 import { useColumns } from './data';
 import Form from './modules/form.vue';
+
+import '#/views/ai/_shared/role-badge.css';
 
 const [FormDrawer, formDrawerApi] = useVbenDrawer({
   connectedComponent: Form,

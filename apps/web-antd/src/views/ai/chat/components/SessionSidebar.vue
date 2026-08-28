@@ -16,8 +16,8 @@ const props = withDefaults(
     activeSessionId: string;
     collapsed: boolean;
     loading: boolean;
-    sessions: AiApi.ChatSession[];
     search: string;
+    sessions: AiApi.ChatSession[];
   }>(),
   {
     activeSessionId: '',
@@ -129,10 +129,7 @@ const sessionGroups = computed((): SessionGroup[] => {
     <!-- 头部：Logo + 展开/收起 -->
     <div class="ym-ai__sidebar-top">
       <div class="ym-ai__logo">
-        <IconifyIcon
-          icon="lucide:sparkles"
-          class="ym-ai__logo-icon size-5"
-        />
+        <IconifyIcon icon="lucide:sparkles" class="ym-ai__logo-icon size-5" />
         <span v-show="collapsed === false" class="ym-ai__logo-text">Ypbin AI</span>
       </div>
       <Button
@@ -187,7 +184,10 @@ const sessionGroups = computed((): SessionGroup[] => {
       <div v-if="loading" class="ym-ai__session-loading">
         <div v-for="i in 4" :key="i" class="ym-ai__session-skeleton"></div>
       </div>
-      <div v-else-if="filteredSessions.length === 0" class="ym-ai__session-empty">
+      <div
+        v-else-if="filteredSessions.length === 0"
+        class="ym-ai__session-empty"
+      >
         <span v-if="search">{{ $t('page.ai.chat.searchEmpty') }}</span>
         <span v-else>{{ $t('page.ai.chat.noSessions') }}</span>
       </div>
@@ -229,103 +229,100 @@ const sessionGroups = computed((): SessionGroup[] => {
 
             <template v-else>
               <div class="ym-ai__session-body" :title="session.title">
-              <span
-                v-if="session.isPinned === 1 && !collapsed"
-                class="ym-ai__pin-icon"
-                :title="$t('page.ai.chat.pinned')"
-              >
-                <svg
-                  class="size-2.5"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
+                <span
+                  v-if="session.isPinned === 1 && !collapsed"
+                  class="ym-ai__pin-icon"
+                  :title="$t('page.ai.chat.pinned')"
                 >
-                  <line
-                    x1="12"
-                    x2="12"
-                    y1="17"
-                    y2="22"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  />
-                  <path
-                    d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    fill="none"
-                  />
-                </svg>
-              </span>
-              <span v-show="collapsed === false" class="ym-ai__session-title">{{
-                session.title
-              }}</span>
-            </div>
-
-            <!-- 操作按钮（hover 时显示） -->
-            <div v-show="collapsed === false" class="ym-ai__session-actions">
-              <Tooltip
-                :title="
-                  session.isPinned === 1
-                    ? $t('page.ai.chat.unpinSession')
-                    : $t('page.ai.chat.pinSession')
-                "
-              >
-                <Button
-                  size="small"
-                  type="text"
-                  @click.stop="emit('pin', session.id)"
-                >
-                  <svg
-                    class="size-3"
-                    :fill="session.isPinned === 1 ? 'currentColor' : 'none'"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <line x1="12" x2="12" y1="17" y2="22" />
+                  <svg class="size-2.5" fill="currentColor" viewBox="0 0 24 24">
+                    <line
+                      x1="12"
+                      x2="12"
+                      y1="17"
+                      y2="22"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    />
                     <path
                       d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      fill="none"
                     />
                   </svg>
-                </Button>
-              </Tooltip>
-              <Tooltip :title="$t('page.ai.chat.renameSession')">
-                <Button
-                  size="small"
-                  type="text"
-                  @click.stop="startRename(session.id, session.title)"
+                </span>
+                <span
+                  v-show="collapsed === false"
+                  class="ym-ai__session-title"
+                  >{{ session.title }}</span>
+              </div>
+
+              <!-- 操作按钮（hover 时显示） -->
+              <div v-show="collapsed === false" class="ym-ai__session-actions">
+                <Tooltip
+                  :title="
+                    session.isPinned === 1
+                      ? $t('page.ai.chat.unpinSession')
+                      : $t('page.ai.chat.pinSession')
+                  "
                 >
-                  <svg
-                    class="size-3"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
+                  <Button
+                    size="small"
+                    type="text"
+                    @click.stop="emit('pin', session.id)"
                   >
-                    <path
-                      d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"
-                    />
-                  </svg>
-                </Button>
-              </Tooltip>
-              <Popconfirm
-                :title="$t('page.ai.chat.confirmDelete')"
-                @confirm="emit('delete', session.id)"
-              >
-                <Button size="small" danger type="text" @click.stop>
-                  <svg
-                    class="size-3"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
+                    <svg
+                      class="size-3"
+                      :fill="session.isPinned === 1 ? 'currentColor' : 'none'"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <line x1="12" x2="12" y1="17" y2="22" />
+                      <path
+                        d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"
+                      />
+                    </svg>
+                  </Button>
+                </Tooltip>
+                <Tooltip :title="$t('page.ai.chat.renameSession')">
+                  <Button
+                    size="small"
+                    type="text"
+                    @click.stop="startRename(session.id, session.title)"
                   >
-                    <path
-                      d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                    />
-                  </svg>
-                </Button>
-              </Popconfirm>
-            </div>
+                    <svg
+                      class="size-3"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"
+                      />
+                    </svg>
+                  </Button>
+                </Tooltip>
+                <Popconfirm
+                  :title="$t('page.ai.chat.confirmDelete')"
+                  @confirm="emit('delete', session.id)"
+                >
+                  <Button size="small" danger type="text" @click.stop>
+                    <svg
+                      class="size-3"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                      />
+                    </svg>
+                  </Button>
+                </Popconfirm>
+              </div>
             </template>
           </div>
         </div>

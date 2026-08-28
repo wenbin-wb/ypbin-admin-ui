@@ -287,9 +287,7 @@ function formatLogTime(raw: string) {
   if (m) {
     return `${m[1]!}-${m[2]!.padStart(2, '0')}-${m[3]!.padStart(2, '0')} ${m[4]!.padStart(2, '0')}:${m[5]!}`;
   }
-  const m2 = raw.match(
-    /(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{1,2})/,
-  );
+  const m2 = raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{1,2})/);
   if (m2) {
     return `${m2[3]!}-${m2[1]!.padStart(2, '0')}-${m2[2]!.padStart(2, '0')} ${m2[4]!.padStart(2, '0')}:${m2[5]!}`;
   }
@@ -377,9 +375,7 @@ function onProjectClick(item: WorkbenchProjectItem) {
       :avatar="userStore.userInfo?.avatar || preferences.app.defaultAvatar"
     >
       <template #title>{{ welcomeTitle }}</template>
-      <template #description>{{
-        $t('page.dashboard.headerDesc')
-      }}</template>
+      <template #description>{{ $t('page.dashboard.headerDesc') }}</template>
       <template #actions>
         <div class="flex items-center gap-6 md:gap-10">
           <div class="flex flex-col items-end">
@@ -393,8 +389,7 @@ function onProjectClick(item: WorkbenchProjectItem) {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }"
-              >{{ stats.userCount }}</span
-            >
+              >{{ stats.userCount }}</span>
           </div>
           <div class="flex flex-col items-end">
             <span class="text-xs text-muted-foreground">{{
@@ -407,8 +402,7 @@ function onProjectClick(item: WorkbenchProjectItem) {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }"
-              >{{ stats.onlineCount }}</span
-            >
+              >{{ stats.onlineCount }}</span>
           </div>
           <div class="flex flex-col items-end">
             <span class="text-xs text-muted-foreground">{{
@@ -421,8 +415,7 @@ function onProjectClick(item: WorkbenchProjectItem) {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }"
-              >{{ stats.logCount }}</span
-            >
+              >{{ stats.logCount }}</span>
           </div>
         </div>
       </template>
@@ -511,14 +504,18 @@ function onProjectClick(item: WorkbenchProjectItem) {
         @click="onProjectClick"
       >
         <template #content="{ item }">
-          <div class="text-muted-foreground mt-3 flex h-9 items-center text-[13px]">
+          <div
+            class="text-muted-foreground mt-3 flex h-9 items-center text-[13px]"
+          >
             {{ item.content }}
           </div>
         </template>
         <template #footer="{ item }">
-          <div class="text-muted-foreground flex w-full justify-between text-xs">
+          <div
+            class="text-muted-foreground flex w-full justify-between text-xs"
+          >
             <span class="flex items-center gap-1">
-              <span class="i-lucide-folder size-3" />
+              <span class="i-lucide-folder size-3"></span>
               {{ item.group }}
             </span>
             <span>{{ item.date }}</span>
@@ -541,24 +538,27 @@ function onProjectClick(item: WorkbenchProjectItem) {
 
 <style scoped>
 .metric-card {
-  animation: metric-in 0.4s ease-out both;
   transition:
     transform 0.25s ease,
     border-color 0.25s ease,
     box-shadow 0.25s ease;
+  animation: metric-in 0.4s ease-out both;
 }
+
 .metric-card:hover {
-  transform: translateY(-2px);
   border-color: hsl(var(--primary) / 40%);
   box-shadow:
     0 8px 24px hsl(var(--foreground) / 8%),
     0 0 24px var(--glow);
+  transform: translateY(-2px);
 }
+
 @keyframes metric-in {
   from {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: none;

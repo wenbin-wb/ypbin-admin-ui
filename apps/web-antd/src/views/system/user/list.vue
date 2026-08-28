@@ -195,7 +195,10 @@ const importLoading = ref(false);
 async function onExport() {
   try {
     const formValues = gridApi.formApi?.form?.values ?? {};
-    const blob = await exportUsers({ ...formValues, deptId: selectedDeptId.value } as any);
+    const blob = await exportUsers({
+      ...formValues,
+      deptId: selectedDeptId.value,
+    } as any);
     const url = URL.createObjectURL(blob as Blob);
     const a = document.createElement('a');
     a.href = url;
@@ -229,7 +232,11 @@ async function onImportFile(file: File) {
   importLoading.value = true;
   try {
     const result: any = await importUsers(file);
-    const { successCount = 0, failureCount = 0, failureMessages = [] } = result ?? {};
+    const {
+      successCount = 0,
+      failureCount = 0,
+      failureMessages = [],
+    } = result ?? {};
     if (failureCount > 0) {
       const errMsg = failureMessages
         .slice(0, 5)

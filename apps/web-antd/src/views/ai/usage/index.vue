@@ -51,16 +51,23 @@ const summary = ref({
 });
 
 const daily = ref<
-  Array<{ date: string; chatCount: number; queryCount: number; tokenCount: number }>
+  Array<{
+    chatCount: number;
+    date: string;
+    queryCount: number;
+    tokenCount: number;
+  }>
 >([]);
-const hotQueries = ref<Array<{ query: string; count: number }>>([]);
-const kbDocs = ref<Array<{ name: string; docCount: number }>>([]);
+const hotQueries = ref<Array<{ count: number; query: string; }>>([]);
+const kbDocs = ref<Array<{ docCount: number; name: string; }>>([]);
 
 // 归一化基准（至少 1，避免除零）
 const maxDaily = computed(() =>
   Math.max(1, ...daily.value.map((d) => Math.max(d.chatCount, d.queryCount))),
 );
-const maxHot = computed(() => Math.max(1, ...hotQueries.value.map((h) => h.count)));
+const maxHot = computed(() =>
+  Math.max(1, ...hotQueries.value.map((h) => h.count)),
+);
 const maxKbDocs = computed(() =>
   Math.max(1, ...kbDocs.value.map((k) => k.docCount)),
 );
@@ -136,7 +143,7 @@ function animateMetric(key: string, target: number) {
   const duration = 600;
   const tick = (now: number) => {
     const t = Math.min(1, (now - start) / duration);
-    const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+    const eased = 1 - (1 - t) ** 3; // easeOutCubic
     displayed.value[key] = Math.round(from + (target - from) * eased);
     if (t < 1) rafId = requestAnimationFrame(tick);
   };
@@ -233,11 +240,16 @@ onMounted(loadStats);
           <div class="relative">
             <div
               class="inline-flex size-9 items-center justify-center rounded-lg text-white shadow-lg"
-              :style="{ background: BRAND_GRAD, boxShadow: `0 6px 16px ${BRAND_GLOW}` }"
+              :style="{
+                background: BRAND_GRAD,
+                boxShadow: `0 6px 16px ${BRAND_GLOW}`,
+              }"
             >
               <span :class="`${m.icon} size-[18px]`"></span>
             </div>
-            <p class="mt-3 truncate text-xs text-muted-foreground">{{ m.label }}</p>
+            <p class="mt-3 truncate text-xs text-muted-foreground">
+              {{ m.label }}
+            </p>
             <p
               class="mt-1 truncate text-[26px] font-bold tabular-nums leading-tight tracking-tight"
               :style="{
@@ -262,30 +274,37 @@ onMounted(loadStats);
       <!-- ===== 趋势 + 热词 ===== -->
       <Row :gutter="[16, 16]">
         <Col :xs="24" :lg="16">
-          <div class="panel-card relative overflow-hidden rounded-xl border border-border/80 bg-card p-5">
+          <div
+            class="panel-card relative overflow-hidden rounded-xl border border-border/80 bg-card p-5"
+          >
             <span
               class="pointer-events-none absolute -left-10 -top-10 size-32 rounded-full opacity-25 blur-3xl"
               :style="{ background: 'hsl(var(--primary) / 40%)' }"
             ></span>
             <div class="relative">
               <div class="flex items-center justify-between">
-                <h3 class="text-sm font-semibold">{{ $t('page.ai.usage.trend') }}</h3>
+                <h3 class="text-sm font-semibold">
+                  {{ $t('page.ai.usage.trend') }}
+                </h3>
                 <div
                   v-if="totalDaily > 0"
                   class="flex items-center gap-2 text-[11px] text-muted-foreground"
                 >
                   <span class="flex items-center gap-1">
-                    <span class="size-1.5 rounded-full bg-[hsl(245_82%_67%)]"></span>
+                    <span
+                      class="size-1.5 rounded-full bg-[hsl(245_82%_67%)]"
+                    ></span>
                     {{ $t('page.ai.usage.trendChat') }} {{ sumChat }}
                   </span>
                   <span class="flex items-center gap-1">
-                    <span class="size-1.5 rounded-full bg-[hsl(var(--primary)_/_45%)]"></span>
+                    <span
+                      class="size-1.5 rounded-full bg-[hsl(var(--primary)_/_45%)]"
+                    ></span>
                     {{ $t('page.ai.usage.trendQuery') }} {{ sumQuery }}
                   </span>
                   <span
                     class="rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary"
-                    >{{ formatTokens(sumToken) }} tokens</span
-                  >
+                    >{{ formatTokens(sumToken) }} tokens</span>
                 </div>
               </div>
               <div v-if="loading" class="mt-4">
@@ -322,8 +341,7 @@ onMounted(loadStats);
                     :key="d.date"
                     class="flex-1 text-center text-[10px] leading-none text-muted-foreground"
                     :class="showTick(i) ? '' : 'invisible'"
-                    >{{ d.date.slice(5) }}</span
-                  >
+                    >{{ d.date.slice(5) }}</span>
                 </div>
                 <div
                   class="mt-3 flex items-center gap-5 border-t border-border pt-3 text-xs text-muted-foreground"
@@ -344,14 +362,22 @@ onMounted(loadStats);
                   </span>
                 </div>
               </template>
-              <Empty v-else :description="$t('page.ai.usage.hotEmpty')" class="py-10" />
+              <Empty
+                v-else
+                :description="$t('page.ai.usage.hotEmpty')"
+                class="py-10"
+              />
             </div>
           </div>
         </Col>
 
         <Col :xs="24" :lg="8">
-          <div class="panel-card rounded-xl border border-border/80 bg-card p-5">
-            <h3 class="text-sm font-semibold">{{ $t('page.ai.usage.hotQueries') }}</h3>
+          <div
+            class="panel-card rounded-xl border border-border/80 bg-card p-5"
+          >
+            <h3 class="text-sm font-semibold">
+              {{ $t('page.ai.usage.hotQueries') }}
+            </h3>
             <div v-if="loading" class="mt-4">
               <Skeleton :paragraph="{ rows: 6 }" active />
             </div>
@@ -368,8 +394,7 @@ onMounted(loadStats);
                       background: medal(i),
                       boxShadow: `0 3px 8px ${medalGlow(i)}`,
                     }"
-                    >{{ i + 1 }}</span
-                  >
+                    >{{ i + 1 }}</span>
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center justify-between gap-2">
                       <span class="truncate text-[13px] font-medium">{{
@@ -377,17 +402,20 @@ onMounted(loadStats);
                       }}</span>
                       <span
                         class="shrink-0 text-xs text-muted-foreground tabular-nums"
-                        >{{ h.count }}</span
-                      >
+                        >{{ h.count }}</span>
                     </div>
-                    <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted/60">
+                    <div
+                      class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted/60"
+                    >
                       <div
                         class="h-full rounded-full transition-all duration-500"
                         :style="{
                           width: barPct(h.count, maxHot),
                           background: BAR_GRAD,
                           boxShadow:
-                            i === 0 ? '0 0 8px hsl(var(--primary) / 35%)' : 'none',
+                            i === 0
+                              ? '0 0 8px hsl(var(--primary) / 35%)'
+                              : 'none',
                         }"
                       ></div>
                     </div>
@@ -395,7 +423,11 @@ onMounted(loadStats);
                 </div>
               </div>
             </template>
-            <Empty v-else :description="$t('page.ai.usage.hotEmpty')" class="py-10" />
+            <Empty
+              v-else
+              :description="$t('page.ai.usage.hotEmpty')"
+              class="py-10"
+            />
           </div>
         </Col>
       </Row>
@@ -403,7 +435,9 @@ onMounted(loadStats);
       <!-- ===== 文档分布 + 按模型分布 ===== -->
       <Row :gutter="[16, 16]">
         <Col :xs="24" :lg="12">
-          <div class="panel-card rounded-xl border border-border/80 bg-card p-5">
+          <div
+            class="panel-card rounded-xl border border-border/80 bg-card p-5"
+          >
             <div class="flex items-center justify-between">
               <h3 class="text-sm font-semibold">
                 {{ $t('page.ai.usage.kbDistribution') }}
@@ -411,20 +445,35 @@ onMounted(loadStats);
               <span
                 v-if="kbDocs.length"
                 class="rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary"
-                >{{ $t('page.ai.usage.totalSuffix', [kbDocsTotal, $t('page.ai.usage.docsUnit')]) }}</span
-              >
+                >{{
+                  $t('page.ai.usage.totalSuffix', [
+                    kbDocsTotal,
+                    $t('page.ai.usage.docsUnit'),
+                  ])
+                }}</span>
             </div>
             <div v-if="loading" class="mt-4">
               <Skeleton :paragraph="{ rows: 5 }" active />
             </div>
             <template v-else-if="kbDocs.length">
               <div class="mt-3 flex flex-col gap-3.5">
-                <div v-for="k in kbDocs" :key="k.name" class="flex items-center gap-3">
-                  <span class="w-32 shrink-0 truncate text-[13px]">{{ k.name }}</span>
-                  <div class="h-2 flex-1 overflow-hidden rounded-full bg-muted/60">
+                <div
+                  v-for="k in kbDocs"
+                  :key="k.name"
+                  class="flex items-center gap-3"
+                >
+                  <span class="w-32 shrink-0 truncate text-[13px]">{{
+                    k.name
+                  }}</span>
+                  <div
+                    class="h-2 flex-1 overflow-hidden rounded-full bg-muted/60"
+                  >
                     <div
                       class="h-full rounded-full transition-all duration-500"
-                      :style="{ width: barPct(k.docCount, maxKbDocs), background: BAR_GRAD }"
+                      :style="{
+                        width: barPct(k.docCount, maxKbDocs),
+                        background: BAR_GRAD,
+                      }"
                     ></div>
                   </div>
                   <span
@@ -435,13 +484,21 @@ onMounted(loadStats);
                 </div>
               </div>
             </template>
-            <Empty v-else :description="$t('page.ai.usage.kbEmpty')" class="py-10" />
+            <Empty
+              v-else
+              :description="$t('page.ai.usage.kbEmpty')"
+              class="py-10"
+            />
           </div>
         </Col>
 
         <Col :xs="24" :lg="12">
-          <div class="panel-card rounded-xl border border-border/80 bg-card p-5">
-            <h3 class="text-sm font-semibold">{{ $t('page.ai.usage.byModel') }}</h3>
+          <div
+            class="panel-card rounded-xl border border-border/80 bg-card p-5"
+          >
+            <h3 class="text-sm font-semibold">
+              {{ $t('page.ai.usage.byModel') }}
+            </h3>
             <div class="mt-3">
               <ModelGrid>
                 <template #modelTokens="{ row }">
@@ -453,9 +510,10 @@ onMounted(loadStats);
                   <div class="flex items-center gap-2">
                     <span
                       class="w-8 shrink-0 text-right text-xs text-muted-foreground tabular-nums"
-                      >{{ row.percent }}%</span
+                      >{{ row.percent }}%</span>
+                    <div
+                      class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/60"
                     >
-                    <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/60">
                       <div
                         class="h-full rounded-full transition-all duration-500"
                         :style="{
@@ -478,24 +536,27 @@ onMounted(loadStats);
 <style scoped>
 /* 指标卡：入场渐显 + hover 发光描边 */
 .metric-card {
-  animation: metric-in 0.4s ease-out both;
   transition:
     transform 0.25s ease,
     border-color 0.25s ease,
     box-shadow 0.25s ease;
+  animation: metric-in 0.4s ease-out both;
 }
+
 .metric-card:hover {
-  transform: translateY(-2px);
   border-color: hsl(var(--primary) / 45%);
   box-shadow:
     0 8px 24px hsl(var(--foreground) / 8%),
     0 0 24px var(--glow);
+  transform: translateY(-2px);
 }
+
 @keyframes metric-in {
   from {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: none;
@@ -509,9 +570,10 @@ onMounted(loadStats);
     border-color 0.25s ease,
     box-shadow 0.25s ease;
 }
+
 .panel-card:hover {
-  transform: translateY(-1px);
   border-color: hsl(var(--primary) / 30%);
   box-shadow: 0 6px 20px hsl(var(--foreground) / 6%);
+  transform: translateY(-1px);
 }
 </style>
