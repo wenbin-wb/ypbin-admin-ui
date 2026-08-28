@@ -15,7 +15,7 @@ defineOptions({
 
 withDefaults(defineProps<Props>(), {
   description:
-    '是一个企业级中后台管理解决方案。基于 Vue 3、Vite、TypeScript 与 ant-design-vue 构建，源自开源项目 vue-vben-admin（MIT）。提供系统管理、租户隔离、站内信、通知公告、定时任务等开箱即用的企业能力。',
+    '是一个企业级中后台管理解决方案。基于 Vue 3、Vite、TypeScript 与 Ant Design Vue 构建，集成 Spring AI 智能对话工作台、多租户行级隔离、RBAC 组织权限、商业授权交付、站内信实时推送与定时任务调度等生产级企业能力。',
   name: 'Ypbin Admin',
   title: '关于项目',
 });
