@@ -5,28 +5,17 @@ import { useAccessStore } from '@vben/stores';
 import { requestClient } from '#/api/request';
 
 export namespace AiApi {
-  export interface Conversation {
-    id: string;
-    modelId?: string;
-    title: string;
-    createTime: string;
-    updateTime: string;
-  }
-
-  export interface Message {
-    id: string;
-    conversationId: string;
-    role: 'assistant' | 'user';
-    content: string;
-    tokens: number;
-    createTime: string;
-  }
-
+  /**
+   * 对话流式请求。字段与后端 AiChatSendReq 全程同名（sessionId/content/roleId/modelId/knowledgeBaseId），
+   * 禁止在前端做字段改名映射。
+   */
   export interface ChatReq {
-    conversationId?: string;
-    message: string;
+    sessionId?: string;
+    roleId?: string;
+    modelId?: string;
+    content: string;
+    images?: string[];
     knowledgeBaseId?: string;
-    promptTemplateId?: string;
   }
 
   export type ModelType = 'CHAT' | 'EMBEDDING';
@@ -219,44 +208,13 @@ export namespace AiApi {
     images?: string[];
   }
 }
-export function getConversationList() {
-  return requestClient.get<AiApi.Conversation[]>('/ai/chat/conversations');
-}
-
-export function createConversation(modelId?: string) {
-  return requestClient.post<AiApi.Conversation>(
-    '/ai/chat/conversations',
-    null,
-    {
-      params: { modelId },
-    },
-  );
-}
-
-export function deleteConversation(id: string) {
-  return requestClient.delete(`/ai/chat/conversations/${id}`);
-}
-
-export function renameConversation(id: string, title: string) {
-  return requestClient.put(`/ai/chat/conversations/${id}/title`, { title });
-}
-
-export function getMessageList(
-  conversationId: string,
-  params?: Record<string, any>,
-) {
-  return requestClient.get<{ items: AiApi.Message[]; total: number }>(
-    `/ai/chat/conversations/${conversationId}/messages`,
-    { params },
-  );
-}
-
 /**
  * 流式对话（SSE）。vben 的 postSSE 只做原始分块转发、不解析 SSE 帧，
  * 这里直接用 fetch 按标准 SSE 帧格式解析：
  * - 剥离 data: 前缀，逐帧回调节点后让出一帧渲染（保持视觉流式）；
  * - 识别 event:error 错误帧并交给 onError（后端流式失败时推送）；
  * - 非 SSE 响应（如统一异常 JSON）解析出 message 后抛出，避免静默无输出。
+ * 入参字段与后端 AiChatSendReq 全程同名（sessionId/content/roleId/modelId/knowledgeBaseId）。
  */
 export async function chat(
   data: AiApi.ChatReq,
@@ -267,14 +225,6 @@ export async function chat(
 ) {
   const accessStore = useAccessStore();
   const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
-  // 后端统一流式接口 POST /ai/chat/stream，入参 AiChatSendReq（sessionId/content/roleId）
-  // ChatReq 的 conversationId→sessionId、message→content、promptTemplateId→roleId 语义对应
-  const streamBody = {
-    sessionId: data.conversationId,
-    content: data.message,
-    roleId: data.promptTemplateId,
-    knowledgeBaseId: data.knowledgeBaseId,
-  };
   const response = await fetch(`${apiURL}/ai/chat/stream`, {
     method: 'POST',
     headers: {
@@ -282,7 +232,7 @@ export async function chat(
       Authorization: `Bearer ${accessStore.accessToken}`,
       'Accept-Language': preferences.app.locale,
     },
-    body: JSON.stringify(streamBody),
+    body: JSON.stringify(data),
     signal,
   });
   if (!response.ok) {

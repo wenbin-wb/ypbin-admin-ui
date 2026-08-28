@@ -55,7 +55,10 @@ function onDelete(row: SystemAuthTemplateApi.AuthTemplateResp) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch(() => {});
+    .catch((error) => {
+      console.error('Failed to delete auth template:', error);
+      message.error($t('common.requestFailed'));
+    });
 }
 </script>
 <template>

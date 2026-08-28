@@ -5,6 +5,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
+import { IconifyIcon } from '@vben/icons';
 
 import {
   Button,
@@ -16,9 +17,6 @@ import {
   Spin,
   Tag,
 } from 'ant-design-vue';
-import hljs from 'highlight.js';
-// ===== Markdown 渲染 =====
-import { marked } from 'marked';
 
 import {
   getDocumentContent,
@@ -27,25 +25,9 @@ import {
   queryKnowledgeBaseWithSources,
 } from '#/api/ai';
 import { $t } from '#/locales';
-import { sanitizeHtml } from '#/views/system/_shared/sanitize';
+import { useMarkdownRenderer } from '#/views/ai/_shared/useMarkdownRenderer';
 
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-});
-
-const renderer = new marked.Renderer();
-renderer.code = function ({ text, lang }) {
-  const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
-  const highlighted = hljs.highlight(text, { language }).value;
-  return `<pre class="hljs-pre"><code class="hljs language-${language}">${highlighted}</code></pre>`;
-};
-marked.use({ renderer });
-
-function renderMarkdown(md: string): string {
-  if (!md) return '';
-  return sanitizeHtml(marked.parse(md) as string);
-}
+const { renderMarkdown } = useMarkdownRenderer();
 
 // ===== 状态 =====
 const route = useRoute();
@@ -178,7 +160,8 @@ onMounted(loadKbs);
       >
         <!-- 头部 -->
         <div class="flex items-center gap-2 border-b border-border px-4 py-3">
-          <span class="text-base font-bold">📚 Wiki</span>
+          <IconifyIcon icon="lucide:book-open" class="text-base" />
+          <span class="text-base font-bold">{{ $t('page.ai.wiki.wikiTitle') }}</span>
         </div>
 
         <!-- 知识库切换 -->
@@ -201,7 +184,10 @@ onMounted(loadKbs);
               ]"
               @click="activeKbId = kb.id"
             >
-              <span class="text-base leading-none">{{ kb.icon || '📖' }}</span>
+              <IconifyIcon
+                icon="lucide:book-open"
+                class="text-base leading-none"
+              />
               <span class="truncate">{{ kb.name }}</span>
             </div>
           </template>
@@ -266,7 +252,8 @@ onMounted(loadKbs);
             class="gap-1"
             @click="openAiDrawer"
           >
-            💬 {{ $t('page.ai.wiki.askAi') }}
+            <IconifyIcon icon="lucide:message-square" />
+            {{ $t('page.ai.wiki.askAi') }}
           </Button>
         </div>
       </aside>
@@ -301,7 +288,9 @@ onMounted(loadKbs);
             class="i-lucide-alert-circle size-10 text-destructive/60"
           ></span>
           <p class="text-sm">{{ docError }}</p>
-          <Button @click="openDoc(activeDocId)">重新加载</Button>
+          <Button @click="openDoc(activeDocId)">{{
+            $t('page.ai.wiki.reload')
+          }}</Button>
         </div>
 
         <!-- 无文档 -->

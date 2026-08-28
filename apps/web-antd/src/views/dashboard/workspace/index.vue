@@ -22,7 +22,7 @@ import { openWindow } from '@vben/utils';
 
 import { Button, Empty, Result, Spin } from 'ant-design-vue';
 
-import { getLatestLogs } from '#/api';
+import { getDashboardStats, getLatestLogs } from '#/api';
 import { $t } from '#/locales';
 
 const userStore = useUserStore();
@@ -32,41 +32,68 @@ const router = useRouter();
 const BRAND_GRAD =
   'linear-gradient(135deg, hsl(var(--primary)), hsl(245 82% 67%))';
 
-// ---- 今日概览指标（演示数据）----
-const metricCards = computed(() => [
+// ---- 今日概览指标（真实数据：GET /dashboard/stats）----
+interface MetricCard {
+  key: string;
+  label: string;
+  value: string;
+  icon: string;
+  grad: string;
+  glow: string;
+}
+
+const stats = ref({
+  userCount: 0,
+  roleCount: 0,
+  deptCount: 0,
+  menuCount: 0,
+  onlineCount: 0,
+  logCount: 0,
+});
+
+const metricCards = computed<MetricCard[]>(() => [
   {
-    key: 'kb',
-    label: '知识库',
-    value: '12',
-    icon: 'i-lucide-database',
+    key: 'user',
+    label: $t('page.dashboard.user'),
+    value: String(stats.value.userCount ?? 0),
+    icon: 'i-lucide-users',
     grad: 'linear-gradient(135deg, hsl(var(--primary)), hsl(245 82% 67%))',
     glow: 'hsl(var(--primary) / 30%)',
   },
   {
-    key: 'doc',
-    label: '文档',
-    value: '386',
-    icon: 'i-lucide-file-text',
+    key: 'role',
+    label: $t('page.dashboard.role'),
+    value: String(stats.value.roleCount ?? 0),
+    icon: 'i-lucide-user-cog',
     grad: 'linear-gradient(135deg, hsl(245 82% 67%), hsl(161 90% 43%))',
     glow: 'hsl(245 82% 67% / 30%)',
   },
   {
-    key: 'chat',
-    label: '今日会话',
-    value: '46',
-    icon: 'i-lucide-message-square',
+    key: 'dept',
+    label: $t('page.dashboard.dept'),
+    value: String(stats.value.deptCount ?? 0),
+    icon: 'i-lucide-building-2',
     grad: 'linear-gradient(135deg, hsl(199 89% 48%), hsl(161 90% 43%))',
     glow: 'hsl(199 89% 48% / 30%)',
   },
   {
-    key: 'qa',
-    label: '今日问答',
-    value: '128',
-    icon: 'i-lucide-message-circle-question',
+    key: 'online',
+    label: $t('page.dashboard.online'),
+    value: String(stats.value.onlineCount ?? 0),
+    icon: 'i-lucide-wifi',
     grad: 'linear-gradient(135deg, hsl(32 95% 44%), hsl(16 90% 50%))',
     glow: 'hsl(32 95% 44% / 30%)',
   },
 ]);
+
+async function loadStats() {
+  try {
+    const data = await getDashboardStats();
+    stats.value = { ...stats.value, ...data };
+  } catch (error) {
+    console.error('Failed to load dashboard stats:', error);
+  }
+}
 
 // ---- 快捷导航 ----
 const quickNavItems: WorkbenchQuickNavItem[] = [
@@ -108,7 +135,7 @@ const quickNavItems: WorkbenchQuickNavItem[] = [
   },
 ];
 
-// ---- 项目卡片（演示数据，颜色用统一数据色板循环）----
+// ---- 项目卡片（真实统计入口）----
 const PROJECT_COLORS = [
   '#0066f5', // 蓝（primary）
   '#7c7cf0', // 靛紫
@@ -118,163 +145,98 @@ const PROJECT_COLORS = [
   '#5a6cf0', // 蓝紫
 ];
 
-const projectItems: WorkbenchProjectItem[] = [
+const projectItems = computed<WorkbenchProjectItem[]>(() => [
   {
-    title: 'AI 知识库',
+    title: $t('page.dashboard.projectKb'),
     icon: 'carbon:database-enterprise',
     color: PROJECT_COLORS[0],
-    content: '12 个知识库 · 386 篇文档 · 向量化 100%',
-    group: '知识管理',
-    date: '2 小时前更新',
+    content: $t('page.dashboard.projectKbContent'),
+    group: $t('page.dashboard.groupKnowledge'),
+    date: $t('page.dashboard.justNow'),
     url: '/ai/knowledge',
   },
   {
-    title: '智能对话',
+    title: $t('page.dashboard.projectChat'),
     icon: 'carbon:chat-bot',
     color: PROJECT_COLORS[1],
-    content: '1,286 次会话 · 今日 46 次 · 平均延迟 1.2s',
-    group: 'AI 应用',
-    date: '刚刚',
+    content: $t('page.dashboard.projectChatContent'),
+    group: $t('page.dashboard.groupAiApp'),
+    date: $t('page.dashboard.justNow'),
     url: '/ai/chat',
   },
   {
-    title: '模型配置',
+    title: $t('page.dashboard.projectModel'),
     icon: 'carbon:ai-status',
     color: PROJECT_COLORS[2],
-    content: '对话 2 个 · 向量化 1 个 · 全部在线',
-    group: '资源配置',
-    date: '昨天',
+    content: $t('page.dashboard.projectModelContent'),
+    group: $t('page.dashboard.groupResource'),
+    date: $t('page.dashboard.justNow'),
     url: '/ai/config',
   },
   {
-    title: '数据统计',
+    title: $t('page.dashboard.projectUsage'),
     icon: 'carbon:chart-line',
     color: PROJECT_COLORS[3],
-    content: '本周问答 +18% · 热词 46 个',
-    group: '运营分析',
-    date: '今天 09:20',
+    content: $t('page.dashboard.projectUsageContent'),
+    group: $t('page.dashboard.groupAnalysis'),
+    date: $t('page.dashboard.justNow'),
     url: '/ai/usage',
   },
   {
-    title: '网页挂件',
+    title: $t('page.dashboard.projectWidget'),
     icon: 'carbon:web-services-container',
     color: PROJECT_COLORS[4],
-    content: '3 个站点已嵌入 · 累计问答 512 次',
-    group: '对外集成',
-    date: '3 天前',
+    content: $t('page.dashboard.projectWidgetContent'),
+    group: $t('page.dashboard.groupIntegration'),
+    date: $t('page.dashboard.justNow'),
     url: '/ai/knowledge',
   },
   {
-    title: '公开分享',
+    title: $t('page.dashboard.projectShare'),
     icon: 'carbon:share',
     color: PROJECT_COLORS[5],
-    content: '2 个分享链接生效 · 今日访问 89',
-    group: '对外集成',
-    date: '5 天前',
+    content: $t('page.dashboard.projectShareContent'),
+    group: $t('page.dashboard.groupIntegration'),
+    date: $t('page.dashboard.justNow'),
     url: '/ai/knowledge',
   },
-];
+]);
 
-// ---- 待办（演示数据）----
+// ---- 待办（无后端接口，标注演示数据）----
 const todoItems: WorkbenchTodoItem[] = [
   {
-    title: '为知识库补充产品文档',
-    content: '上传 PDF / Markdown 到「产品手册」',
+    title: $t('page.dashboard.todoKbDocs'),
+    content: $t('page.dashboard.todoKbDocsContent'),
     completed: false,
-    date: '今天',
+    date: $t('page.dashboard.today'),
   },
   {
-    title: '配置对话模型与向量化模型',
-    content: '在【AI 配置】中新增并设为默认',
+    title: $t('page.dashboard.todoConfigModel'),
+    content: $t('page.dashboard.todoConfigModelContent'),
     completed: false,
-    date: '今天',
+    date: $t('page.dashboard.today'),
   },
   {
-    title: '启用知识库公开分享',
-    content: '设置有效期与访问密码后对外发布',
+    title: $t('page.dashboard.todoShare'),
+    content: $t('page.dashboard.todoShareContent'),
     completed: true,
-    date: '昨天',
+    date: $t('page.dashboard.yesterday'),
   },
   {
-    title: '测试检索召回效果',
-    content: '使用检索测试器调整 topK 与阈值',
+    title: $t('page.dashboard.todoTestRecall'),
+    content: $t('page.dashboard.todoTestRecallContent'),
     completed: false,
-    date: '本周',
+    date: $t('page.dashboard.thisWeek'),
   },
   {
-    title: '查看本周统计看板',
-    content: '关注问答趋势与搜索热词',
+    title: $t('page.dashboard.todoViewStats'),
+    content: $t('page.dashboard.todoViewStatsContent'),
     completed: false,
-    date: '本周',
+    date: $t('page.dashboard.thisWeek'),
   },
 ];
 
-// ---- 环境信息（演示数据）----
-const envItems = [
-  {
-    label: '后端服务',
-    value: '在线',
-    ok: true,
-    icon: 'i-lucide-server',
-    color: '#0ec9a3',
-  },
-  {
-    label: '数据库',
-    value: '正常',
-    ok: true,
-    icon: 'i-lucide-database',
-    color: '#0066f5',
-  },
-  {
-    label: '向量化服务',
-    value: '待配置',
-    ok: false,
-    icon: 'i-lucide-box',
-    color: '#f0b429',
-  },
-  {
-    label: 'AI 模型',
-    value: '2 个对话 · 1 个向量',
-    ok: true,
-    icon: 'i-lucide-sparkles',
-    color: '#7c7cf0',
-  },
-  {
-    label: '系统版本',
-    value: 'ypbin-admin v1.0.0',
-    ok: true,
-    icon: 'i-lucide-package',
-    color: '#f2547b',
-  },
-  {
-    label: '部署环境',
-    value: '演示 Demo',
-    ok: true,
-    icon: 'i-lucide-globe',
-    color: '#5a6cf0',
-  },
-];
-
-// ---- 系统公告（演示数据）----
-const notices = [
-  {
-    title: 'AI 模型已接入，可在【AI 配置】中切换对话模型',
-    date: '10 分钟前',
-    color: '#0066f5',
-  },
-  {
-    title: '知识库分享功能上线：支持有效期与访问密码',
-    date: '2 小时前',
-    color: '#7c7cf0',
-  },
-  {
-    title: '演示环境说明：数据为模拟数据，仅供体验',
-    date: '昨天 17:00',
-    color: '#f0b429',
-  },
-];
-
-// ---- 动态趋势（后端日志为空时用演示数据兜底）----
+// ---- 动态趋势（后端日志，失败/不足时标注演示数据）----
 const avatars = [
   'svg:avatar-1',
   'svg:avatar-2',
@@ -285,51 +247,27 @@ const avatars = [
 const DEMO_TRENDS: WorkbenchTrendItem[] = [
   {
     avatar: 'svg:avatar-1',
-    title: '管理员',
-    content: '创建了知识库「产品手册」并上传 12 篇文档',
-    date: '10 分钟前',
+    title: $t('page.dashboard.admin'),
+    content: $t('page.dashboard.demoTrend1'),
+    date: $t('page.dashboard.demoTime1'),
   },
   {
     avatar: 'svg:avatar-2',
-    title: '运营同学',
-    content: '通过网页挂件完成了一次 AI 问答（耗时 1.1s）',
-    date: '32 分钟前',
+    title: $t('page.dashboard.operator'),
+    content: $t('page.dashboard.demoTrend2'),
+    date: $t('page.dashboard.demoTime2'),
   },
   {
     avatar: 'svg:avatar-3',
-    title: '系统',
-    content: '文档「快速上手指南.md」向量化完成（12 个分块）',
-    date: '1 小时前',
+    title: $t('page.dashboard.system'),
+    content: $t('page.dashboard.demoTrend3'),
+    date: $t('page.dashboard.demoTime3'),
   },
   {
     avatar: 'svg:avatar-4',
-    title: '管理员',
-    content: '更新了知识库「FAQ」的分享链接有效期',
-    date: '2 小时前',
-  },
-  {
-    avatar: 'svg:avatar-1',
-    title: '系统',
-    content: '每日统计已生成：问答 46 次，检索 120 次',
-    date: '今天 08:00',
-  },
-  {
-    avatar: 'svg:avatar-2',
-    title: '运营同学',
-    content: '在检索测试器中测试「产品有哪些特性」topK=5',
-    date: '昨天 18:30',
-  },
-  {
-    avatar: 'svg:avatar-3',
-    title: '管理员',
-    content: '新增对话模型 deepseek-v4-flash 并设为默认',
-    date: '昨天 15:12',
-  },
-  {
-    avatar: 'svg:avatar-4',
-    title: '系统',
-    content: '挂件脚本 embed.js 更新（拖动 + 吸边）',
-    date: '昨天 11:40',
+    title: $t('page.dashboard.admin'),
+    content: $t('page.dashboard.demoTrend4'),
+    date: $t('page.dashboard.demoTime4'),
   },
 ];
 
@@ -372,7 +310,7 @@ async function loadTrends() {
         title:
           (log.operateUserIdName ?? '').trim() ||
           (log.operateUserId ?? '').toString().trim() ||
-          '系统',
+          $t('page.dashboard.system'),
       }));
     if (real.length >= 8) {
       // 真实数据足够：直接展示
@@ -382,7 +320,7 @@ async function loadTrends() {
       // 真实数据不足：真实在前 + 演示数据补齐（保持 8 条，视觉饱满）
       const demo = DEMO_TRENDS.slice(0, 8 - real.length).map((d) => ({
         ...d,
-        date: `${d.date}（演示）`,
+        date: `${d.date}${$t('page.dashboard.demoSuffix')}`,
       }));
       trendItems.value = [...real, ...demo];
       usingDemoTrends.value = true;
@@ -403,6 +341,7 @@ async function loadTrends() {
 
 onMounted(() => {
   void loadTrends();
+  void loadStats();
 });
 
 const welcomeTitle = computed(
@@ -424,7 +363,9 @@ function navTo(nav: WorkbenchQuickNavItem) {
 
 function onProjectClick(item: WorkbenchProjectItem) {
   if (item.url?.startsWith('/')) {
-    router.push(item.url).catch(() => {});
+    router.push(item.url).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
   }
 }
 </script>
@@ -436,11 +377,15 @@ function onProjectClick(item: WorkbenchProjectItem) {
       :avatar="userStore.userInfo?.avatar || preferences.app.defaultAvatar"
     >
       <template #title>{{ welcomeTitle }}</template>
-      <template #description>欢迎回来，今天也要高效工作 🚀</template>
+      <template #description>{{
+        $t('page.dashboard.headerDesc')
+      }}</template>
       <template #actions>
         <div class="flex items-center gap-6 md:gap-10">
           <div class="flex flex-col items-end">
-            <span class="text-xs text-muted-foreground">待办</span>
+            <span class="text-xs text-muted-foreground">{{
+              $t('page.dashboard.users')
+            }}</span>
             <span
               class="text-2xl font-bold tabular-nums leading-none"
               :style="{
@@ -448,11 +393,13 @@ function onProjectClick(item: WorkbenchProjectItem) {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }"
-              >2/5</span
+              >{{ stats.userCount }}</span
             >
           </div>
           <div class="flex flex-col items-end">
-            <span class="text-xs text-muted-foreground">项目</span>
+            <span class="text-xs text-muted-foreground">{{
+              $t('page.dashboard.online')
+            }}</span>
             <span
               class="text-2xl font-bold tabular-nums leading-none"
               :style="{
@@ -460,11 +407,13 @@ function onProjectClick(item: WorkbenchProjectItem) {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }"
-              >6</span
+              >{{ stats.onlineCount }}</span
             >
           </div>
           <div class="flex flex-col items-end">
-            <span class="text-xs text-muted-foreground">今日问答</span>
+            <span class="text-xs text-muted-foreground">{{
+              $t('page.dashboard.logs')
+            }}</span>
             <span
               class="text-2xl font-bold tabular-nums leading-none"
               :style="{
@@ -472,7 +421,7 @@ function onProjectClick(item: WorkbenchProjectItem) {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }"
-              >128</span
+              >{{ stats.logCount }}</span
             >
           </div>
         </div>
@@ -515,7 +464,7 @@ function onProjectClick(item: WorkbenchProjectItem) {
       </div>
     </div>
 
-    <!-- 动态趋势 + 快捷导航/环境信息 -->
+    <!-- 动态趋势 + 快捷导航 -->
     <div class="mt-5 flex flex-col gap-4 xl:flex-row">
       <div class="min-w-0 flex-1">
         <Spin :spinning="trendLoading">
@@ -524,7 +473,7 @@ function onProjectClick(item: WorkbenchProjectItem) {
             :items="trendItems"
             :title="
               usingDemoTrends
-                ? `${$t('page.dashboard.latestActivity')}（演示数据）`
+                ? `${$t('page.dashboard.latestActivity')}${$t('page.dashboard.demoSuffix')}`
                 : $t('page.dashboard.latestActivity')
             "
           />
@@ -551,37 +500,6 @@ function onProjectClick(item: WorkbenchProjectItem) {
           :title="$t('page.dashboard.quickNav')"
           @click="navTo"
         />
-        <!-- 环境信息 -->
-        <div class="flex-1 rounded-xl border border-border/80 bg-card p-5">
-          <h3 class="text-base font-semibold">环境信息</h3>
-          <ul class="mt-3 flex flex-col divide-y divide-border/70">
-            <li
-              v-for="e in envItems"
-              :key="e.label"
-              class="flex items-center justify-between gap-3 py-2"
-            >
-              <span class="flex min-w-0 items-center gap-2.5">
-                <span
-                  class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-white"
-                  :style="{ background: e.color }"
-                >
-                  <span :class="`${e.icon} size-3.5`"></span>
-                </span>
-                <span class="truncate text-[13px]">{{ e.label }}</span>
-              </span>
-              <span
-                class="flex shrink-0 items-center gap-1.5 text-xs"
-                :class="e.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'"
-              >
-                <span
-                  class="size-1.5 rounded-full"
-                  :class="e.ok ? 'bg-emerald-500' : 'bg-amber-500'"
-                ></span>
-                {{ e.value }}
-              </span>
-            </li>
-          </ul>
-        </div>
       </div>
     </div>
 
@@ -589,7 +507,7 @@ function onProjectClick(item: WorkbenchProjectItem) {
     <div class="mt-5">
       <WorkbenchProject
         :items="projectItems"
-        title="我的项目"
+        :title="$t('page.dashboard.myProjects')"
         @click="onProjectClick"
       >
         <template #content="{ item }">
@@ -609,37 +527,13 @@ function onProjectClick(item: WorkbenchProjectItem) {
       </WorkbenchProject>
     </div>
 
-    <!-- 待办事项 + 公告 -->
+    <!-- 待办事项（演示数据，标注） -->
     <div class="mt-5 flex flex-col gap-4 xl:flex-row">
       <div class="min-w-0 flex-1">
-        <WorkbenchTodo :items="todoItems" title="待办事项" />
-      </div>
-      <div class="w-full xl:w-[340px]">
-        <div class="rounded-xl border border-border/80 bg-card p-5">
-          <div class="flex items-center justify-between">
-            <h3 class="text-base font-semibold">系统公告</h3>
-            <span
-              class="rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary"
-              >3 条新</span
-            >
-          </div>
-          <ul class="mt-3 flex flex-col divide-y divide-border/70">
-            <li
-              v-for="n in notices"
-              :key="n.title"
-              class="cursor-pointer py-3 transition-colors hover:bg-muted/30"
-            >
-              <div class="flex items-center gap-2">
-                <span
-                  class="size-1.5 shrink-0 rounded-full"
-                  :style="{ background: n.color }"
-                ></span>
-                <p class="truncate text-[13px] font-medium">{{ n.title }}</p>
-              </div>
-              <p class="mt-1 pl-3.5 text-xs text-muted-foreground">{{ n.date }}</p>
-            </li>
-          </ul>
-        </div>
+        <WorkbenchTodo
+          :items="todoItems"
+          :title="`${$t('page.dashboard.todoTitle')}${$t('page.dashboard.demoSuffix')}`"
+        />
       </div>
     </div>
   </div>

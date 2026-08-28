@@ -5,8 +5,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { Button, Drawer, Empty, Input, message, Skeleton, Spin } from 'ant-design-vue';
-import hljs from 'highlight.js';
-import { marked } from 'marked';
+import { IconifyIcon } from '@vben/icons';
 
 import {
   getShareConfig,
@@ -15,25 +14,9 @@ import {
   shareAsk,
 } from '#/api/ai';
 import { $t } from '#/locales';
-import { sanitizeHtml } from '#/views/system/_shared/sanitize';
+import { useMarkdownRenderer } from '#/views/ai/_shared/useMarkdownRenderer';
 
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-});
-
-const renderer = new marked.Renderer();
-renderer.code = function ({ text, lang }) {
-  const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
-  const highlighted = hljs.highlight(text, { language }).value;
-  return `<pre class="hljs-pre"><code class="hljs language-${language}">${highlighted}</code></pre>`;
-};
-marked.use({ renderer });
-
-function renderMarkdown(md: string): string {
-  if (!md) return '';
-  return sanitizeHtml(marked.parse(md) as string);
-}
+const { renderMarkdown } = useMarkdownRenderer();
 
 // ===== 状态 =====
 const route = useRoute();
@@ -214,7 +197,7 @@ onMounted(async () => {
       class="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-sm"
     >
       <div class="mb-2 flex items-center gap-2">
-        <span class="text-xl">{{ config.icon || '📖' }}</span>
+        <IconifyIcon icon="lucide:book-open" class="text-xl" />
         <span class="text-base font-semibold">{{ config.name }}</span>
       </div>
       <p class="mb-4 text-sm text-muted-foreground">
@@ -241,7 +224,7 @@ onMounted(async () => {
   <div v-else class="share-layout">
     <aside class="share-sidebar flex h-full flex-col border-r border-border bg-card">
       <div class="flex items-center gap-2 border-b border-border px-4 py-3">
-        <span class="text-xl leading-none">{{ config?.icon || '📖' }}</span>
+        <IconifyIcon icon="lucide:book-open" class="text-xl leading-none" />
         <span class="truncate text-sm font-bold">{{ config?.name }}</span>
       </div>
 
@@ -286,7 +269,8 @@ onMounted(async () => {
           class="gap-1"
           @click="openAiDrawer"
         >
-          💬 {{ $t('page.ai.share.askAi') }}
+          <IconifyIcon icon="lucide:message-square" />
+          {{ $t('page.ai.share.askAi') }}
         </Button>
       </div>
     </aside>

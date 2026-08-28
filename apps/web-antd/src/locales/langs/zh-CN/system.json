@@ -30,7 +30,21 @@
     "remark": "备注",
     "createTime": "创建时间",
     "operation": "操作",
-    "placeholder": "搜索部门..."
+    "placeholder": "搜索部门...",
+    "export": "导出",
+    "import": "导入",
+    "exportFailed": "导出失败",
+    "importTitle": "导入用户",
+    "importDownloadTemplate": "下载导入模板",
+    "importChooseFile": "选择文件并导入",
+    "importHint": "请先下载模板，按模板格式填写后上传（支持 .xlsx / .xls）",
+    "exportFileName": "用户列表.xlsx",
+    "importTemplateFileName": "用户导入模板.xlsx",
+    "templateDownloadFailed": "模板下载失败",
+    "importFailed": "导入失败",
+    "importSuccessCount": "导入成功 {0} 条",
+    "importResult": "导入完成：成功 {0} 条，失败 {1} 条\n{2}",
+    "importRowError": "第{0}行: {1}"
   },
   "dept": {
     "list": "部门列表",
@@ -215,7 +229,10 @@
     "createTime": "创建时间",
     "action": "操作",
     "success": "成功",
-    "fail": "失败"
+    "fail": "失败",
+    "export": "导出",
+    "exportFailed": "导出失败",
+    "exportFileName": "操作日志.xlsx"
   },
   "onlineUser": {
     "title": "在线用户",

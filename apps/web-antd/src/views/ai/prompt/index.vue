@@ -64,10 +64,16 @@ function onCreate() {
 }
 
 function onToggle(row: AiApi.PromptTemplate) {
-  togglePromptTemplate(row.id, row.status === 1 ? 0 : 1).then(() => {
-    message.success($t('common.success'));
-    onRefresh();
-  });
+  togglePromptTemplate(row.id, row.status === 1 ? 0 : 1).then(
+    () => {
+      message.success($t('common.success'));
+      onRefresh();
+    },
+    (error) => {
+      console.error('Failed to toggle prompt template:', error);
+      message.error($t('common.requestFailed'));
+    },
+  );
 }
 
 function onDelete(row: AiApi.PromptTemplate) {
@@ -76,7 +82,10 @@ function onDelete(row: AiApi.PromptTemplate) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch(() => {});
+    .catch((error) => {
+      console.error('Failed to delete prompt template:', error);
+      message.error($t('common.requestFailed'));
+    });
 }
 
 function categoryLabel(val?: string) {

@@ -114,10 +114,43 @@ async function assignUserRoles(id: string, roleIds: string[]) {
   return requestClient.put(`/system/user/${id}/roles`, { roleIds });
 }
 
+/**
+ * 导出用户列表（下载 Excel 文件）
+ */
+async function exportUsers(params: SystemUserApi.UserQuery) {
+  return requestClient.post('/system/user/export', params, {
+    responseType: 'blob',
+  });
+}
+
+/**
+ * 下载用户导入模板
+ */
+async function downloadImportTemplate() {
+  return requestClient.get('/system/user/import-template', {
+    responseType: 'blob',
+  });
+}
+
+/**
+ * 导入用户（上传 Excel 文件）
+ * @param file Excel 文件
+ */
+async function importUsers(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return requestClient.post('/system/user/import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+}
+
 export {
   assignUserRoles,
   createUser,
   deleteUser,
+  exportUsers,
+  downloadImportTemplate,
+  importUsers,
   getUserList,
   resetUserPassword,
   updateUser,

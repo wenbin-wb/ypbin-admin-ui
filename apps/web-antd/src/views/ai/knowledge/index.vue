@@ -5,7 +5,7 @@ import { computed, onMounted, ref } from 'vue';
 
 import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { useAppConfig } from '@vben/hooks';
-import { Plus } from '@vben/icons';
+import { IconifyIcon, Plus } from '@vben/icons';
 
 import {
   Button,
@@ -257,10 +257,15 @@ async function onCopyShareLink() {
   }
 }
 
-/** 取知识库默认展示图标：优先 icon 字段，否则取名称首字 */
+/** 取知识库默认展示内容：优先 icon 字段，否则取名称首字 */
 function kbIcon(kb: AiApi.KnowledgeBase) {
   if (kb.icon && kb.icon.trim()) return kb.icon.trim();
   return kb.name.charAt(0).toUpperCase();
+}
+
+/** 判断 icon 字段是否为 Iconify 图标名（如 lucide:book-open），是则用图标渲染 */
+function isIconifyIcon(icon?: string): boolean {
+  return Boolean(icon && icon.includes(':'));
 }
 
 /** 根据知识库 ID 生成一个稳定的背景色（从预设色盘中取） */
@@ -442,7 +447,9 @@ onMounted(loadKbs);
           <h2 class="text-base font-semibold leading-none">
             {{ $t('page.ai.knowledge.title') }}
           </h2>
-          <span class="text-sm text-muted-foreground">（{{ knowledgeBases.length }}）</span>
+          <span class="text-sm text-muted-foreground"
+            >{{ $t('page.ai.knowledge.countSuffix', [knowledgeBases.length]) }}</span
+          >
         </div>
         <div class="flex items-center gap-2">
           <Input
@@ -581,7 +588,12 @@ onMounted(loadKbs);
               :class="kbColor(kb)"
               class="flex size-10 shrink-0 items-center justify-center rounded-lg text-lg font-bold"
             >
-              {{ kbIcon(kb) }}
+              <IconifyIcon
+                v-if="isIconifyIcon(kb.icon)"
+                :icon="kb.icon ?? ''"
+                class="size-5"
+              />
+              <template v-else>{{ kbIcon(kb) }}</template>
             </div>
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-semibold leading-tight">

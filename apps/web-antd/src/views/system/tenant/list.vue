@@ -52,7 +52,10 @@ function onDelete(row: SystemTenantApi.TenantResp) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch(() => {});
+    .catch((error) => {
+      console.error('Failed to delete tenant:', error);
+      message.error($t('common.requestFailed'));
+    });
 }
 </script>
 <template>

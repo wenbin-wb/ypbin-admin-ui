@@ -4,47 +4,23 @@ import type { AiApi } from '#/api/ai';
 import { nextTick, onUnmounted, reactive, ref } from 'vue';
 
 import { Button, Input } from 'ant-design-vue';
-import DOMPurify from 'dompurify';
-import hljs from 'highlight.js';
-import { marked } from 'marked';
 
-import { chat, createConversation, getMessageList } from '#/api/ai';
+import { chat, createSession, getSessionMessages } from '#/api/ai';
 import { $t } from '#/locales';
+import { useMarkdownRenderer } from '#/views/ai/_shared/useMarkdownRenderer';
 
 defineOptions({ name: 'AiAssistantWidget' });
 
-// marked 渲染
-const renderer = new marked.Renderer();
-renderer.code = ({ text, lang }: { lang?: string; text: string }) => {
-  const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
-  const highlighted = hljs.highlight(text, { language }).value;
-  return `<pre class="aiw-code"><code class="hljs language-${language}">${highlighted}</code></pre>`;
-};
-marked.use({ breaks: true, gfm: true, renderer });
+const { renderMarkdown } = useMarkdownRenderer();
 
 const open = ref(false);
-const messages = ref<AiApi.Message[]>([]);
+const messages = ref<AiApi.ChatMessage[]>([]);
 const inputText = ref('');
 const isStreaming = ref(false);
 const sending = ref(false);
 const listRef = ref<HTMLElement>();
-const conversationId = ref('');
+const sessionId = ref('');
 let abortController: AbortController | null = null;
-
-function renderMd(content: string): string {
-  if (!content) return '';
-  try {
-    // marked 可能返回 Promise（引入 async 扩展时）；当前同步渲染器下为字符串
-    const raw = marked.parse(content) as string;
-    const html = typeof raw === 'string' ? raw : String(raw);
-    return DOMPurify.sanitize(html, { ADD_ATTR: ['class'] });
-  } catch {
-    return content
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;');
-  }
-}
 
 async function scrollToBottom() {
   await nextTick();
@@ -56,20 +32,20 @@ async function scrollToBottom() {
 async function toggleOpen() {
   open.value = !open.value;
   if (open.value) {
-    await ensureConversation();
+    await ensureSession();
     await scrollToBottom();
   }
 }
 
-async function ensureConversation() {
-  if (conversationId.value) return;
+async function ensureSession() {
+  if (sessionId.value) return;
   try {
-    const conv = await createConversation();
-    conversationId.value = conv.id;
-    const data = await getMessageList(conv.id, { page: 1, pageSize: 50 });
-    messages.value = data.items ?? [];
-  } catch {
-    // 未登录或接口异常时保持可输入
+    sessionId.value = await createSession();
+    const history = await getSessionMessages(sessionId.value);
+    messages.value = history ?? [];
+  } catch (error) {
+    console.error('Failed to initialize assistant widget session:', error);
+    // 未登录或接口异常时保持可输入，会话创建失败会由发送流程再次触发
   }
 }
 
@@ -78,35 +54,32 @@ async function handleSend() {
   if (!text || isStreaming.value || sending.value) return;
   sending.value = true;
   try {
-    await ensureConversation();
-    if (!conversationId.value) return;
+    if (!sessionId.value) {
+      sessionId.value = await createSession();
+    }
 
     messages.value.push({
-      conversationId: conversationId.value,
       content: text,
       createTime: new Date().toISOString(),
       id: Date.now().toString(),
       role: 'user',
-      tokens: 0,
     });
     inputText.value = '';
     await scrollToBottom();
 
     // reactive 包装：流式回调里 content 逐帧追加，必须触发响应式渲染
-    const assistantMsg = reactive<AiApi.Message>({
-      conversationId: conversationId.value,
+    const assistantMsg = reactive<AiApi.ChatMessage>({
       content: '',
       createTime: new Date().toISOString(),
       id: 'streaming',
       role: 'assistant',
-      tokens: 0,
     });
     messages.value.push(assistantMsg);
     isStreaming.value = true;
     abortController = new AbortController();
 
     await chat(
-      { conversationId: conversationId.value, message: text },
+      { content: text, sessionId: sessionId.value },
       (token: string) => {
         assistantMsg.content += token;
         scrollToBottom();
@@ -125,6 +98,7 @@ async function handleSend() {
       },
     );
   } catch (error: unknown) {
+    console.error('Failed to send assistant widget message:', error);
     if (!(error instanceof Error && error.name === 'AbortError')) {
       const last = messages.value[messages.value.length - 1];
       if (last && last.role === 'assistant' && !last.content) {
@@ -264,7 +238,7 @@ function handleStop() {
               <div
                 v-if="msg.content"
                 class="aiw-msg__markdown"
-                v-html="renderMd(msg.content)"
+                v-html="renderMarkdown(msg.content)"
               ></div>
               <!-- eslint-enable vue/no-v-html -->
               <span v-else class="aiw-msg__thinking">{{
@@ -449,7 +423,7 @@ function handleStop() {
   border-bottom-left-radius: 3px;
 }
 
-.aiw-msg__markdown :deep(.aiw-code) {
+.aiw-msg__markdown :deep(.hljs-pre) {
   padding: 8px;
   margin: 6px 0;
   overflow-x: auto;

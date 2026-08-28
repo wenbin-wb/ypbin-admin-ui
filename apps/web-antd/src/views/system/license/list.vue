@@ -85,7 +85,10 @@ function onDelete(row: SystemLicenseApi.SystemLicense) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch(() => {});
+    .catch((error) => {
+      console.error('Failed to delete license:', error);
+      message.error($t('common.requestFailed'));
+    });
 }
 
 function onSubmit(row: SystemLicenseApi.SystemLicense) {
@@ -94,7 +97,10 @@ function onSubmit(row: SystemLicenseApi.SystemLicense) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch(() => {});
+    .catch((error) => {
+      console.error('Failed to submit license:', error);
+      message.error($t('common.requestFailed'));
+    });
 }
 
 function onRevoke(row: SystemLicenseApi.SystemLicense) {
@@ -103,7 +109,10 @@ function onRevoke(row: SystemLicenseApi.SystemLicense) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch(() => {});
+    .catch((error) => {
+      console.error('Failed to revoke license:', error);
+      message.error($t('common.requestFailed'));
+    });
 }
 
 /** 下载 .lic 授权文件：后端以二进制流返回，前端触发浏览器下载 */

@@ -37,6 +37,7 @@
   "copySuccess": "复制成功",
   "copyFailed": "复制失败",
   "copyAll": "复制全部",
+  "requestFailed": "请求失败，请稍后重试",
   "saveToFile": "保存为文件",
   "close": "关闭"
 }

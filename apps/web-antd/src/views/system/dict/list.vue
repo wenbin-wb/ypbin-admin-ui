@@ -76,7 +76,10 @@ function onDelete(row: SystemDictApi.DictResp) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch(() => {});
+    .catch((error) => {
+      console.error('Failed to delete dict:', error);
+      message.error($t('common.requestFailed'));
+    });
 }
 </script>
 <template>

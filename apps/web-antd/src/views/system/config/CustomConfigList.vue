@@ -65,7 +65,10 @@ function onDelete(row: SystemConfigApi.ConfigResp) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch(() => {});
+    .catch((error) => {
+      console.error('Failed to delete config:', error);
+      message.error($t('common.requestFailed'));
+    });
 }
 </script>
 <template>

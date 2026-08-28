@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, feature/spring-ai ]
+  pull_request:
+
+jobs:
+  build:
+    name: 校验与构建
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.16.0
+          run_install: false
+
+      - name: 配置 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck（web-antd）
+        run: pnpm -F @vben/web-antd run typecheck
+
+      - name: 构建（web-antd）
+        run: pnpm -F @vben/web-antd run build

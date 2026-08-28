@@ -20,7 +20,7 @@ export function useFormSchema(): VbenFormSchema[] {
       label: $t('page.ai.knowledge.icon'),
       componentProps: {
         placeholder: $t('page.ai.knowledge.iconPlaceholder'),
-        maxlength: 8,
+        maxlength: 24,
         showCount: true,
       },
       help: $t('page.ai.knowledge.iconHint'),

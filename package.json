@@ -1,12 +1,11 @@
 {
-  "name": "vben-admin-monorepo",
-  "version": "5.7.0",
+  "name": "ypbin-admin-ui",
+  "version": "1.0.0",
   "private": true,
   "keywords": [
-    "monorepo",
-    "turbo",
     "ypbin",
     "ypbin admin",
+    "admin",
     "vue",
     "vue admin",
     "vue3"

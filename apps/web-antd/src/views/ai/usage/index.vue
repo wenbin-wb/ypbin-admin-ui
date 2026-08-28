@@ -411,7 +411,7 @@ onMounted(loadStats);
               <span
                 v-if="kbDocs.length"
                 class="rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary"
-                >共 {{ kbDocsTotal }} {{ $t('page.ai.usage.docsUnit') }}</span
+                >{{ $t('page.ai.usage.totalSuffix', [kbDocsTotal, $t('page.ai.usage.docsUnit')]) }}</span
               >
             </div>
             <div v-if="loading" class="mt-4">

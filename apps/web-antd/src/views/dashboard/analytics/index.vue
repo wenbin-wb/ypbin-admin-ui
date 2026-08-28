@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { TabOption } from '@vben/types';
 
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import { AnalysisChartCard, AnalysisChartsTabs } from '@vben/common-ui';
 import {
@@ -11,6 +11,7 @@ import {
   SvgDownloadIcon,
 } from '@vben/icons';
 
+import { getDashboardStats } from '#/api';
 import { $t } from '#/locales';
 
 import AnalyticsTrends from './analytics-trends.vue';
@@ -23,44 +24,53 @@ import AnalyticsVisits from './analytics-visits.vue';
 const BRAND_GRAD =
   'linear-gradient(135deg, hsl(var(--primary)), hsl(245 82% 67%))';
 
+const stats = ref({
+  userCount: 0,
+  roleCount: 0,
+  deptCount: 0,
+  menuCount: 0,
+  onlineCount: 0,
+  logCount: 0,
+});
+
 const overviewCards = computed(() => [
   {
     key: 'user',
     icon: SvgCardIcon,
     title: $t('page.dashboard.user'),
-    value: 2000,
-    total: $t('page.dashboard.userTotal'),
-    totalValue: 120_000,
+    value: stats.value.userCount,
+    total: $t('page.dashboard.role'),
+    totalValue: stats.value.roleCount,
     grad: 'linear-gradient(135deg, hsl(var(--primary)), hsl(245 82% 67%))',
     glow: 'hsl(var(--primary) / 30%)',
   },
   {
-    key: 'visit',
+    key: 'dept',
     icon: SvgCakeIcon,
-    title: $t('page.dashboard.visit'),
-    value: 20_000,
-    total: $t('page.dashboard.visitTotal'),
-    totalValue: 500_000,
+    title: $t('page.dashboard.dept'),
+    value: stats.value.deptCount,
+    total: $t('page.dashboard.menu'),
+    totalValue: stats.value.menuCount,
     grad: 'linear-gradient(135deg, hsl(245 82% 67%), hsl(161 90% 43%))',
     glow: 'hsl(245 82% 67% / 30%)',
   },
   {
-    key: 'download',
+    key: 'online',
     icon: SvgDownloadIcon,
-    title: $t('page.dashboard.download'),
-    value: 8000,
-    total: $t('page.dashboard.downloadTotal'),
-    totalValue: 120_000,
+    title: $t('page.dashboard.online'),
+    value: stats.value.onlineCount,
+    total: $t('page.dashboard.logs'),
+    totalValue: stats.value.logCount,
     grad: 'linear-gradient(135deg, hsl(199 89% 48%), hsl(161 90% 43%))',
     glow: 'hsl(199 89% 48% / 30%)',
   },
   {
     key: 'usage',
     icon: SvgBellIcon,
-    title: $t('page.dashboard.usage'),
-    value: 5000,
-    total: $t('page.dashboard.usageTotal'),
-    totalValue: 50_000,
+    title: $t('page.dashboard.menu'),
+    value: stats.value.menuCount,
+    total: $t('page.dashboard.dept'),
+    totalValue: stats.value.deptCount,
     grad: 'linear-gradient(135deg, hsl(32 95% 44%), hsl(16 90% 50%))',
     glow: 'hsl(32 95% 44% / 30%)',
   },
@@ -77,26 +87,43 @@ const chartTabs: TabOption[] = [
   },
 ];
 
-// 页头：日期 + 当日徽章
+// 页头：日期
 const now = computed(() => {
   const d = new Date();
-  const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  const week = [
+    $t('page.dashboard.sunday'),
+    $t('page.dashboard.monday'),
+    $t('page.dashboard.tuesday'),
+    $t('page.dashboard.wednesday'),
+    $t('page.dashboard.thursday'),
+    $t('page.dashboard.friday'),
+    $t('page.dashboard.saturday'),
+  ];
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${week[d.getDay()]}`;
 });
 
-const dayBadges = [
-  { label: '今日访问', value: '2,048' },
-  { label: '今日会话', value: '486' },
-  { label: '今日问答', value: '128' },
-  { label: '在线人数', value: '36' },
-];
+const dayBadges = computed(() => [
+  { label: $t('page.dashboard.user'), value: String(stats.value.userCount) },
+  { label: $t('page.dashboard.role'), value: String(stats.value.roleCount) },
+  { label: $t('page.dashboard.online'), value: String(stats.value.onlineCount) },
+  { label: $t('page.dashboard.logs'), value: String(stats.value.logCount) },
+]);
 
 function fmt(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
   return String(n);
 }
+
+onMounted(async () => {
+  try {
+    const data = await getDashboardStats();
+    stats.value = { ...stats.value, ...data };
+  } catch (error) {
+    console.error('Failed to load dashboard stats:', error);
+  }
+});
 </script>
 
 <template>
@@ -124,9 +151,11 @@ function fmt(n: number) {
       <div class="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p class="text-xs text-muted-foreground">{{ now }}</p>
-          <h2 class="mt-1 text-2xl font-bold tracking-tight">数据分析总览</h2>
+          <h2 class="mt-1 text-2xl font-bold tracking-tight">
+            {{ $t('page.dashboard.analyticsTitle') }}
+          </h2>
           <p class="mt-1 text-sm text-muted-foreground">
-            平台整体运行态势与趋势洞察（演示数据）
+            {{ $t('page.dashboard.analyticsSubtitle') }}
           </p>
         </div>
         <div class="flex flex-wrap gap-3">

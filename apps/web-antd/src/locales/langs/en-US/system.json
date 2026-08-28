@@ -30,7 +30,21 @@
     "remark": "Remark",
     "createTime": "Creation Time",
     "operation": "Operation",
-    "placeholder": "Search Department..."
+    "placeholder": "Search Department...",
+    "export": "Export",
+    "import": "Import",
+    "exportFailed": "Export failed",
+    "importTitle": "Import Users",
+    "importDownloadTemplate": "Download import template",
+    "importChooseFile": "Choose file and import",
+    "importHint": "Download the template first, fill it in, then upload (.xlsx / .xls)",
+    "exportFileName": "users.xlsx",
+    "importTemplateFileName": "user-import-template.xlsx",
+    "templateDownloadFailed": "Failed to download template",
+    "importFailed": "Import failed",
+    "importSuccessCount": "Imported {0} user(s)",
+    "importResult": "Import done: {0} succeeded, {1} failed\n{2}",
+    "importRowError": "Row {0}: {1}"
   },
   "dept": {
     "list": "Department List",
@@ -215,7 +229,10 @@
     "createTime": "Creation Time",
     "action": "Action",
     "success": "Success",
-    "fail": "Failed"
+    "fail": "Failed",
+    "export": "Export",
+    "exportFailed": "Export failed",
+    "exportFileName": "operation-logs.xlsx"
   },
   "onlineUser": {
     "title": "Online Users",

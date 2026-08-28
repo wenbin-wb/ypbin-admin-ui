@@ -1,0 +1,51 @@
+/* 角色徽章（ym-badge）—— chat 的 MessageList / RolePicker / index 头部分布使用 */
+
+.ym-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+  font-weight: 700;
+  user-select: none;
+  border-radius: 8px;
+}
+
+.ym-badge--sm {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  border-radius: 5px;
+}
+
+.role-assistant {
+  color: hsl(221deg 83% 53%);
+  background: hsl(221deg 83% 53% / 15%);
+}
+
+.role-translator {
+  color: hsl(142deg 71% 45%);
+  background: hsl(142deg 71% 45% / 15%);
+}
+
+.role-coder {
+  color: hsl(262deg 83% 58%);
+  background: hsl(262deg 83% 58% / 15%);
+}
+
+.role-analyst {
+  color: hsl(24deg 95% 53%);
+  background: hsl(24deg 95% 53% / 15%);
+}
+
+.role-writer {
+  color: hsl(340deg 82% 52%);
+  background: hsl(340deg 82% 52% / 15%);
+}
+
+.role-custom {
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted));
+}

@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { Dayjs } from 'dayjs';
 
 import type { Recordable } from '@vben/types';
@@ -12,12 +12,21 @@ import { useAccess } from '@vben/access';
 import { Page, Tree, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
-import { Button, Card, InputSearch, message, Modal } from 'ant-design-vue';
+import { Button, Card, InputSearch, message, Upload } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
-import { deleteUser, getDeptList, getUserList, updateUserStatus } from '#/api';
+import {
+  deleteUser,
+  downloadImportTemplate,
+  exportUsers,
+  getDeptList,
+  getUserList,
+  importUsers,
+  updateUserStatus,
+} from '#/api';
 import { $t } from '#/locales';
 import { createDateRangeCodec } from '#/utils/date-range-codec';
+import { useConfirm } from '#/views/system/_shared/confirm';
 
 import { useColumns, useGridFormSchema } from './data';
 import AssignRoles from './modules/assign-roles.vue';
@@ -102,26 +111,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
 });
 
 /**
- * 将Antd的Modal.confirm封装为promise，方便在异步函数中调用。
- * @param content 提示内容
- * @param title 提示标题
- */
-function confirm(content: string, title: string) {
-  return new Promise((reslove, reject) => {
-    Modal.confirm({
-      content,
-      onCancel() {
-        reject(new Error($t('common.cancel')));
-      },
-      onOk() {
-        reslove(true);
-      },
-      title,
-    });
-  });
-}
-
-/**
  * 状态开关即将改变
  * @param newStatus 期望改变的状态值
  * @param row 行数据
@@ -136,7 +125,7 @@ async function onStatusChange(
     1: $t('common.enabled'),
   };
   try {
-    await confirm(
+    await useConfirm(
       $t('system.user.statusChangeContent', [
         row.realName,
         status[newStatus.toString()],
@@ -199,6 +188,70 @@ function onResetPassword(row: SystemUserApi.SystemUser) {
   resetPasswordModalApi.setData({ id: row.id, realName: row.realName }).open();
 }
 
+const importModalVisible = ref(false);
+const importLoading = ref(false);
+
+/** 导出用户 Excel */
+async function onExport() {
+  try {
+    const formValues = gridApi.formApi?.form?.values ?? {};
+    const blob = await exportUsers({ ...formValues, deptId: selectedDeptId.value } as any);
+    const url = URL.createObjectURL(blob as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = $t('system.user.exportFileName');
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Failed to export users:', error);
+    message.error($t('system.user.exportFailed'));
+  }
+}
+
+/** 下载用户导入模板 */
+async function onDownloadTemplate() {
+  try {
+    const blob = await downloadImportTemplate();
+    const url = URL.createObjectURL(blob as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = $t('system.user.importTemplateFileName');
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Failed to download import template:', error);
+    message.error($t('system.user.templateDownloadFailed'));
+  }
+}
+
+/** 导入用户 */
+async function onImportFile(file: File) {
+  importLoading.value = true;
+  try {
+    const result: any = await importUsers(file);
+    const { successCount = 0, failureCount = 0, failureMessages = [] } = result ?? {};
+    if (failureCount > 0) {
+      const errMsg = failureMessages
+        .slice(0, 5)
+        .map((msg: string) => msg)
+        .join('\n');
+      message.warning(
+        $t('system.user.importResult', [successCount, failureCount, errMsg]),
+      );
+    } else {
+      message.success($t('system.user.importSuccessCount', [successCount]));
+    }
+    onRefresh();
+  } catch (error) {
+    console.error('Failed to import users:', error);
+    message.error($t('system.user.importFailed'));
+  } finally {
+    importLoading.value = false;
+    importModalVisible.value = false;
+  }
+  return false; // 阻止 antd Upload 自动上传
+}
+
 async function loadDeptList() {
   try {
     const res = await getDeptList();
@@ -238,6 +291,33 @@ watch(inputSearchValue, (value) => {
     <DetailDrawer @success="onRefresh" />
     <AssignRolesModal @success="onRefresh" />
     <ResetPasswordModal @success="onRefresh" />
+
+    <!-- 导入用户弹窗 -->
+    <Modal
+      v-model:open="importModalVisible"
+      :confirm-loading="importLoading"
+      :footer="null"
+      :title="$t('system.user.importTitle')"
+    >
+      <div class="mb-3">
+        <Button type="link" @click="onDownloadTemplate">
+          {{ $t('system.user.importDownloadTemplate') }}
+        </Button>
+      </div>
+      <Upload
+        :before-upload="onImportFile"
+        :show-upload-list="false"
+        accept=".xlsx,.xls"
+      >
+        <Button :loading="importLoading" type="primary">
+          {{ $t('system.user.importChooseFile') }}
+        </Button>
+      </Upload>
+      <p class="mt-2 text-gray-500 text-sm">
+        {{ $t('system.user.importHint') }}
+      </p>
+    </Modal>
+
     <div class="flex size-full">
       <Card class="w-1/6">
         <InputSearch
@@ -263,6 +343,20 @@ watch(inputSearchValue, (value) => {
             >
               <Plus class="size-5" />
               {{ $t('ui.actionTitle.create', [$t('system.user.name')]) }}
+            </Button>
+            <Button
+              v-access:code="['system:user:export']"
+              class="ml-2"
+              @click="onExport"
+            >
+              {{ $t('system.user.export') }}
+            </Button>
+            <Button
+              v-access:code="['system:user:import']"
+              class="ml-2"
+              @click="importModalVisible = true"
+            >
+              {{ $t('system.user.import') }}
             </Button>
           </template>
           <template #action="{ row }">

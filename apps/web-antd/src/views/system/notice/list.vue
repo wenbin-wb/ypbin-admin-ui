@@ -66,19 +66,34 @@ function onDelete(row: SystemNoticeApi.NoticeResp) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch(() => {});
+    .catch((error) => {
+      console.error('Failed to delete notice:', error);
+      message.error($t('common.requestFailed'));
+    });
 }
 function onRevoke(row: SystemNoticeApi.NoticeResp) {
-  revokeNotice(row.id).then(() => {
-    message.success($t('common.success'));
-    onRefresh();
-  });
+  revokeNotice(row.id).then(
+    () => {
+      message.success($t('common.success'));
+      onRefresh();
+    },
+    (error) => {
+      console.error('Failed to revoke notice:', error);
+      message.error($t('common.requestFailed'));
+    },
+  );
 }
 function onPublish(row: SystemNoticeApi.NoticeResp) {
-  publishNotice(row.id).then(() => {
-    message.success($t('common.success'));
-    onRefresh();
-  });
+  publishNotice(row.id).then(
+    () => {
+      message.success($t('common.success'));
+      onRefresh();
+    },
+    (error) => {
+      console.error('Failed to publish notice:', error);
+      message.error($t('common.requestFailed'));
+    },
+  );
 }
 </script>
 <template>

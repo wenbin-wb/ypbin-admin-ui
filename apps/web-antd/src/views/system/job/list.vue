@@ -62,7 +62,10 @@ function onDelete(row: SystemJobApi.JobResp) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch(() => {});
+    .catch((error) => {
+      console.error('Failed to delete job:', error);
+      message.error($t('common.requestFailed'));
+    });
 }
 function onStart(row: SystemJobApi.JobResp) {
   startJob(row.id)
@@ -70,7 +73,10 @@ function onStart(row: SystemJobApi.JobResp) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch(() => {});
+    .catch((error) => {
+      console.error('Failed to start job:', error);
+      message.error($t('common.requestFailed'));
+    });
 }
 function onStop(row: SystemJobApi.JobResp) {
   stopJob(row.id)
@@ -78,14 +84,20 @@ function onStop(row: SystemJobApi.JobResp) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch(() => {});
+    .catch((error) => {
+      console.error('Failed to stop job:', error);
+      message.error($t('common.requestFailed'));
+    });
 }
 function onRun(row: SystemJobApi.JobResp) {
   runJob(row.id)
     .then(() => {
       message.success($t('common.success'));
     })
-    .catch(() => {});
+    .catch((error) => {
+      console.error('Failed to run job:', error);
+      message.error($t('common.requestFailed'));
+    });
 }
 function onViewLog(row: SystemJobApi.JobResp) {
   logDrawerApi.setData(row).open();

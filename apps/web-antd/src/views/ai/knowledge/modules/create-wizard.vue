@@ -6,6 +6,7 @@ import { computed, ref, watch } from 'vue';
 import {
   Button,
   Input,
+  InputNumber,
   Modal,
   Select,
   Steps,
@@ -13,6 +14,7 @@ import {
   Upload,
   message,
 } from 'ant-design-vue';
+import { IconifyIcon } from '@vben/icons';
 
 import {
   batchUploadDocuments,
@@ -34,9 +36,18 @@ const busy = ref(false);
 const form = ref<AiApi.KnowledgeBaseSaveReq>({
   name: '',
   description: '',
-  icon: '📚',
+  icon: 'lucide:book-open',
 });
-const emojiOptions = ['📚', '🚀', '💡', '🧠', '🔧', '🛠️', '📄', '🌐'];
+const iconOptions = [
+  { icon: 'lucide:book-open', value: 'lucide:book-open' },
+  { icon: 'lucide:rocket', value: 'lucide:rocket' },
+  { icon: 'lucide:lightbulb', value: 'lucide:lightbulb' },
+  { icon: 'lucide:brain', value: 'lucide:brain' },
+  { icon: 'lucide:wrench', value: 'lucide:wrench' },
+  { icon: 'lucide:file-text', value: 'lucide:file-text' },
+  { icon: 'lucide:globe', value: 'lucide:globe' },
+  { icon: 'lucide:database', value: 'lucide:database' },
+];
 
 // ---- Step2 选择模型 ----
 const chatModels = ref<AiApi.ModelConfig[]>([]);
@@ -49,6 +60,13 @@ const importSource = ref<AiApi.KbImportReq['sourceType']>('URL');
 const files = ref<File[]>([]);
 const importUrl = ref('');
 const importing = ref(false);
+
+// ---- Step4 检索配置 ----
+const retrievalConfig = ref({
+  similarityThreshold: 0.5,
+  topK: 5,
+  chunkSize: 1000,
+});
 
 // ---- Step5 测试问答 ----
 const testQuestion = ref('');
@@ -91,7 +109,7 @@ async function loadModels() {
 function openWizard() {
   current.value = 0;
   createdKb.value = null;
-  form.value = { name: '', description: '', icon: '📚' };
+  form.value = { name: '', description: '', icon: 'lucide:book-open' };
   files.value = [];
   importUrl.value = '';
   importType.value = 'FILE';
@@ -110,7 +128,7 @@ async function createKb() {
     createdKb.value = await createKnowledgeBase({
       name: form.value.name.trim(),
       description: form.value.description?.trim() || undefined,
-      icon: form.value.icon || '📚',
+      icon: form.value.icon || 'lucide:book-open',
     });
     message.success($t('common.success'));
   } finally {
@@ -256,24 +274,24 @@ watch(open, (v) => {
           <p class="mb-1.5 text-sm font-medium">{{ $t('page.ai.wizard.icon') }}</p>
           <div class="flex flex-wrap items-center gap-2">
             <button
-              v-for="e in emojiOptions"
-              :key="e"
+              v-for="e in iconOptions"
+              :key="e.value"
               type="button"
               class="flex size-9 items-center justify-center rounded-lg border text-lg transition-colors"
               :class="
-                form.icon === e
+                form.icon === e.value
                   ? 'border-primary bg-primary/10'
                   : 'border-border hover:bg-accent'
               "
-              @click="form.icon = e"
+              @click="form.icon = e.value"
             >
-              {{ e }}
+              <IconifyIcon :icon="e.icon" class="size-5" />
             </button>
             <Input
               v-model:value="form.icon"
-              :maxlength="4"
-              class="w-20"
-              placeholder="😀"
+              :maxlength="24"
+              class="w-24"
+              :placeholder="$t('page.ai.wizard.iconPlaceholder')"
             />
           </div>
           <p class="mt-1 text-xs text-muted-foreground">
@@ -281,7 +299,9 @@ watch(open, (v) => {
           </p>
         </div>
         <div>
-          <p class="mb-1.5 text-sm font-medium">描述</p>
+          <p class="mb-1.5 text-sm font-medium">
+            {{ $t('page.ai.wizard.description') }}
+          </p>
           <Input.TextArea
             v-model:value="form.description"
             :placeholder="$t('page.ai.wizard.descPlaceholder')"
@@ -433,23 +453,44 @@ watch(open, (v) => {
           {{ $t('page.ai.wizard.configHint') }}
         </p>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div class="rounded-lg border border-border p-4 text-center">
-            <p class="text-2xl font-semibold text-primary">0.5</p>
-            <p class="mt-1 text-xs text-muted-foreground">
+          <div class="rounded-lg border border-border p-4">
+            <p class="mb-2 text-xs text-muted-foreground">
               {{ $t('page.ai.wizard.similarityThreshold') }}
             </p>
+            <InputNumber
+              :model-value="retrievalConfig.similarityThreshold"
+              :min="0"
+              :max="1"
+              :step="0.1"
+              disabled
+              class="w-full"
+            />
           </div>
-          <div class="rounded-lg border border-border p-4 text-center">
-            <p class="text-2xl font-semibold text-primary">5</p>
-            <p class="mt-1 text-xs text-muted-foreground">
+          <div class="rounded-lg border border-border p-4">
+            <p class="mb-2 text-xs text-muted-foreground">
               {{ $t('page.ai.wizard.topK') }}
             </p>
+            <InputNumber
+              :model-value="retrievalConfig.topK"
+              :min="1"
+              :max="20"
+              :step="1"
+              disabled
+              class="w-full"
+            />
           </div>
-          <div class="rounded-lg border border-border p-4 text-center">
-            <p class="text-2xl font-semibold text-primary">1000</p>
-            <p class="mt-1 text-xs text-muted-foreground">
+          <div class="rounded-lg border border-border p-4">
+            <p class="mb-2 text-xs text-muted-foreground">
               {{ $t('page.ai.wizard.chunkSize') }}
             </p>
+            <InputNumber
+              :model-value="retrievalConfig.chunkSize"
+              :min="100"
+              :max="5000"
+              :step="100"
+              disabled
+              class="w-full"
+            />
           </div>
         </div>
       </div>
@@ -480,7 +521,9 @@ watch(open, (v) => {
             </p>
           </div>
           <div v-if="testResult.sources?.length" class="border-t border-border pt-3">
-            <p class="mb-1.5 text-xs font-semibold">引用来源</p>
+            <p class="mb-1.5 text-xs font-semibold">
+              {{ $t('page.ai.wizard.sourcesLabel') }}
+            </p>
             <div class="flex flex-col gap-1.5">
               <div
                 v-for="(s, i) in testResult.sources"
@@ -509,7 +552,9 @@ watch(open, (v) => {
           <Switch v-model:checked="shareEnabled" />
         </div>
         <div v-if="shareEnabled">
-          <p class="mb-1.5 text-sm font-medium">访问密码</p>
+          <p class="mb-1.5 text-sm font-medium">
+            {{ $t('page.ai.wizard.accessPassword') }}
+          </p>
           <Input.Password
             v-model:value="sharePassword"
             :placeholder="$t('page.ai.wizard.sharePasswordPlaceholder')"
@@ -521,12 +566,20 @@ watch(open, (v) => {
       <!-- Step7 完成 -->
       <div v-if="current === 6" class="fade-step flex flex-col items-center gap-3 py-8">
         <span
-          class="flex size-16 items-center justify-center rounded-full bg-emerald-500/10 text-4xl"
+          class="flex size-16 items-center justify-center rounded-full bg-emerald-500/10"
         >
-          🎉
+          <IconifyIcon
+            icon="lucide:check-circle"
+            class="size-10 text-emerald-500"
+          />
         </span>
         <p class="text-base font-semibold">
-          {{ createdKb?.icon || '📚' }} {{ createdKb?.name }}
+          <IconifyIcon
+            v-if="createdKb?.icon"
+            :icon="createdKb.icon ?? ''"
+            class="mr-1 inline size-5"
+          />
+          {{ createdKb?.name }}
         </p>
         <p class="text-sm text-muted-foreground">
           {{ $t('page.ai.wizard.doneDesc') }}

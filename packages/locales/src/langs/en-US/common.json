@@ -23,6 +23,10 @@
   "status": "Status",
   "remark": "Remark",
   "createTime": "Create Time",
+  "add": "Add",
+  "success": "Operation succeeded",
+  "confirmDelete": "Confirm deletion?",
+  "action": "Action",
   "yes": "Yes",
   "no": "No",
   "showSearchPanel": "Show search panel",
@@ -33,6 +37,7 @@
   "copySuccess": "Copied",
   "copyFailed": "Copy Failed",
   "copyAll": "Copy All",
+  "requestFailed": "Request failed, please try again",
   "saveToFile": "Save to File",
   "close": "Close"
 }

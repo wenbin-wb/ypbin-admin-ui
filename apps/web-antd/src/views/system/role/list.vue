@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { Dayjs } from 'dayjs';
 
 import type { Recordable } from '@vben/types';
@@ -10,12 +10,13 @@ import { useAccess } from '@vben/access';
 import { Page, useVbenDrawer } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
-import { Button, message, Modal } from 'ant-design-vue';
+import { Button, message } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import { deleteRole, getRoleList, updateRoleStatus } from '#/api';
 import { $t } from '#/locales';
 import { createDateRangeCodec } from '#/utils/date-range-codec';
+import { useConfirm } from '#/views/system/_shared/confirm';
 
 import { useColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
@@ -76,26 +77,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
 });
 
 /**
- * 将Antd的Modal.confirm封装为promise，方便在异步函数中调用。
- * @param content 提示内容
- * @param title 提示标题
- */
-function confirm(content: string, title: string) {
-  return new Promise((reslove, reject) => {
-    Modal.confirm({
-      content,
-      onCancel() {
-        reject(new Error($t('common.cancel')));
-      },
-      onOk() {
-        reslove(true);
-      },
-      title,
-    });
-  });
-}
-
-/**
  * 状态开关即将改变
  * @param newStatus 期望改变的状态值
  * @param row 行数据
@@ -110,7 +91,7 @@ async function onStatusChange(
     1: $t('common.enabled'),
   };
   try {
-    await confirm(
+    await useConfirm(
       $t('system.role.statusChangeContent', [
         row.name,
         status[newStatus.toString()],

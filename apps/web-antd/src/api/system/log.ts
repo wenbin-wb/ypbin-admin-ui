@@ -37,3 +37,13 @@ export function getLogList(params: SystemLogApi.LogQuery) {
     { params },
   );
 }
+
+/**
+ * 导出操作日志（下载 Excel 文件）
+ */
+export function exportLogs(params: SystemLogApi.LogQuery) {
+  return requestClient.get('/system/log/export', {
+    params,
+    responseType: 'blob',
+  });
+}

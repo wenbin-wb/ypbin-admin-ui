@@ -4,10 +4,14 @@ import type { Recordable } from '@vben/types';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { SystemLogApi } from '#/api/system/log';
 
+import { ref } from 'vue';
+
 import { Page, useVbenDrawer } from '@vben/common-ui';
 
+import { Button, message } from 'ant-design-vue';
+
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
-import { getLogList } from '#/api/system/log';
+import { exportLogs, getLogList } from '#/api/system/log';
 import { $t } from '#/locales';
 
 import { useColumns, useGridFormSchema } from './data';
@@ -15,7 +19,7 @@ import DetailDrawer from './modules/detail.vue';
 
 const [Detail, drawerApi] = useVbenDrawer({ connectedComponent: DetailDrawer });
 
-const [Grid] = useVbenVxeGrid({
+const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: { schema: useGridFormSchema(), submitOnChange: true },
   gridOptions: {
     columns: useColumns(),
@@ -46,12 +50,41 @@ function onDetail(row: SystemLogApi.LogResp) {
   drawerApi.setData(row);
   drawerApi.open();
 }
+
+const exportLoading = ref(false);
+
+async function onExport() {
+  exportLoading.value = true;
+  try {
+    const formValues = gridApi.formApi?.form?.values ?? {};
+    const blob = await exportLogs(formValues as any);
+    const url = URL.createObjectURL(blob as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = $t('system.log.exportFileName');
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Failed to export logs:', error);
+    message.error($t('system.log.exportFailed'));
+  } finally {
+    exportLoading.value = false;
+  }
+}
 </script>
 <template>
   <Page auto-content-height>
     <Detail />
     <Grid :table-title="$t('system.log.title')">
-      <template #toolbar-tools> </template>
+      <template #toolbar-tools>
+        <Button
+          v-access:code="['system:log:export']"
+          :loading="exportLoading"
+          @click="onExport"
+        >
+          {{ $t('system.log.export') }}
+        </Button>
+      </template>
 
       <template #action="{ row }">
         <VbenTableAction

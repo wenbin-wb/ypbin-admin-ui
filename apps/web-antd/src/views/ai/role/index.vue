@@ -9,6 +9,8 @@ import { Button, message, Tag } from 'ant-design-vue';
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import { deleteRole, getRoleList, toggleRoleFavorite } from '#/api/ai';
 import { $t } from '#/locales';
+import { roleBadge } from '#/views/ai/_shared/role-badge';
+import '#/views/ai/_shared/role-badge.css';
 
 import { useColumns } from './data';
 import Form from './modules/form.vue';
@@ -65,32 +67,6 @@ async function onToggleFavorite(row: any) {
   message.success($t('common.success'));
   onRefresh();
 }
-
-function pickEmoji(category: string | undefined): {
-  char: string;
-  color: string;
-} {
-  switch (category) {
-    case 'analyst': {
-      return { char: '析', color: 'ym-badge--analyst' };
-    }
-    case 'coder': {
-      return { char: '码', color: 'ym-badge--coder' };
-    }
-    case 'custom': {
-      return { char: '自', color: 'ym-badge--custom' };
-    }
-    case 'translator': {
-      return { char: '译', color: 'ym-badge--translator' };
-    }
-    case 'writer': {
-      return { char: '写', color: 'ym-badge--writer' };
-    }
-    default: {
-      return { char: 'AI', color: 'ym-badge--assistant' };
-    }
-  }
-}
 </script>
 
 <template>
@@ -109,8 +85,8 @@ function pickEmoji(category: string | undefined): {
       </template>
 
       <template #emoji="{ row }">
-        <span class="ym-badge" :class="pickEmoji(row.category).color">{{
-          pickEmoji(row.category).char
+        <span class="ym-badge" :class="roleBadge(row.category).cls">{{
+          roleBadge(row.category).char
         }}</span>
       </template>
 
