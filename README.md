@@ -61,6 +61,20 @@ pnpm dev:antd
 
 启动后访问 http://localhost:5666（或终端打印的端口）。
 
+## 生产构建与部署
+
+```bash
+# 构建生产产物（输出到 apps/web-antd/dist）
+pnpm -F @vben/web-antd build
+```
+
+部署方式二选一：
+
+- **随 admin 一键部署**：服务器跑 `ypbin-admin` 的 `deploy/install.sh`（交互模式选「完整部署」服务器自动构建前端；或选「手动上传前端包」等你上传）
+- **单独上传**：`scp -r apps/web-antd/dist/* root@<服务器IP>:/opt/ypbin/admin-ui-dist/`（nginx bind 挂载直接读新文件无需重启；**上传后需目录权限 755/文件 644**，否则 nginx 读不到会报 js `text/html` MIME 错误）
+
+前端 API 地址在 `apps/web-antd/.env.production` 的 `VITE_GLOB_API_URL`（默认 `/api`，同源经 nginx 代理到后端）。
+
 ## 目录结构
 
 ```
