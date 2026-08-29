@@ -14,11 +14,11 @@ defineOptions({ name: 'ChatRolePicker' });
 
 const props = withDefaults(
   defineProps<{
-    activeRoleId: string;
-    category: string;
-    open: boolean;
-    roles: AiApi.ChatRole[];
-    search: string;
+    activeRoleId?: string;
+    category?: string;
+    open?: boolean;
+    roles?: AiApi.ChatRole[];
+    search?: string;
   }>(),
   {
     activeRoleId: '',
@@ -32,9 +32,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'favorite', role: AiApi.ChatRole, event: Event): void;
-  (e: 'search', value: string): void;
   (e: 'select', role: AiApi.ChatRole): void;
-  (e: 'category', value: string): void;
+  (e: 'category' | 'search', value: string): void;
 }>();
 
 const roleCategories = [

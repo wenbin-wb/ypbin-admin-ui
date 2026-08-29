@@ -51,14 +51,12 @@ const testMode = ref<'multiple' | 'rerank' | 'single'>('single');
 
 // ---- 召回评估汇总 ----
 const recallStats = computed(() => {
-  if (!recallList.value.length) return null;
+  if (recallList.value.length === 0) return null;
   const scores = recallList.value.map((h) => h.score ?? 0);
   const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
   const max = Math.max(...scores);
   const tokens = new Set<string>();
-  recallList.value.forEach((h) =>
-    h.hitKeywords?.forEach((t) => tokens.add(t)),
-  );
+  recallList.value.forEach((h) => h.hitKeywords?.forEach((t) => tokens.add(t)));
   const hitCount = recallList.value.filter((h) => (h.score ?? 0) >= 50).length;
   return { avg, max, tokens: [...tokens], hitCount };
 });
@@ -79,10 +77,9 @@ function scoreTextColor(score = 0) {
 /** 将命中的关键词在片段文本中高亮（长词优先，防嵌套替换） */
 function highlightKeywords(text: string, keywords?: string[]) {
   if (!keywords?.length || !text) return text;
-  const pattern = keywords
-    .slice()
-    .sort((a, b) => b.length - a.length)
-    .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const pattern = [...keywords]
+    .toSorted((a, b) => b.length - a.length)
+    .map((k) => k.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`))
     .filter((k) => k.length >= 2)
     .join('|');
   if (!pattern) return text;
@@ -366,10 +363,10 @@ const chunkVisible = ref(false);
 const chunkLoading = ref(false);
 const chunkDocName = ref('');
 const chunkList = ref<
-  Array<{ chunkIndex: number; content: string; charCount: number }>
+  Array<{ charCount: number; chunkIndex: number; content: string }>
 >([]);
 
-async function openChunks(row: { id: string; filename?: string }) {
+async function openChunks(row: { filename?: string; id: string }) {
   const kb = modalApi.getData();
   if (!kb) return;
   chunkVisible.value = true;
@@ -580,7 +577,9 @@ defineExpose({ modalApi });
           </span>
           <span>
             {{ $t('page.ai.knowledge.recallAvgScore') }}
-            <b :class="scoreTextColor(recallStats.avg)">{{ recallStats.avg }}</b>
+            <b :class="scoreTextColor(recallStats.avg)">{{
+              recallStats.avg
+            }}</b>
           </span>
           <span>
             {{ $t('page.ai.knowledge.recallMaxScore') }}
@@ -593,8 +592,7 @@ defineExpose({ modalApi });
                 v-for="t in recallStats.tokens"
                 :key="t"
                 class="mr-1 inline-block rounded bg-primary/10 px-1 py-0.5 text-[10px] font-normal text-primary"
-                >{{ t }}</b
-              >
+                >{{ t }}</b>
             </template>
             <template v-else>0</template>
           </span>
@@ -613,15 +611,16 @@ defineExpose({ modalApi });
               >
                 <span
                   class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary"
-                  >#{{ idx + 1 }}</span
-                >
-                <span class="max-w-52 truncate font-medium text-foreground/80">{{
-                  doc.docName || doc.source || 'unknown'
-                }}</span>
+                  >#{{ idx + 1 }}</span>
+                <span
+                  class="max-w-52 truncate font-medium text-foreground/80"
+                  >{{ doc.docName || doc.source || 'unknown' }}</span>
                 <span class="ml-auto flex shrink-0 items-center gap-2">
                   <span class="text-[10px]">{{ doc.charCount ?? 0 }} chars</span>
                   <span class="flex items-center gap-1.5">
-                    <span class="h-1.5 w-12 overflow-hidden rounded-full bg-muted">
+                    <span
+                      class="h-1.5 w-12 overflow-hidden rounded-full bg-muted"
+                    >
                       <span
                         class="block h-full rounded-full transition-all"
                         :class="scoreColor(doc.score)"
@@ -631,15 +630,16 @@ defineExpose({ modalApi });
                     <span
                       class="w-7 text-right text-xs font-semibold"
                       :class="scoreTextColor(doc.score)"
-                      >{{ doc.score ?? 0 }}</span
-                    >
+                      >{{ doc.score ?? 0 }}</span>
                   </span>
                 </span>
               </div>
+              <!-- eslint-disable vue/no-v-html -->
               <p
                 class="m-0 text-[13px] leading-relaxed text-foreground/80"
                 v-html="highlightKeywords(doc.content, doc.hitKeywords)"
               ></p>
+              <!-- eslint-enable vue/no-v-html -->
               <div
                 v-if="doc.hitKeywords?.length"
                 class="mt-2 flex flex-wrap gap-1"
@@ -648,8 +648,7 @@ defineExpose({ modalApi });
                   v-for="kw in doc.hitKeywords"
                   :key="kw"
                   class="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
-                  >{{ kw }}</span
-                >
+                  >{{ kw }}</span>
               </div>
             </div>
           </div>
@@ -736,13 +735,14 @@ defineExpose({ modalApi });
           >
             <span
               class="inline-flex size-5 shrink-0 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary"
-              >#{{ chunk.chunkIndex + 1 }}</span
-            >
+              >#{{ chunk.chunkIndex + 1 }}</span>
             <span class="ml-auto shrink-0 text-[10px]">
               {{ chunk.charCount ?? 0 }} chars
             </span>
           </div>
-          <p class="m-0 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/80">
+          <p
+            class="m-0 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/80"
+          >
             {{ chunk.content }}
           </p>
         </div>

@@ -13,11 +13,11 @@ defineOptions({ name: 'ChatSessionSidebar' });
 
 const props = withDefaults(
   defineProps<{
-    activeSessionId: string;
-    collapsed: boolean;
-    loading: boolean;
-    search: string;
-    sessions: AiApi.ChatSession[];
+    activeSessionId?: string;
+    collapsed?: boolean;
+    loading?: boolean;
+    search?: string;
+    sessions?: AiApi.ChatSession[];
   }>(),
   {
     activeSessionId: '',
@@ -29,13 +29,10 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: 'collapse', value: boolean): void;
   (e: 'create'): void;
-  (e: 'delete', id: string): void;
-  (e: 'pin', id: string): void;
+  (e: 'collapse', value: boolean): void;
   (e: 'rename', id: string, title: string): void;
-  (e: 'search', value: string): void;
-  (e: 'select', id: string): void;
+  (e: 'delete' | 'pin' | 'search' | 'select', id: string): void;
 }>();
 
 // 重命名

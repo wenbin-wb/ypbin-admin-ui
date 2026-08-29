@@ -14,9 +14,9 @@ defineOptions({ name: 'ChatMessageList' });
 
 const props = withDefaults(
   defineProps<{
-    isStreaming: boolean;
-    loading: boolean;
-    messages: AiApi.ChatMessage[];
+    isStreaming?: boolean;
+    loading?: boolean;
+    messages?: AiApi.ChatMessage[];
   }>(),
   {
     isStreaming: false,
@@ -109,7 +109,7 @@ function handleMarkdownClick(e: MouseEvent) {
             <IconifyIcon icon="lucide:bot" class="size-4" />
           </div>
           <div class="ym-ai__msg-body">
-            <!-- eslint-disable-next-line vue/no-v-html -->
+            <!-- eslint-disable vue/no-v-html -->
             <div
               v-if="msg.content"
               class="ym-ai__markdown"
@@ -119,6 +119,7 @@ function handleMarkdownClick(e: MouseEvent) {
               v-html="renderMarkdown(msg.content)"
               @click="handleMarkdownClick"
             ></div>
+            <!-- eslint-enable vue/no-v-html -->
             <!-- 流式光标 -->
             <span
               v-else-if="isStreaming && msg.id === 'streaming'"

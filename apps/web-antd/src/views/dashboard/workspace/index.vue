@@ -285,11 +285,13 @@ function formatLogTime(raw: string) {
     /(\d{4})[/-](\d{1,2})[/-](\d{1,2})[ T](\d{1,2}):(\d{1,2})/,
   );
   if (m) {
-    return `${m[1]!}-${m[2]!.padStart(2, '0')}-${m[3]!.padStart(2, '0')} ${m[4]!.padStart(2, '0')}:${m[5]!}`;
+    const [, year, month, day, hour, minute] = m;
+    return `${year ?? ''}-${(month ?? '').padStart(2, '0')}-${(day ?? '').padStart(2, '0')} ${(hour ?? '').padStart(2, '0')}:${minute ?? ''}`;
   }
   const m2 = raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{1,2})/);
   if (m2) {
-    return `${m2[3]!}-${m2[1]!.padStart(2, '0')}-${m2[2]!.padStart(2, '0')} ${m2[4]!.padStart(2, '0')}:${m2[5]!}`;
+    const [, month, day, year, hour, minute] = m2;
+    return `${year ?? ''}-${(month ?? '').padStart(2, '0')}-${(day ?? '').padStart(2, '0')} ${(hour ?? '').padStart(2, '0')}:${minute ?? ''}`;
   }
   return raw;
 }
@@ -438,7 +440,7 @@ function onProjectClick(item: WorkbenchProjectItem) {
             class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-white shadow-lg"
             :style="{ background: m.grad, boxShadow: `0 6px 16px ${m.glow}` }"
           >
-            <span :class="`${m.icon} size-5`"></span>
+            <span :class="m.icon" class="size-5"></span>
           </span>
           <div class="min-w-0">
             <p class="truncate text-xs text-muted-foreground">{{ m.label }}</p>

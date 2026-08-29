@@ -204,19 +204,19 @@ function onBeforeUpload(file: File) {
 }
 
 async function onNext() {
-  if (current.value === 0) {
-    if (!form.value.name?.trim()) {
-      message.error($t('page.ai.wizard.nameRequired'));
-      return;
-    }
+  if (current.value === 0 && !form.value.name?.trim()) {
+    message.error($t('page.ai.wizard.nameRequired'));
+    return;
   }
   if (current.value === 1) {
     await createKb();
   }
-  if (current.value === 2) {
-    if (importType.value === 'URL' && importUrl.value.trim()) {
-      await doImport();
-    }
+  if (
+    current.value === 2 &&
+    importType.value === 'URL' &&
+    importUrl.value.trim()
+  ) {
+    await doImport();
   }
   if (current.value === 5) {
     await saveShare();
