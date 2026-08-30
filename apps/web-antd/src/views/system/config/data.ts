@@ -3,6 +3,15 @@ import type { VxeTableGridColumns } from '#/adapter/vxe-table';
 
 import { $t } from '#/locales';
 
+import { isSensitiveKey } from './special-fields';
+
+/** 敏感值掩码显示 */
+function maskSensitive(value: string): string {
+  if (!value) return value;
+  if (value.length <= 8) return '********';
+  return `${value.slice(0, 4)}********${value.slice(-4)}`;
+}
+
 export function useColumns(): VxeTableGridColumns {
   return [
     { field: 'name', title: $t('system.config.configName'), minWidth: 120 },
@@ -16,6 +25,10 @@ export function useColumns(): VxeTableGridColumns {
       field: 'configValue',
       title: $t('system.config.configValue'),
       minWidth: 120,
+      formatter: ({ row }) => {
+        const raw = row.configValue ?? '';
+        return isSensitiveKey(row.configKey) ? maskSensitive(raw) : raw;
+      },
     },
     { field: 'remark', title: $t('system.config.remark'), minWidth: 120 },
     {

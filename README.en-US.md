@@ -18,12 +18,24 @@
 
 ## Preview
 
-<p align="center">
-  <img src="https://ypbin.cn/screenshots/admin-ui/dashboard.png" alt="Dashboard" width="75%" />
-</p>
-<p align="center">
-  <img src="https://ypbin.cn/screenshots/admin-ui/roles.png" alt="Roles" width="55%" />
-</p>
+<div align="center">
+
+![Dashboard](https://ypbin.cn/screenshots/admin-ui/dashboard.png)
+*Dashboard · Real-time Analytics & System Overview*
+
+| 🤖 AI Assistant Chat | 👥 User & Department Management |
+|---|---|
+| ![AI Chat](https://ypbin.cn/screenshots/admin-ui/ai-chat.png) | ![Users](https://ypbin.cn/screenshots/admin-ui/users.png) |
+
+| 🔑 Role & Permission Assignment | 🧭 Dynamic Menu Management |
+|---|---|
+| ![Roles](https://ypbin.cn/screenshots/admin-ui/roles.png) | ![Menus](https://ypbin.cn/screenshots/admin-ui/menus.png) |
+
+| 📜 License Management | ⏰ Scheduled Tasks |
+|---|---|
+| ![Licenses](https://ypbin.cn/screenshots/admin-ui/licenses.png) | ![Jobs](https://ypbin.cn/screenshots/admin-ui/jobs.png) |
+
+</div>
 
 ## Introduction
 

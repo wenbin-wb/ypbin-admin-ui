@@ -6,7 +6,7 @@ import { onMounted, ref } from 'vue';
 import { useVbenDrawer } from '@vben/common-ui';
 import { IconifyIcon } from '@vben/icons';
 
-import { Button, Card, Spin, Tag } from 'ant-design-vue';
+import { Button, Card, Progress, Spin, Tag } from 'ant-design-vue';
 
 import { getSocialConfigList } from '#/api/system/config';
 import { $t } from '#/locales';
@@ -28,6 +28,23 @@ function isComplete(config: SystemConfigApi.SocialConfigResp) {
     config.redirectUri.trim() &&
     (config.source !== 'alipay' || config.publicKey.trim()),
   );
+}
+
+/** 已配置字段数 / 总字段数（用于进度展示） */
+function configProgress(config: SystemConfigApi.SocialConfigResp): {
+  done: number;
+  total: number;
+} {
+  const checks = [
+    config.clientId.trim().length > 0,
+    config.clientSecretConfigured,
+    config.redirectUri.trim().length > 0,
+    config.source !== 'alipay' || config.publicKey.trim().length > 0,
+  ];
+  return {
+    done: checks.filter(Boolean).length,
+    total: checks.length,
+  };
 }
 
 async function load() {
@@ -95,25 +112,35 @@ onMounted(load);
             </div>
 
             <div class="social-config__summary">
-              <div>
-                <div class="text-xs text-muted-foreground">
-                  {{ $t('system.config.social.completeness') }}
-                </div>
-                <div class="mt-1 text-sm font-medium text-foreground">
+              <div class="flex w-full items-center justify-between gap-3">
+                <span class="text-xs text-muted-foreground">
+                  {{
+                    $t('system.config.social.progress', [
+                      configProgress(config).done,
+                      configProgress(config).total,
+                    ])
+                  }}
+                </span>
+                <Tag :color="isComplete(config) ? 'success' : 'warning'">
                   {{
                     isComplete(config)
                       ? $t('system.config.social.complete')
                       : $t('system.config.social.incomplete')
                   }}
-                </div>
+                </Tag>
               </div>
-              <Tag :color="isComplete(config) ? 'processing' : 'warning'">
-                {{
-                  config.clientSecretConfigured
-                    ? $t('system.config.social.secretConfigured')
-                    : $t('system.config.social.secretNotConfigured')
-                }}
-              </Tag>
+              <Progress
+                :percent="
+                  Math.round(
+                    (configProgress(config).done /
+                      configProgress(config).total) *
+                      100,
+                  )
+                "
+                :show-info="false"
+                size="small"
+                :stroke-color="isComplete(config) ? undefined : '#faad14'"
+              />
             </div>
 
             <Button

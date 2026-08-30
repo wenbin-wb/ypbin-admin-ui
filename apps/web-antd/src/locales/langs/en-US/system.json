@@ -208,6 +208,7 @@
       "secretConfigured": "Secret Configured",
       "secretNotConfigured": "Secret Missing",
       "configure": "Configure Platform",
+      "progress": "{0}/{1} configured",
       "platform": {
         "alipay": "Alipay",
         "dingtalk": "DingTalk",
@@ -216,7 +217,21 @@
         "qq": "QQ",
         "wechatOpen": "WeChat Open Platform"
       }
-    }
+    },
+    "sensitive": {
+      "secret": "Secret",
+      "key": "Token",
+      "hint": "Contains sensitive params (password/secret), hidden while editing"
+    },
+    "copyKey": "Copy config key",
+    "copied": "Copied",
+    "reset": "Reset to Default",
+    "resetDone": "Restored to initial values",
+    "resetConfirm": "Reset this group to initial values?",
+    "totalCount": "{0} params in total",
+    "filteredCount": "{0} matched",
+    "noMatch": "No matching params",
+    "searchPlaceholder": "Search name / key / remark"
   },
   "log": {
     "title": "Operation Logs",

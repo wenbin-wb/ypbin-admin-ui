@@ -5,8 +5,15 @@ import { $t } from '#/locales';
 /** 布尔类参数键特征（如 LOGIN_CAPTCHA_ENABLED、PASSWORD_REQUIRE_DIGIT、MAIL_SSL_ENABLED） */
 const BOOLEAN_KEY_RE = /(ENABLED|REQUIRE|ALLOW|SSL)/;
 
+/** 敏感类参数键特征（密码/密钥/令牌等，输入用密码框、列表掩码显示） */
+const SENSITIVE_KEY_RE = /(PASSWORD|SECRET|KEY|TOKEN|CREDENTIAL)/;
+
 export function isBooleanKey(configKey: string): boolean {
   return BOOLEAN_KEY_RE.test(configKey);
+}
+
+export function isSensitiveKey(configKey: string): boolean {
+  return SENSITIVE_KEY_RE.test(configKey);
 }
 
 /** 内置分组特殊字段：按 configKey 定制控件，覆盖默认的类型推断 */
