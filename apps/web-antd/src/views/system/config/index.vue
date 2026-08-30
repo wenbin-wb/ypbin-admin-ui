@@ -26,7 +26,7 @@ const builtInGroups = [
   <Page auto-content-height>
     <div class="flex size-full">
       <!-- 左侧分组导航：卡片兜底（与用户管理页部门树风格一致） -->
-      <Card class="config-nav h-full w-48 shrink-0" :bordered="false">
+      <Card class="config-nav w-48 shrink-0" :bordered="false">
         <Tabs
           v-model:active-key="activeKey"
           tab-position="left"
@@ -54,25 +54,17 @@ const builtInGroups = [
   </Page>
 </template>
 <style scoped>
-/* 左侧导航卡片：Tabs 仅作导航，隐藏空内容区（去掉中间竖条） */
 .config-nav :deep(.ant-tabs) {
-  display: flex;
   height: 100%;
 }
 
 .config-nav :deep(.ant-tabs-nav) {
-  flex: 1;
-  padding-top: 8px;
   margin-bottom: 0;
 }
 
 .config-nav :deep(.ant-tabs-nav-wrap) {
   display: flex;
   justify-content: center;
-}
-
-.config-nav :deep(.ant-tabs-content-holder) {
-  display: none;
 }
 
 .config-nav :deep(.ant-tabs-tab) {
@@ -103,10 +95,7 @@ const builtInGroups = [
   display: none;
 }
 
-/* 右侧内容区：flex 撑满剩余高度 */
 .config-content {
-  flex: 1;
-  min-width: 0;
   min-height: 0;
 }
 </style>
