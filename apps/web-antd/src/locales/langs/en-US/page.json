@@ -83,9 +83,18 @@
       "chatErrorPrefix": "Chat error: "
     },
     "widget": {
-      "title": "AI Assistant",
-      "hint": "How can I help you?",
-      "placeholder": "Ask a question, Enter to send"
+      "title": "AI Smart Assistant",
+      "badge": "AI Copilot",
+      "statusOnline": "Ready",
+      "newChat": "New Chat",
+      "dock": "Dock to Edge",
+      "dragTip": "Hold and drag to reposition",
+      "hint": "I am your smart assistant, ready to help with development and system questions.",
+      "placeholder": "Ask a technical or business question, Enter to send…",
+      "quickTitle": "You can try asking:",
+      "quick_1": "How to configure multi-tenancy?",
+      "quick_2": "Explain RAG retrieval augmentation",
+      "quick_3": "Write a Spring Boot Controller example"
     },
     "knowledge": {
       "title": "Knowledge Base",

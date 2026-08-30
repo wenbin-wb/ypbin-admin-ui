@@ -71,9 +71,18 @@
       "chatErrorPrefix": "对话出错："
     },
     "widget": {
-      "title": "AI 助手",
-      "hint": "有什么可以帮你的吗？",
-      "placeholder": "输入问题，Enter 发送"
+      "title": "AI 智能助手",
+      "badge": "AI 助手",
+      "statusOnline": "就绪",
+      "newChat": "新建会话",
+      "dock": "贴边隐藏",
+      "dragTip": "按住可自由拖拽位置",
+      "hint": "我是您的智能开发与管理助手，随时为您解答系统与技术问题",
+      "placeholder": "输入技术或业务问题，Enter 发送…",
+      "quickTitle": "你可以试着问我：",
+      "quick_1": "如何配置动态多租户？",
+      "quick_2": "解释一下 RAG 知识库检索增强",
+      "quick_3": "帮我写一个 Spring Boot Controller 示例"
     },
     "knowledge": {
       "title": "知识库",
