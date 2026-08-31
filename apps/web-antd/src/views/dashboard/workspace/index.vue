@@ -3,10 +3,9 @@ import type {
   WorkbenchProjectItem,
   WorkbenchQuickNavItem,
   WorkbenchTodoItem,
-  WorkbenchTrendItem,
 } from '@vben/common-ui';
 
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import {
@@ -22,11 +21,25 @@ import { openWindow } from '@vben/utils';
 
 import { Button, Empty, Result, Spin } from 'ant-design-vue';
 
-import { getDashboardStats, getLatestLogs } from '#/api';
+import { getDashboardStats } from '#/api';
 import { $t } from '#/locales';
+
+import { useWorkbenchTrends } from './use-workbench-trends';
 
 const userStore = useUserStore();
 const router = useRouter();
+
+// 动态趋势域（操作日志流 + 演示数据兜底）
+const {
+  loadTrends,
+  trendError,
+  trendItems,
+  trendLoading,
+  trendsLoaded,
+  usingDemoTrends,
+} = useWorkbenchTrends();
+
+void loadStats();
 
 // ---- 统一视觉（与统计看板/分析页同语言）----
 const BRAND_GRAD =
@@ -237,112 +250,6 @@ const todoItems: WorkbenchTodoItem[] = [
 ];
 
 // ---- 动态趋势（后端日志，失败/不足时标注演示数据）----
-const avatars = [
-  'svg:avatar-1',
-  'svg:avatar-2',
-  'svg:avatar-3',
-  'svg:avatar-4',
-];
-
-const DEMO_TRENDS: WorkbenchTrendItem[] = [
-  {
-    avatar: 'svg:avatar-1',
-    title: $t('page.dashboard.admin'),
-    content: $t('page.dashboard.demoTrend1'),
-    date: $t('page.dashboard.demoTime1'),
-  },
-  {
-    avatar: 'svg:avatar-2',
-    title: $t('page.dashboard.operator'),
-    content: $t('page.dashboard.demoTrend2'),
-    date: $t('page.dashboard.demoTime2'),
-  },
-  {
-    avatar: 'svg:avatar-3',
-    title: $t('page.dashboard.system'),
-    content: $t('page.dashboard.demoTrend3'),
-    date: $t('page.dashboard.demoTime3'),
-  },
-  {
-    avatar: 'svg:avatar-4',
-    title: $t('page.dashboard.admin'),
-    content: $t('page.dashboard.demoTrend4'),
-    date: $t('page.dashboard.demoTime4'),
-  },
-];
-
-const trendError = ref(false);
-const trendItems = ref<WorkbenchTrendItem[]>([]);
-const trendLoading = ref(true);
-const trendsLoaded = ref(false);
-const usingDemoTrends = ref(false);
-
-/** 后端时间格式 MM/dd/yyyy HH:mm:ss → 友好展示（MM-dd HH:mm） */
-function formatLogTime(raw: string) {
-  if (!raw) return '';
-  // 兼容 yyyy-MM-dd HH:mm:ss 与 MM/dd/yyyy HH:mm:ss 两种格式
-  const m = raw.match(
-    /(\d{4})[/-](\d{1,2})[/-](\d{1,2})[ T](\d{1,2}):(\d{1,2})/,
-  );
-  if (m) {
-    const [, year, month, day, hour, minute] = m;
-    return `${year ?? ''}-${(month ?? '').padStart(2, '0')}-${(day ?? '').padStart(2, '0')} ${(hour ?? '').padStart(2, '0')}:${minute ?? ''}`;
-  }
-  const m2 = raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{1,2})/);
-  if (m2) {
-    const [, month, day, year, hour, minute] = m2;
-    return `${year ?? ''}-${(month ?? '').padStart(2, '0')}-${(day ?? '').padStart(2, '0')} ${(hour ?? '').padStart(2, '0')}:${minute ?? ''}`;
-  }
-  return raw;
-}
-
-async function loadTrends() {
-  trendError.value = false;
-  trendLoading.value = true;
-  try {
-    const logs = await getLatestLogs(9);
-    const real: WorkbenchTrendItem[] = (logs ?? [])
-      .filter((log) => log && log.description)
-      .map((log, index) => ({
-        avatar: avatars[index % avatars.length] as string,
-        content: `${log.module ? `[${log.module}] ` : ''}${log.description ?? ''}`,
-        date: formatLogTime(log.operateTime),
-        title:
-          (log.operateUserIdName ?? '').trim() ||
-          (log.operateUserId ?? '').toString().trim() ||
-          $t('page.dashboard.system'),
-      }));
-    if (real.length >= 8) {
-      // 真实数据足够：直接展示
-      trendItems.value = real;
-      usingDemoTrends.value = false;
-    } else if (real.length > 0) {
-      // 真实数据不足：真实在前 + 演示数据补齐（保持 8 条，视觉饱满）
-      const demo = DEMO_TRENDS.slice(0, 8 - real.length).map((d) => ({
-        ...d,
-        date: `${d.date}${$t('page.dashboard.demoSuffix')}`,
-      }));
-      trendItems.value = [...real, ...demo];
-      usingDemoTrends.value = true;
-    } else {
-      // 完全无数据：纯演示数据
-      trendItems.value = DEMO_TRENDS;
-      usingDemoTrends.value = true;
-    }
-    trendsLoaded.value = true;
-  } catch (error) {
-    console.error('Failed to load dashboard latest logs:', error);
-    trendError.value = true;
-    trendsLoaded.value = false;
-  } finally {
-    trendLoading.value = false;
-  }
-}
-
-onMounted(() => {
-  void loadTrends();
-  void loadStats();
-});
 
 const welcomeTitle = computed(
   () =>
