@@ -115,7 +115,7 @@ setupVbenVxeTable({
           loading: row[loadingKey] ?? false,
           'onUpdate:checked': onChange,
         };
-        async function onChange(newVal: any) {
+        async function onChange(newVal: boolean | number | string) {
           row[loadingKey] = true;
           try {
             const result = await attrs?.beforeChange?.(newVal, row);

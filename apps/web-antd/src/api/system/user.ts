@@ -3,6 +3,15 @@ import type { SystemCommonApi } from './common';
 import { requestClient } from '#/api/request';
 
 export namespace SystemUserApi {
+  export interface UserImportResult {
+    /** 成功导入条数 */
+    successCount?: number;
+    /** 失败条数 */
+    failCount?: number;
+    /** 失败明细（行号 + 原因） */
+    failList?: Array<{ errorMsg: string; rowNum: number }>;
+  }
+
   export interface UserQuery extends SystemCommonApi.PageQuery {
     deptId?: string;
     phone?: string;
@@ -140,9 +149,11 @@ async function downloadImportTemplate() {
 async function importUsers(file: File) {
   const formData = new FormData();
   formData.append('file', file);
-  return requestClient.post('/system/user/import', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  return requestClient.post<SystemUserApi.UserImportResult>(
+    '/system/user/import',
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
 }
 
 export {
