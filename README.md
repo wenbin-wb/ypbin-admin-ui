@@ -130,6 +130,10 @@ packages/            # 共享库（layouts、common-ui、preferences 等）
 internal/            # 构建工具链（vite-config、eslint-config 等）
 ```
 
+## 🤝 贡献
+
+欢迎提交 Issue 与 Pull Request，开发与提交规范见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
 ## 📄 许可证
 
 [Ypbin Admin](https://github.com/wenbin-wb/ypbin-admin-ui) 使用 [MIT](./LICENSE) 许可。
