@@ -3,6 +3,8 @@ import { marked } from 'marked';
 
 import { sanitizeHtml } from '#/views/system/_shared/sanitize';
 
+import './ai-markdown.css';
+
 export interface MarkdownRendererOptions {
   /** 是否渲染代码块复制按钮（对话流式场景） */
   copyButton?: boolean;

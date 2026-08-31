@@ -67,7 +67,7 @@ function commit() {
       key &&
       row.value !== undefined &&
       row.value !== null &&
-      (row.value as any) !== ''
+      row.value !== ''
     ) {
       obj[key] = row.value as V;
     }
@@ -110,7 +110,7 @@ function removeRow(index: number) {
         :value="row.value as number"
         :placeholder="valuePlaceholder"
         class="flex-1"
-        @update:value="(val: any) => updateRow(index, { value: val })"
+        @update:value="(val) => updateRow(index, { value: val as V })"
       />
       <Input
         v-else

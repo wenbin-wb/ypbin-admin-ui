@@ -30,8 +30,8 @@ const [Drawer, drawerApi] = useVbenDrawer<LicenseFormData>({
     const values = await formApi.getValues();
     drawerApi.lock();
     (id.value
-      ? updateLicense(id.value, values as any)
-      : createLicense(values as any)
+      ? updateLicense(id.value, values as SystemLicenseApi.LicenseSaveReq)
+      : createLicense(values as SystemLicenseApi.LicenseSaveReq)
     )
       .then(() => {
         emits('success');

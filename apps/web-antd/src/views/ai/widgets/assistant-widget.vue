@@ -1,217 +1,52 @@
 <script lang="ts" setup>
-import type { AiApi } from '#/api/ai';
-
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
-
 import { Button, Input, Tooltip } from 'ant-design-vue';
 
-import { chat, createSession, getSessionMessages } from '#/api/ai';
-import { $t } from '#/locales';
 import { useMarkdownRenderer } from '#/views/ai/_shared/useMarkdownRenderer';
+import { useAssistantChat } from '#/views/ai/widgets/use-assistant-chat';
+import { useWidgetWindow } from '#/views/ai/widgets/use-widget-window';
 
 defineOptions({ name: 'AiAssistantWidget' });
 
 const { renderMarkdown } = useMarkdownRenderer();
 
-const STORAGE_KEY = 'ypbin_ai_assistant_widget_pos';
-const WIDGET_WIDTH = 124;
-const WIDGET_HEIGHT = 38;
-const PANEL_HEIGHT = 530;
-const MARGIN = 16;
-
-const open = ref(false);
-const isDocked = ref(false);
-const isDragging = ref(false);
-const isHovering = ref(false);
-const messages = ref<AiApi.ChatMessage[]>([]);
-const inputText = ref('');
-const isStreaming = ref(false);
-const sending = ref(false);
-const listRef = ref<HTMLElement>();
-const sessionId = ref('');
-let abortController: AbortController | null = null;
-
-// ---------- 拖拽与贴边位置管理 ----------
-interface PositionState {
-  side: 'left' | 'right';
-  top: number;
-  docked: boolean;
-}
-
-const pos = reactive<PositionState>({
-  side: 'right',
-  top: window.innerHeight - 100,
-  docked: false,
+// 窗口定位/拖拽/停靠；徽标点击与拉手点击时激活会话
+const {
+  handlePointerDown,
+  handleTabClick,
+  isDocked,
+  isDragging,
+  isHovering,
+  open,
+  panelStyle,
+  pos,
+  tabStyle,
+  toggleDock,
+  widgetStyle,
+} = useWidgetWindow({
+  onBadgeClick: () => void toggleOpen(),
+  onTabActivate: () => {
+    void ensureSession();
+    void scrollToBottom();
+  },
 });
 
-let dragStartX = 0;
-let dragStartY = 0;
-let initialTop = 0;
-let hasMoved = false;
+// 会话与流式对话
+const {
+  ensureSession,
+  handleKeydown,
+  handleNewChat,
+  handleSend,
+  handleStop,
+  inputText,
+  isStreaming,
+  listRef,
+  messages,
+  quickPrompts,
+  scrollToBottom,
+} = useAssistantChat();
 
-function loadSavedPosition() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<PositionState>;
-      if (parsed.side === 'left' || parsed.side === 'right') {
-        pos.side = parsed.side;
-      }
-      if (typeof parsed.top === 'number') {
-        const maxTop = window.innerHeight - WIDGET_HEIGHT - MARGIN;
-        pos.top = Math.max(MARGIN + 48, Math.min(maxTop, parsed.top));
-      }
-      if (typeof parsed.docked === 'boolean') {
-        pos.docked = parsed.docked;
-        isDocked.value = parsed.docked;
-      }
-    } else {
-      pos.top = window.innerHeight - 100;
-      pos.side = 'right';
-    }
-  } catch {
-    pos.top = window.innerHeight - 100;
-    pos.side = 'right';
-  }
-}
-
-function savePosition() {
-  try {
-    pos.docked = isDocked.value;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(pos));
-  } catch {
-    // 忽略存储异常
-  }
-}
-
-function handlePointerDown(e: PointerEvent) {
-  if (e.button !== 0) return;
-  const target = e.target as HTMLElement;
-  if (target.closest('.ai-badge-dock-btn')) return;
-
-  dragStartX = e.clientX;
-  dragStartY = e.clientY;
-  initialTop = pos.top;
-  hasMoved = false;
-
-  window.addEventListener('pointermove', handlePointerMove);
-  window.addEventListener('pointerup', handlePointerUp);
-}
-
-function handlePointerMove(e: PointerEvent) {
-  const dx = e.clientX - dragStartX;
-  const dy = e.clientY - dragStartY;
-
-  if (!hasMoved && Math.hypot(dx, dy) > 4) {
-    hasMoved = true;
-    isDragging.value = true;
-    isDocked.value = false;
-  }
-
-  if (isDragging.value) {
-    const nextTop = initialTop + dy;
-    const maxTop = window.innerHeight - WIDGET_HEIGHT - MARGIN;
-    pos.top = Math.max(MARGIN + 48, Math.min(maxTop, nextTop));
-
-    pos.side = e.clientX < window.innerWidth / 2 ? 'left' : 'right';
-  }
-}
-
-function handlePointerUp() {
-  window.removeEventListener('pointermove', handlePointerMove);
-  window.removeEventListener('pointerup', handlePointerUp);
-
-  if (isDragging.value) {
-    isDragging.value = false;
-    savePosition();
-  } else {
-    toggleOpen();
-  }
-}
-
-function handleWindowResize() {
-  const maxTop = window.innerHeight - WIDGET_HEIGHT - MARGIN;
-  if (pos.top > maxTop) {
-    pos.top = Math.max(MARGIN + 48, maxTop);
-  }
-}
-
-onMounted(() => {
-  loadSavedPosition();
-  window.addEventListener('resize', handleWindowResize);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('resize', handleWindowResize);
-  if (abortController) {
-    abortController.abort();
-    abortController = null;
-  }
-});
-
-// ---------- 贴边收起与展开 ----------
-function toggleDock(e?: Event) {
-  if (e) {
-    e.stopPropagation();
-  }
-  isDocked.value = !isDocked.value;
-  if (isDocked.value) {
-    open.value = false;
-  }
-  savePosition();
-}
-
-function handleTabClick() {
-  isDocked.value = false;
-  open.value = true;
-  savePosition();
-  void ensureSession();
-  void scrollToBottom();
-}
-
-// ---------- 对话面板定位与交互 ----------
-const widgetStyle = computed(() => {
-  const top = `${pos.top}px`;
-  if (pos.side === 'left') {
-    return { left: `${MARGIN}px`, top };
-  }
-  return { right: `${MARGIN}px`, top };
-});
-
-const tabStyle = computed(() => {
-  const top = `${pos.top}px`;
-  if (pos.side === 'left') {
-    return { left: '0px', top };
-  }
-  return { right: '0px', top };
-});
-
-const panelStyle = computed(() => {
-  let top = pos.top + WIDGET_HEIGHT - PANEL_HEIGHT;
-  if (top < MARGIN + 48) {
-    top = MARGIN + 48;
-  }
-  if (top + PANEL_HEIGHT > window.innerHeight - MARGIN) {
-    top = window.innerHeight - PANEL_HEIGHT - MARGIN;
-  }
-
-  if (pos.side === 'left') {
-    return {
-      left: `${MARGIN + WIDGET_WIDTH + 10}px`,
-      top: `${top}px`,
-    };
-  }
-  return {
-    right: `${MARGIN + WIDGET_WIDTH + 10}px`,
-    top: `${top}px`,
-  };
-});
-
-async function scrollToBottom() {
-  await nextTick();
-  if (listRef.value) {
-    listRef.value.scrollTop = listRef.value.scrollHeight;
-  }
+function setListRef(el: unknown) {
+  listRef.value = el as HTMLElement | null;
 }
 
 async function toggleOpen() {
@@ -222,118 +57,6 @@ async function toggleOpen() {
     await scrollToBottom();
   }
 }
-
-async function handleNewChat() {
-  if (isStreaming.value) {
-    handleStop();
-  }
-  try {
-    sessionId.value = await createSession();
-    messages.value = [];
-  } catch (error) {
-    console.error('Failed to create new session:', error);
-  }
-}
-
-async function ensureSession() {
-  if (sessionId.value) return;
-  try {
-    sessionId.value = await createSession();
-    const history = await getSessionMessages(sessionId.value);
-    messages.value = history ?? [];
-  } catch (error) {
-    console.error('Failed to initialize assistant widget session:', error);
-  }
-}
-
-async function handleSend(customText?: string) {
-  const text = (customText ?? inputText.value).trim();
-  if (!text || isStreaming.value || sending.value) return;
-  sending.value = true;
-  try {
-    if (!sessionId.value) {
-      sessionId.value = await createSession();
-    }
-
-    messages.value.push({
-      content: text,
-      createTime: new Date().toISOString(),
-      id: Date.now().toString(),
-      role: 'user',
-    });
-    if (!customText) {
-      inputText.value = '';
-    }
-    await scrollToBottom();
-
-    const assistantMsg = reactive<AiApi.ChatMessage>({
-      content: '',
-      createTime: new Date().toISOString(),
-      id: 'streaming',
-      role: 'assistant',
-    });
-    messages.value.push(assistantMsg);
-    isStreaming.value = true;
-    abortController = new AbortController();
-
-    await chat(
-      { content: text, sessionId: sessionId.value },
-      (token: string) => {
-        assistantMsg.content += token;
-        scrollToBottom();
-      },
-      () => {
-        isStreaming.value = false;
-        abortController = null;
-        assistantMsg.id = Date.now().toString();
-      },
-      abortController.signal,
-      (error: Error) => {
-        assistantMsg.content = error.message || $t('page.ai.chat.requestError');
-        isStreaming.value = false;
-        abortController = null;
-        assistantMsg.id = Date.now().toString();
-      },
-    );
-  } catch (error: unknown) {
-    console.error('Failed to send assistant widget message:', error);
-    if (!(error instanceof Error && error.name === 'AbortError')) {
-      const last = messages.value[messages.value.length - 1];
-      if (last && last.role === 'assistant' && !last.content) {
-        last.content = $t('page.ai.chat.requestError');
-      }
-    }
-    isStreaming.value = false;
-    abortController = null;
-    const streaming = messages.value[messages.value.length - 1];
-    if (streaming?.id === 'streaming') {
-      streaming.id = Date.now().toString();
-    }
-  } finally {
-    sending.value = false;
-  }
-}
-
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    handleSend();
-  }
-}
-
-function handleStop() {
-  if (abortController) {
-    abortController.abort();
-    abortController = null;
-  }
-  isStreaming.value = false;
-}
-
-const quickPrompts = computed(() => [
-  $t('page.ai.widget.quick_1'),
-  $t('page.ai.widget.quick_2'),
-  $t('page.ai.widget.quick_3'),
-]);
 </script>
 
 <template>
@@ -532,7 +255,7 @@ const quickPrompts = computed(() => [
         </div>
 
         <!-- 消息内容区 -->
-        <div ref="listRef" class="ai-widget-panel__list">
+        <div :ref="setListRef" class="ai-widget-panel__list">
           <!-- 空状态欢迎区 -->
           <div v-if="messages.length === 0" class="ai-widget-panel__empty">
             <div class="ai-widget-panel__welcome-icon">
@@ -681,7 +404,6 @@ const quickPrompts = computed(() => [
   border: 1px solid hsl(var(--primary) / 30%);
   opacity: 0.55;
   backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
   transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -750,7 +472,6 @@ const quickPrompts = computed(() => [
   box-shadow:
     0 6px 20px -3px rgb(0 0 0 / 12%),
     0 0 0 1px hsl(var(--primary) / 12%);
-  backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   transition:
     transform 0.18s ease,

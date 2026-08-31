@@ -59,7 +59,7 @@ async function onExport() {
   exportLoading.value = true;
   try {
     const formValues = gridApi.formApi?.form?.values ?? {};
-    const blob = await exportLogs(formValues as any);
+    const blob = await exportLogs(formValues as SystemLogApi.LogQuery);
     downloadByBlob(
       blob as Blob,
       $t('system.log.exportFileName') || '操作日志.xlsx',

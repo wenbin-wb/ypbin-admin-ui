@@ -23,6 +23,7 @@ import {
   shareAsk,
 } from '#/api/ai';
 import { $t } from '#/locales';
+import { extractErrorMessage } from '#/utils/error';
 import { useMarkdownRenderer } from '#/views/ai/_shared/useMarkdownRenderer';
 
 const { renderMarkdown } = useMarkdownRenderer();
@@ -100,8 +101,8 @@ async function openDoc(docId: string) {
       docId,
       password.value || undefined,
     );
-  } catch (error: any) {
-    docError.value = error?.message || $t('common.requestFailed');
+  } catch (error) {
+    docError.value = extractErrorMessage(error, $t('common.requestFailed'));
   } finally {
     docLoading.value = false;
   }
@@ -120,9 +121,11 @@ async function unlock() {
     await loadDocs();
     sessionStorage.setItem(`ypbin-share-pwd-${token}`, password.value);
     verified.value = true;
-  } catch (error: any) {
+  } catch (error) {
     password.value = '';
-    message.error(error?.message || $t('page.ai.share.passwordWrong'));
+    message.error(
+      extractErrorMessage(error, $t('page.ai.share.passwordWrong')),
+    );
   } finally {
     checking.value = false;
   }
@@ -145,8 +148,8 @@ async function onAsk() {
       aiQuestion.value,
       password.value || undefined,
     );
-  } catch (error: any) {
-    message.error(error?.message || $t('common.requestFailed'));
+  } catch (error) {
+    message.error(extractErrorMessage(error, $t('common.requestFailed')));
   } finally {
     aiLoading.value = false;
   }
@@ -174,8 +177,8 @@ onMounted(async () => {
       verified.value = true;
       await loadDocs();
     }
-  } catch (error: any) {
-    configError.value = error?.message || $t('page.ai.share.invalid');
+  } catch (error) {
+    configError.value = extractErrorMessage(error, $t('page.ai.share.invalid'));
   }
 });
 </script>
@@ -314,10 +317,8 @@ onMounted(async () => {
         <span class="i-lucide-alert-circle size-10 text-destructive/60"></span>
         <p class="text-sm">{{ docError }}</p>
         <Button @click="openDoc(activeDocId)">
-{{
-          $t('page.ai.share.reload')
-        }}
-</Button>
+          {{ $t('page.ai.share.reload') }}
+        </Button>
       </div>
 
       <div

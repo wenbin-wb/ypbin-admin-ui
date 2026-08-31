@@ -1,12 +1,9 @@
 <script lang="ts" setup>
-import type { Dayjs } from 'dayjs';
-
 import type { AiApi } from '#/api/ai';
 
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
-import { useAppConfig } from '@vben/hooks';
 import { IconifyIcon, Plus } from '@vben/icons';
 
 import {
@@ -21,19 +18,16 @@ import {
   Switch,
   Tooltip,
 } from 'ant-design-vue';
-import dayjs from 'dayjs';
 
-import {
-  deleteKnowledgeBase,
-  getKnowledgeBaseList,
-  setShareSetting,
-  setWidgetEnabled,
-} from '#/api/ai';
+import { deleteKnowledgeBase } from '#/api/ai';
 import { $t } from '#/locales';
 
 import CreateWizard from './modules/create-wizard.vue';
 import Documents from './modules/documents.vue';
 import Form from './modules/form.vue';
+import { useKbShare } from './use-kb-share';
+import { useKbWidget } from './use-kb-widget';
+import { useKnowledgeBaseList } from './use-knowledge-base-list';
 
 const [FormDrawer, formDrawerApi] = useVbenDrawer({
   connectedComponent: Form,
@@ -47,28 +41,47 @@ const [DocumentsModal, documentsModalApi] = useVbenModal({
 
 const createWizardRef = ref<InstanceType<typeof CreateWizard>>();
 
-const knowledgeBases = ref<AiApi.KnowledgeBase[]>([]);
-const loading = ref(false);
-const keyword = ref('');
+// 列表域（加载/过滤/卡片展示辅助）
+const {
+  filteredKbs,
+  isIconifyIcon,
+  kbColor,
+  kbIcon,
+  keyword,
+  knowledgeBases,
+  loadKbs,
+  loading,
+} = useKnowledgeBaseList();
 
-const filteredKbs = computed(() => {
-  const kw = keyword.value.trim().toLowerCase();
-  if (!kw) return knowledgeBases.value;
-  return knowledgeBases.value.filter(
-    (kb) =>
-      kb.name.toLowerCase().includes(kw) ||
-      (kb.description ?? '').toLowerCase().includes(kw),
-  );
-});
+// 网页挂件弹窗域
+const {
+  onCopyCode,
+  onWidget,
+  onWidgetDisable,
+  onWidgetEnable,
+  widgetEmbedCode,
+  widgetKb,
+  widgetLoading,
+  widgetOpen,
+  widgetToken,
+} = useKbWidget();
 
-async function loadKbs() {
-  loading.value = true;
-  try {
-    knowledgeBases.value = await getKnowledgeBaseList();
-  } finally {
-    loading.value = false;
-  }
-}
+// 公开分享弹窗域
+const {
+  onCopyShareLink,
+  onShare,
+  onShareDisable,
+  onShareEnable,
+  onShareSave,
+  shareEnabled,
+  shareExpire,
+  shareKb,
+  shareLink,
+  shareOpen,
+  sharePassword,
+  shareSaving,
+  shareToken,
+} = useKbShare();
 
 function onCreate() {
   createWizardRef.value?.openWizard();
@@ -91,202 +104,6 @@ async function onDelete(row: AiApi.KnowledgeBase) {
   await deleteKnowledgeBase(row.id);
   message.success($t('common.success'));
   await loadKbs();
-}
-
-// ---- 网页挂件 ----
-const widgetKb = ref<AiApi.KnowledgeBase | null>(null);
-const widgetToken = ref('');
-const widgetLoading = ref(false);
-const widgetOpen = ref(false);
-
-function onWidget(row: AiApi.KnowledgeBase, e: Event) {
-  e.stopPropagation();
-  widgetKb.value = row;
-  widgetToken.value = row.widgetToken || '';
-  widgetOpen.value = true;
-}
-
-async function onWidgetEnable() {
-  const kb = widgetKb.value;
-  if (!kb) return;
-  widgetLoading.value = true;
-  try {
-    const token = await setWidgetEnabled(kb.id, true);
-    widgetToken.value = token;
-    kb.widgetToken = token;
-    kb.widgetEnabled = 1;
-    message.success($t('common.success'));
-  } catch (error: any) {
-    message.error(error?.message || $t('common.requestFailed'));
-  } finally {
-    widgetLoading.value = false;
-  }
-}
-
-async function onWidgetDisable() {
-  const kb = widgetKb.value;
-  if (!kb) return;
-  widgetLoading.value = true;
-  try {
-    await setWidgetEnabled(kb.id, false);
-    widgetToken.value = '';
-    kb.widgetToken = '';
-    kb.widgetEnabled = 0;
-    message.success($t('page.ai.knowledge.widgetDisabled'));
-  } catch (error: any) {
-    message.error(error?.message || $t('common.requestFailed'));
-  } finally {
-    widgetLoading.value = false;
-  }
-}
-
-function widgetEmbedCode(token: string) {
-  const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
-  // 用 \\u002F 转义 script 结束标签，避免提前终止本组件的 setup 块
-  return (
-    `<scr` +
-    `ipt src="${apiURL}/widget/embed.js" data-token="${
-      token
-    }" data-title="${widgetKb.value?.name || ''}"><\u002Fscript>`
-  );
-}
-
-async function onCopyCode() {
-  const code = widgetEmbedCode(widgetToken.value);
-  try {
-    await navigator.clipboard.writeText(code);
-    message.success($t('page.ai.knowledge.widgetCopied'));
-  } catch {
-    message.error($t('common.requestFailed'));
-  }
-}
-
-// ---- 公开分享 ----
-const shareKb = ref<AiApi.KnowledgeBase | null>(null);
-const shareOpen = ref(false);
-const shareEnabled = ref(false);
-const shareExpire = ref<Dayjs | undefined>(undefined);
-const sharePassword = ref('');
-const shareToken = ref('');
-const shareSaving = ref(false);
-
-function shareLink(token: string) {
-  return `${window.location.origin}/share/${token}`;
-}
-
-function onShare(row: AiApi.KnowledgeBase, e: Event) {
-  e.stopPropagation();
-  shareKb.value = row;
-  shareEnabled.value = row.shareEnabled === 1;
-  shareToken.value = row.shareToken || '';
-  shareExpire.value = row.shareExpireTime
-    ? dayjs(row.shareExpireTime)
-    : undefined;
-  sharePassword.value = '';
-  shareOpen.value = true;
-}
-
-async function onShareEnable() {
-  const kb = shareKb.value;
-  if (!kb) return;
-  shareSaving.value = true;
-  try {
-    const token = await setShareSetting(kb.id, { enabled: true });
-    shareToken.value = token;
-    shareEnabled.value = true;
-    kb.shareToken = token;
-    kb.shareEnabled = 1;
-    message.success($t('page.ai.knowledge.shareEnabled'));
-  } catch (error: any) {
-    message.error(error?.message || $t('common.requestFailed'));
-  } finally {
-    shareSaving.value = false;
-  }
-}
-
-async function onShareSave() {
-  const kb = shareKb.value;
-  if (!kb) return;
-  shareSaving.value = true;
-  try {
-    const token = await setShareSetting(kb.id, {
-      enabled: true,
-      expireTime: shareExpire.value
-        ? shareExpire.value.format('YYYY-MM-DDTHH:mm:ss')
-        : null,
-      password: sharePassword.value.trim() || undefined,
-    });
-    shareToken.value = token;
-    kb.shareToken = token;
-    kb.shareEnabled = 1;
-    kb.shareExpireTime = shareExpire.value
-      ? shareExpire.value.format('YYYY-MM-DDTHH:mm:ss')
-      : '';
-    sharePassword.value = '';
-    message.success($t('common.success'));
-  } catch (error: any) {
-    message.error(error?.message || $t('common.requestFailed'));
-  } finally {
-    shareSaving.value = false;
-  }
-}
-
-async function onShareDisable() {
-  const kb = shareKb.value;
-  if (!kb) return;
-  shareSaving.value = true;
-  try {
-    await setShareSetting(kb.id, { enabled: false });
-    shareEnabled.value = false;
-    shareToken.value = '';
-    shareExpire.value = undefined;
-    sharePassword.value = '';
-    kb.shareToken = '';
-    kb.shareEnabled = 0;
-    kb.shareExpireTime = '';
-    message.success($t('page.ai.knowledge.shareDisabled'));
-  } catch (error: any) {
-    message.error(error?.message || $t('common.requestFailed'));
-  } finally {
-    shareSaving.value = false;
-  }
-}
-
-async function onCopyShareLink() {
-  try {
-    await navigator.clipboard.writeText(shareLink(shareToken.value));
-    message.success($t('page.ai.knowledge.shareCopied'));
-  } catch {
-    message.error($t('common.requestFailed'));
-  }
-}
-
-/** 取知识库默认展示内容：优先 icon 字段，否则取名称首字 */
-function kbIcon(kb: AiApi.KnowledgeBase) {
-  if (kb.icon && kb.icon.trim()) return kb.icon.trim();
-  return kb.name.charAt(0).toUpperCase();
-}
-
-/** 判断 icon 字段是否为 Iconify 图标名（如 lucide:book-open），是则用图标渲染 */
-function isIconifyIcon(icon?: string): boolean {
-  return Boolean(icon && icon.includes(':'));
-}
-
-/** 根据知识库 ID 生成一个稳定的背景色（从预设色盘中取） */
-const COLOR_PALETTE = [
-  'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-  'bg-violet-500/15 text-violet-600 dark:text-violet-400',
-  'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-  'bg-orange-500/15 text-orange-600 dark:text-orange-400',
-  'bg-rose-500/15 text-rose-600 dark:text-rose-400',
-  'bg-teal-500/15 text-teal-600 dark:text-teal-400',
-  'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-  'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400',
-];
-function kbColor(kb: AiApi.KnowledgeBase) {
-  // 用 id 末两位数值取色
-  const n = Number.parseInt(kb.id.slice(-2), 16) || 0;
-  return COLOR_PALETTE[n % COLOR_PALETTE.length];
 }
 
 onMounted(loadKbs);

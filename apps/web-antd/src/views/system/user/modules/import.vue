@@ -48,7 +48,7 @@ async function handleImport(file: File) {
   uploading.value = true;
   failDetails.value = [];
   try {
-    const result: any = await importUsers(file);
+    const result = await importUsers(file);
     const { successCount = 0, failCount = 0, failList = [] } = result ?? {};
     if (failCount > 0) {
       failDetails.value = failList;

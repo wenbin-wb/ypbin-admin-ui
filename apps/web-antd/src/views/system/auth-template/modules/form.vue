@@ -2,6 +2,7 @@
 import type { Recordable } from '@vben/types';
 
 import type { SystemAuthTemplateApi } from '#/api/system/auth-template';
+import type { SystemMenuApi } from '#/api/system/menu';
 
 import { nextTick, ref } from 'vue';
 
@@ -27,7 +28,7 @@ const [Form, formApi] = useVbenForm({
   showDefaultActions: false,
 });
 
-const permissions = ref<any[]>([]);
+const permissions = ref<SystemMenuApi.SystemMenu[]>([]);
 const loadingPermissions = ref(false);
 
 async function loadPermissions() {
@@ -37,7 +38,7 @@ async function loadPermissions() {
   loadingPermissions.value = true;
   try {
     const res = await getMenuList();
-    permissions.value = res as unknown as any[];
+    permissions.value = res;
   } finally {
     loadingPermissions.value = false;
   }

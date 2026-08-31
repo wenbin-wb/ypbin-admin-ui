@@ -25,6 +25,7 @@ import {
   queryKnowledgeBaseWithSources,
 } from '#/api/ai';
 import { $t } from '#/locales';
+import { extractErrorMessage } from '#/utils/error';
 import { useMarkdownRenderer } from '#/views/ai/_shared/useMarkdownRenderer';
 
 const { renderMarkdown } = useMarkdownRenderer();
@@ -109,8 +110,8 @@ async function openDoc(docId: string) {
   docLoading.value = true;
   try {
     docContent.value = await getDocumentContent(activeKbId.value, docId);
-  } catch (error: any) {
-    docError.value = error?.message || $t('common.requestFailed');
+  } catch (error) {
+    docError.value = extractErrorMessage(error, $t('common.requestFailed'));
   } finally {
     docLoading.value = false;
   }
@@ -132,8 +133,8 @@ async function onAsk() {
       activeKbId.value,
       aiQuestion.value,
     );
-  } catch (error: any) {
-    message.error(error?.message || $t('common.requestFailed'));
+  } catch (error) {
+    message.error(extractErrorMessage(error, $t('common.requestFailed')));
   } finally {
     aiLoading.value = false;
   }
@@ -291,10 +292,8 @@ onMounted(loadKbs);
           ></span>
           <p class="text-sm">{{ docError }}</p>
           <Button @click="openDoc(activeDocId)">
-{{
-            $t('page.ai.wiki.reload')
-          }}
-</Button>
+            {{ $t('page.ai.wiki.reload') }}
+          </Button>
         </div>
 
         <!-- 无文档 -->

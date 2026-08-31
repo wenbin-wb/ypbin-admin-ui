@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+import type { AiApi } from '#/api/ai';
 
 import { Page, useVbenDrawer } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
@@ -53,17 +54,17 @@ function onCreate() {
   formDrawerApi.setData(null).open();
 }
 
-function onEdit(row: any) {
+function onEdit(row: AiApi.ChatRole) {
   formDrawerApi.setData(row).open();
 }
 
-async function onDelete(row: any) {
+async function onDelete(row: AiApi.ChatRole) {
   await deleteRole(row.id);
   message.success($t('common.success'));
   onRefresh();
 }
 
-async function onToggleFavorite(row: any) {
+async function onToggleFavorite(row: AiApi.ChatRole) {
   await toggleRoleFavorite(row.id);
   message.success($t('common.success'));
   onRefresh();

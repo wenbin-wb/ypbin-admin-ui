@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+// 演示页豁免 i18n：文案刻意使用中文原样展示，用于对照 Vben 组件默认效果，不作为业务代码范例
 import { Page } from '@vben/common-ui';
 
 import { Button, Card, message, notification, Space } from 'ant-design-vue';

@@ -1,26 +1,14 @@
 <script lang="ts" setup>
 import type { AiApi } from '#/api/ai';
 
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 import { IconifyIcon, RotateCw } from '@vben/icons';
 
 import { Button, Tooltip } from 'ant-design-vue';
 
-import {
-  chat,
-  createSession,
-  deleteSession,
-  getKnowledgeBaseList,
-  getModelList,
-  getRoleList,
-  getSessionList,
-  getSessionMessages,
-  toggleRoleFavorite,
-  toggleSessionPin,
-  updateSessionTitle,
-} from '#/api/ai';
+import { chat, createSession } from '#/api/ai';
 import { $t } from '#/locales';
 import { roleBadge } from '#/views/ai/_shared/role-badge';
 
@@ -28,165 +16,79 @@ import InputBar from './components/InputBar.vue';
 import MessageList from './components/MessageList.vue';
 import RolePicker from './components/RolePicker.vue';
 import SessionSidebar from './components/SessionSidebar.vue';
+import { useChatResources } from './use-chat-resources';
+import { useChatSessions } from './use-chat-sessions';
 
 import '#/views/ai/_shared/role-badge.css';
 
 defineOptions({ name: 'AiChat' });
 
-// ===== 状态 =====
+// ===== 消息与发送（页面核心编排） =====
 const sidebarOpen = ref(true);
-const sessions = ref<AiApi.ChatSession[]>([]);
-const activeSessionId = ref('');
 const messages = ref<AiApi.ChatMessage[]>([]);
 const inputText = ref('');
 const isStreaming = ref(false);
-const sessionsLoading = ref(false);
-const messagesLoading = ref(false);
-const sessionSearch = ref('');
-
-// 角色
-const roles = ref<AiApi.ChatRole[]>([]);
-const activeRole = ref<AiApi.ChatRole | null>(null);
-const roleDrawerOpen = ref(false);
-const roleSearch = ref('');
-const roleCategory = ref<string>('all');
-
-// 模型
-const models = ref<AiApi.ModelConfig[]>([]);
-const activeModelId = ref('');
-
-// 知识库（RAG）
-const knowledgeBases = ref<AiApi.KnowledgeBase[]>([]);
-const activeKbId = ref('');
-
 let abortController: AbortController | null = null;
 const msgListRef = ref<InstanceType<typeof MessageList>>();
 const welcomeRef = ref<HTMLElement>();
 
-// ===== 会话 =====
-async function loadSessions() {
-  sessionsLoading.value = true;
-  try {
-    sessions.value = await getSessionList();
-  } finally {
-    sessionsLoading.value = false;
-  }
+async function scrollToBottom(force = false) {
+  await nextTick();
+  const el = msgListRef.value?.msgListRef ?? welcomeRef.value;
+  if (!el) return;
+  const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  if (force || nearBottom) el.scrollTop = el.scrollHeight;
 }
+
+// ===== 会话域（列表/选中/删除/置顶/重命名） =====
+const {
+  activeSessionId,
+  activeTitle,
+  emptySessionShown,
+  handleDeleteSession,
+  handlePinSession,
+  loadSessions,
+  messagesLoading,
+  resetToNewSession,
+  selectSession,
+  sessionSearch,
+  sessions,
+  sessionsLoading,
+  startRename,
+  welcomeShown,
+} = useChatSessions({ isStreaming, messages, scrollToBottom });
+
+// ===== 资源域（角色/模型/知识库） =====
+const {
+  activeKbId,
+  activeModelId,
+  activeRole,
+  featuredRoles,
+  knowledgeBases,
+  loadKnowledgeBases,
+  loadModels,
+  loadRoles,
+  models,
+  roleCategory,
+  roleDrawerOpen,
+  roleSearch,
+  roles,
+  selectRole,
+  toggleFavorite,
+} = useChatResources({ activeModelId: ref('') });
 
 function createNewSession(roleId?: string) {
   if (roleId) {
     activeRole.value = roles.value.find((r) => r.id === roleId) ?? null;
   }
-  activeSessionId.value = '';
-  messages.value = [];
+  resetToNewSession();
   roleDrawerOpen.value = false;
   inputText.value = '';
-}
-
-async function selectSession(id: string) {
-  if (isStreaming.value || activeSessionId.value === id) return;
-  activeSessionId.value = id;
-  roleDrawerOpen.value = false;
-  messages.value = [];
-  messagesLoading.value = true;
-  try {
-    messages.value = await getSessionMessages(id);
-  } catch (error) {
-    console.error('Failed to load session messages:', error);
-    messages.value = [];
-  } finally {
-    messagesLoading.value = false;
-  }
-  await scrollToBottom(true);
-}
-
-async function handleDeleteSession(id: string) {
-  try {
-    await deleteSession(id);
-    sessions.value = sessions.value.filter((s) => s.id !== id);
-    if (activeSessionId.value === id) {
-      activeSessionId.value = '';
-      messages.value = [];
-    }
-  } catch (error) {
-    console.error('Failed to delete session:', error);
-  }
-}
-
-async function handlePinSession(id: string) {
-  try {
-    await toggleSessionPin(id);
-    // 本地切换置顶状态，不重载消息
-    const session = sessions.value.find((s) => s.id === id);
-    if (session) session.isPinned = session.isPinned === 1 ? 0 : 1;
-    // 排序：置顶的浮到顶
-    sessions.value = [
-      ...sessions.value.filter((s) => s.isPinned === 1),
-      ...sessions.value.filter((s) => s.isPinned !== 1),
-    ];
-  } catch (error) {
-    console.error('Failed to toggle session pin:', error);
-  }
-}
-
-// 重命名
-function startRename(id: string, title: string) {
-  const t = title.trim();
-  if (!t) return;
-  void updateSessionTitle(id, t)
-    .then(() => {
-      const session = sessions.value.find((s) => s.id === id);
-      if (session) session.title = t;
-    })
-    .catch((error) => {
-      console.error('Failed to rename session:', error);
-    });
-}
-
-// ===== 角色 =====
-async function loadRoles() {
-  try {
-    roles.value = await getRoleList();
-  } catch (error) {
-    console.error('Failed to load roles:', error);
-  }
-}
-
-function selectRole(role: AiApi.ChatRole) {
-  activeRole.value = role;
-  // 应用角色偏好模型
-  if (role.modelPreference) {
-    const m = models.value.find((x) => x.modelName === role.modelPreference);
-    if (m) activeModelId.value = m.id;
-  }
-  roleDrawerOpen.value = false;
 }
 
 function handleNewChatWithRole(roleId: string) {
   roleDrawerOpen.value = false;
   createNewSession(roleId);
-}
-
-async function toggleFavorite(role: AiApi.ChatRole, e: Event) {
-  e.stopPropagation();
-  try {
-    await toggleRoleFavorite(role.id);
-    role.isFavorite = !role.isFavorite;
-  } catch (error) {
-    console.error('Failed to toggle role favorite:', error);
-  }
-}
-
-// ===== 模型 =====
-async function loadModels() {
-  try {
-    models.value = await getModelList();
-    const def = models.value.find((m) => m.isDefault === 1);
-    if (def) activeModelId.value = def.id;
-  } catch (error) {
-    // 模型未配置时不展示选择器
-    console.warn('Failed to load models:', error);
-  }
 }
 
 // ===== 发送 =====
@@ -293,31 +195,6 @@ async function regenerate() {
   await handleSend();
 }
 
-// ===== 工具函数 =====
-const activeTitle = computed(
-  () => sessions.value.find((s) => s.id === activeSessionId.value)?.title ?? '',
-);
-
-/** 真欢迎页：没有选中任何会话 */
-const welcomeShown = computed(
-  () =>
-    !activeSessionId.value &&
-    messages.value.length === 0 &&
-    !messagesLoading.value,
-);
-
-/** 空会话提示：选了会话但尚无消息（新建后还没发送） */
-const emptySessionShown = computed(
-  () =>
-    !!activeSessionId.value &&
-    messages.value.length === 0 &&
-    !messagesLoading.value,
-);
-
-const featuredRoles = computed(() =>
-  roles.value.filter((r) => r.isBuiltin === 1).slice(0, 4),
-);
-
 const quickQuestions = [
   { key: 'quickQuestion_1', icon: 'lucide:file-text' },
   { key: 'quickQuestion_2', icon: 'lucide:book-open' },
@@ -328,11 +205,7 @@ const quickQuestions = [
 // ===== 生命周期 =====
 onMounted(async () => {
   await Promise.all([loadSessions(), loadRoles(), loadModels()]);
-  try {
-    knowledgeBases.value = await getKnowledgeBaseList();
-  } catch (error) {
-    console.warn('Failed to load knowledge bases:', error);
-  }
+  await loadKnowledgeBases();
   if (sessions.value.length > 0) {
     await selectSession(sessions.value[0]?.id ?? '');
   }
@@ -349,14 +222,6 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onGlobalKeydown);
   abortController?.abort();
 });
-
-async function scrollToBottom(force = false) {
-  await nextTick();
-  const el = msgListRef.value?.msgListRef ?? welcomeRef.value;
-  if (!el) return;
-  const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-  if (force || nearBottom) el.scrollTop = el.scrollHeight;
-}
 </script>
 
 <template>
@@ -642,6 +507,7 @@ async function scrollToBottom(force = false) {
   padding: 48px 24px 24px;
   overflow-y: auto;
   scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .ym-ai__welcome::-webkit-scrollbar {
@@ -764,15 +630,5 @@ async function scrollToBottom(force = false) {
 .ym-ai__empty-icon {
   font-size: 32px;
   opacity: 0.4;
-}
-
-/* 隐藏滚动条 */
-.ym-ai__welcome {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.ym-ai__welcome::-webkit-scrollbar {
-  display: none;
 }
 </style>

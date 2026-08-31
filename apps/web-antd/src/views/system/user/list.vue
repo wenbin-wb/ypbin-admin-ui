@@ -177,10 +177,11 @@ async function onExport() {
   exportLoading.value = true;
   try {
     const formValues = gridApi.formApi?.form?.values ?? {};
-    const blob = await exportUsers({
+    const params = {
       ...userSearchCodec.encode(formValues as UserSearchSubmitValues),
       deptId: selectedDeptId.value,
-    } as any);
+    } as unknown as SystemUserApi.UserQuery;
+    const blob = await exportUsers(params);
     downloadByBlob(
       blob as Blob,
       $t('system.user.exportFileName') || '用户列表.xlsx',
