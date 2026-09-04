@@ -50,50 +50,49 @@ export namespace SystemJobApi {
 }
 
 export function getJobList() {
-  return requestClient.get<SystemJobApi.JobResp[]>('/system/job/list');
+  return requestClient.get<SystemJobApi.JobResp[]>('/job/list');
 }
 
 export function getJobLogList(jobId: string, params: SystemJobApi.JobLogQuery) {
   return requestClient.get<SystemCommonApi.PageResult<SystemJobApi.JobLogResp>>(
-    `/system/job/log/${jobId}`,
+    `/job/log/${jobId}`,
     { params },
   );
 }
 
 export function getAllJobLogList(params: SystemJobApi.JobLogQuery) {
   return requestClient.get<SystemCommonApi.PageResult<SystemJobApi.JobLogResp>>(
-    '/system/job/log',
+    '/job/log',
     { params },
   );
 }
 
 export function createJob(data: SystemJobApi.JobSaveReq) {
-  return requestClient.post('/system/job', data);
+  return requestClient.post('/job', data);
 }
 
 export function updateJob(id: string, data: SystemJobApi.JobSaveReq) {
-  return requestClient.put(`/system/job/${id}`, data);
+  return requestClient.put(`/job/${id}`, data);
 }
 
 export function previewJobCron(cron: string) {
-  return requestClient.post<SystemJobApi.CronPreviewResp>(
-    '/system/job/cron/preview',
-    { cron },
-  );
+  return requestClient.post<SystemJobApi.CronPreviewResp>('/job/cron/preview', {
+    cron,
+  });
 }
 
 export function deleteJob(id: string) {
-  return requestClient.delete(`/system/job/${id}`);
+  return requestClient.delete(`/job/${id}`);
 }
 
 export function startJob(id: string) {
-  return requestClient.post(`/system/job/${id}/start`);
+  return requestClient.post(`/job/${id}/start`);
 }
 
 export function stopJob(id: string) {
-  return requestClient.post(`/system/job/${id}/stop`);
+  return requestClient.post(`/job/${id}/stop`);
 }
 
 export function runJob(id: string) {
-  return requestClient.post(`/system/job/${id}/run`);
+  return requestClient.post(`/job/${id}/run`);
 }
