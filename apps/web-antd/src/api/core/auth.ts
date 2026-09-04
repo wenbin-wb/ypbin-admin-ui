@@ -26,6 +26,8 @@ export namespace AuthApi {
   export interface LoginParams {
     password?: string;
     username?: string;
+    /** 租户 ID（可选；不传则按用户名全局定位，适用于平台超管/默认租户登录） */
+    tenantId?: string;
     /** 行为验证码 id（登录验证码开启时必传） */
     captchaId?: string;
     /** 行为验证码拖动轨迹（登录验证码开启时必传） */

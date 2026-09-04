@@ -44,6 +44,7 @@ export namespace AiApi {
     description?: string;
     /** emoji 或图标名，供卡片展示 */
     icon?: string;
+    remark?: string;
     docCount: number;
     createTime: string;
     /** 网页挂件令牌（非空表示已启用） */

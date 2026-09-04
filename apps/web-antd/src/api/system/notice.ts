@@ -34,6 +34,7 @@ export namespace SystemNoticeApi {
     publishTime?: string;
     effectiveTime?: string;
     expireTime?: string;
+    createUser?: string;
     createUserName?: string;
     createTime: string;
   }
