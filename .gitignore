@@ -55,7 +55,8 @@ vite.config.ts.*
 # AI
 .agent
 .agents
-.claude
+.claude/*
+!.claude/skills/
 .codex
 skills-lock.json
 .atomcode
