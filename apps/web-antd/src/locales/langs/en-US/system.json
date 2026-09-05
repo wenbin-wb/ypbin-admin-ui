@@ -330,19 +330,6 @@
     "typeSystem": "System",
     "typeUser": "User"
   },
-  "jobLog": {
-    "title": "Execution Logs",
-    "triggerTime": "Trigger Time",
-    "outcome": "Outcome",
-    "outcomeSkip": "Skipped",
-    "outcomeSuccess": "Success",
-    "outcomeFail": "Failed",
-    "manual": "Trigger Type",
-    "auto": "Auto",
-    "manualTrigger": "Manual",
-    "durationMs": "Duration(ms)",
-    "errorMsg": "Error Message"
-  },
   "cron": {
     "second": "Second",
     "minute": "Minute",
@@ -380,29 +367,6 @@
     "weekday5": "Friday (5)",
     "weekday6": "Saturday (6)",
     "weekday7": "Sunday (7)"
-  },
-  "job": {
-    "title": "Scheduled Jobs",
-    "name": "Job",
-    "jobName": "Job Name",
-    "executor": "Executor",
-    "scheduleRule": "Schedule Rule",
-    "scheduleMode": "Schedule Mode",
-    "scheduleModeCron": "Cron Expression",
-    "scheduleModeFixedRate": "Fixed Rate",
-    "cron": "Cron Expression",
-    "fixedRateSeconds": "Fixed Rate (seconds)",
-    "fixedRateDisplay": "Every {0} seconds",
-    "fixedRatePositive": "Fixed rate must be a positive integer",
-    "scheduleRuleXor": "Enter exactly one of Cron expression or fixed rate",
-    "timeoutSeconds": "Timeout",
-    "concurrentGuard": "Concurrency Control",
-    "status": "Status",
-    "args": "Arguments",
-    "runOnce": "Run Once",
-    "start": "Start",
-    "stop": "Stop",
-    "run": "Run"
   },
   "app": {
     "title": "App Management",
