@@ -22,35 +22,35 @@ export namespace SystemMessageApi {
 export function getMessageList(params: SystemMessageApi.MessageQuery) {
   return requestClient.get<
     SystemCommonApi.PageResult<SystemMessageApi.MessageItem>
-  >('/user/messages', { params });
+  >('/system/messages', { params });
 }
 
 /** 未读消息数 */
 export function getUnreadCount() {
-  return requestClient.get<number>('/user/messages/unread-count');
+  return requestClient.get<number>('/system/messages/unread-count');
 }
 
 /** 最近消息（铃铛下拉用） */
 export function getRecentMessages(limit = 10) {
   return requestClient.get<SystemMessageApi.MessageItem[]>(
-    '/user/messages/recent',
+    '/system/messages/recent',
     { params: { limit } },
   );
 }
 
 /** 标记单条已读 */
 export function markMessageRead(id: string) {
-  return requestClient.put(`/user/messages/${id}/read`);
+  return requestClient.put(`/system/messages/${id}/read`);
 }
 
 /** 删除单条站内信 */
 export function deleteMessage(id: string) {
-  return requestClient.delete(`/user/messages/${id}`);
+  return requestClient.delete(`/system/messages/${id}`);
 }
 
 /** 全部标记已读 */
 export function markAllMessagesRead() {
-  return requestClient.put('/user/messages/read-all');
+  return requestClient.put('/system/messages/read-all');
 }
 
 /** 获取 SSE 订阅票据（一次性、短时有效，需登录态签发） */

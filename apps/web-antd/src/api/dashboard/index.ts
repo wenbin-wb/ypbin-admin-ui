@@ -34,7 +34,7 @@ export namespace DashboardApi {
  * 获取系统概览计数
  */
 async function getDashboardStats() {
-  return requestClient.get<DashboardApi.Stats>('/dashboard/stats');
+  return requestClient.get<DashboardApi.Stats>('/system/dashboard/stats');
 }
 
 /**
@@ -42,9 +42,12 @@ async function getDashboardStats() {
  * @param limit 条数，默认 10
  */
 async function getLatestLogs(limit = 10) {
-  return requestClient.get<DashboardApi.LatestLog[]>('/dashboard/latest-logs', {
-    params: { limit },
-  });
+  return requestClient.get<DashboardApi.LatestLog[]>(
+    '/system/dashboard/latest-logs',
+    {
+      params: { limit },
+    },
+  );
 }
 
 /**
@@ -52,9 +55,12 @@ async function getLatestLogs(limit = 10) {
  * @param days 天数，默认 7
  */
 async function getLogTrend(days = 7) {
-  return requestClient.get<DashboardApi.LogTrend[]>('/dashboard/log-trend', {
-    params: { days },
-  });
+  return requestClient.get<DashboardApi.LogTrend[]>(
+    '/system/dashboard/log-trend',
+    {
+      params: { days },
+    },
+  );
 }
 
 export { getDashboardStats, getLatestLogs, getLogTrend };
