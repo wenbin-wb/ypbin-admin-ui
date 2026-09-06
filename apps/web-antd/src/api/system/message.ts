@@ -1,6 +1,8 @@
 import type { SystemCommonApi } from './common';
 
-import { requestClient } from '#/api/request';
+import { useAccessStore } from '@vben/stores';
+
+import { baseRequestClient, requestClient } from '#/api/request';
 
 export namespace SystemMessageApi {
   export interface MessageItem {
@@ -53,9 +55,25 @@ export function markAllMessagesRead() {
   return requestClient.put('/system/messages/read-all');
 }
 
-/** 获取 SSE 订阅票据（一次性、短时有效，需登录态签发） */
-export function getSseTicket() {
-  return requestClient.post<{ expiresIn: number; ticket: string }>(
+/** 获取 SSE 订阅票据（一次性、短时有效，需登录态签发）
+ *  用裸 client 手动带 token：SSE 为增强能力，取票失败不应触发全局登出（401 拦截），
+ *  由调用方容错重试即可。
+ */
+export async function getSseTicket() {
+  const token = useAccessStore().accessToken;
+  // baseRequestClient 为裸 client：返回完整 AxiosResponse（axios 泛型失真，此处做轻量断言）
+  const response = (await baseRequestClient.post(
     '/ypbin/sse/ticket',
-  );
+    undefined,
+    {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    },
+  )) as unknown as {
+    data: { code: number; data: null | { expiresIn: number; ticket: string } };
+  };
+  const body = response.data;
+  if (!body || body.code !== 200 || !body.data?.ticket) {
+    throw new Error('SSE ticket 签发失败');
+  }
+  return body.data;
 }
