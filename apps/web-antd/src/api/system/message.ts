@@ -63,7 +63,7 @@ export async function getSseTicket() {
   const token = useAccessStore().accessToken;
   // baseRequestClient 为裸 client：返回完整 AxiosResponse（axios 泛型失真，此处做轻量断言）
   const response = (await baseRequestClient.post(
-    '/ypbin/sse/ticket',
+    '/system/ypbin/sse/ticket',
     undefined,
     {
       headers: token ? { Authorization: `Bearer ${token}` } : {},

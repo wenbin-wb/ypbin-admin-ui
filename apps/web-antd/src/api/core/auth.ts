@@ -69,7 +69,7 @@ export async function loginApi(data: AuthApi.LoginParams) {
  */
 export async function getCaptchaApi() {
   return requestClient.get<null | { data?: AuthApi.CaptchaVo | null }>(
-    '/captcha',
+    '/auth/captcha',
   );
 }
 

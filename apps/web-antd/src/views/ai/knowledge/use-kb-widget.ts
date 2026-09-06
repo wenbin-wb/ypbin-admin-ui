@@ -65,7 +65,7 @@ export function useKbWidget() {
     // 用 \u002F 转义 script 结束标签，避免提前终止本组件的 setup 块
     return (
       `<scr` +
-      `ipt src="${apiURL}/widget/embed.js" data-token="${
+      `ipt src="${apiURL}/ai/widget/embed.js" data-token="${
         token
       }" data-title="${widgetKb.value?.name || ''}"><\u002Fscript>`
     );

@@ -71,7 +71,7 @@ async function shareRequest(
 
 /** 分享配置：知识库名称、是否需要密码、是否过期等 */
 export function getShareConfig(token: string) {
-  return shareRequest(`/share/${token}/config`) as Promise<{
+  return shareRequest(`/ai/share/${token}/config`) as Promise<{
     description: string;
     docCount: number;
     expired: boolean;
@@ -91,7 +91,7 @@ export function getShareDocuments(
   const qs = new URLSearchParams();
   qs.set('page', String(params.page ?? 1));
   qs.set('pageSize', String(params.pageSize ?? 100));
-  return shareRequest(`/share/${token}/documents?${qs.toString()}`, {
+  return shareRequest(`/ai/share/${token}/documents?${qs.toString()}`, {
     password,
   }) as Promise<{ items: AiApi.KbDocument[]; total: number }>;
 }
@@ -102,14 +102,14 @@ export function getShareDocumentContent(
   docId: string,
   password?: string,
 ) {
-  return shareRequest(`/share/${token}/documents/${docId}/content`, {
+  return shareRequest(`/ai/share/${token}/documents/${docId}/content`, {
     password,
   }) as Promise<string>;
 }
 
 /** 分享知识库匿名问答 */
 export function shareAsk(token: string, question: string, password?: string) {
-  return shareRequest(`/share/${token}/ask`, {
+  return shareRequest(`/ai/share/${token}/ask`, {
     method: 'POST',
     body: { question },
     password,

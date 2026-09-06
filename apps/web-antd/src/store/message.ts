@@ -141,7 +141,7 @@ export const useMessageStore = defineStore('message', () => {
       }
 
       const source = new EventSource(
-        `${apiURL}/ypbin/sse/subscribe?ticket=${ticket}`,
+        `${apiURL}/system/ypbin/sse/subscribe?ticket=${ticket}`,
       );
       eventSource = source;
 
