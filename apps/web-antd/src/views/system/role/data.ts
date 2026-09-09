@@ -27,6 +27,17 @@ export function getDataScopeOptions() {
   ];
 }
 
+/**
+ * 角色列表搜索表单取值（与 useGridFormSchema 的查询字段对齐）。
+ * 与 SystemRoleApi.RoleQuery 的结构化字段保持同一口径，替代 Recordable<any>。
+ */
+export interface RoleSearchValues {
+  code?: string;
+  name?: string;
+  remark?: string;
+  status?: 0 | 1;
+}
+
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {

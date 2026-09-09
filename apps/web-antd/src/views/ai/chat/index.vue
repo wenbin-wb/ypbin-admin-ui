@@ -199,13 +199,29 @@ async function regenerate() {
   try {
     // 后端语义接口：删除最后一条助手回复并按最后一条用户消息重新生成、落库
     await regenerateSessionMessage(sessionId);
-    await loadSessions();
-    messages.value = await getSessionMessages(sessionId);
-    await scrollToBottom(true);
   } catch (error) {
     console.error('Failed to regenerate message:', error);
     message.error(extractErrorMessage(error, $t('page.ai.chat.requestError')));
   } finally {
+    // 无论成败都刷新会话列表（消息数/排序可能变化）并与服务端对齐消息；
+    // 失败时服务端可能已删除旧回复，须重新拉取避免本地残留过期消息。
+    try {
+      await loadSessions();
+    } catch (error) {
+      console.error('Failed to refresh sessions after regenerate:', error);
+    }
+    if (sessionId === activeSessionId.value) {
+      try {
+        const list = await getSessionMessages(sessionId);
+        // 拉取期间可能已切换会话，应用前再校验一次，防止旧异步覆盖新会话消息
+        if (sessionId === activeSessionId.value) {
+          messages.value = list;
+          await scrollToBottom(true);
+        }
+      } catch (syncError) {
+        console.error('Failed to resync messages after regenerate:', syncError);
+      }
+    }
     regenerating.value = false;
   }
 }

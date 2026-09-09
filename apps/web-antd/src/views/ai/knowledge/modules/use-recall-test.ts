@@ -27,27 +27,47 @@ export function escapeHtml(text: string): string {
     .replaceAll("'", '&#39;');
 }
 
+/** <mark> 自产标签的 class（仅此标签由高亮函数插入，其余一律转义为纯文本） */
+const HIGHLIGHT_MARK_CLASS =
+  'rounded-sm bg-amber-200/80 px-0.5 text-inherit dark:bg-amber-500/30';
+
 /**
- * 将命中的关键词在片段文本中高亮（长词优先，防嵌套替换）。
- * 安全约束：先整体 HTML 转义再插入 <mark>，关键词同样转义后匹配，
- * 因此返回内容中除自产的 <mark> 包裹外不含任何可执行的 HTML。
+ * 将命中的关键词在片段原文上高亮（长词优先，防嵌套替换）。
+ *
+ * 实现顺序：先在“原文”上用正则定位命中区间，再按区间把每个原文片段分别 escapeHtml
+ * 后拼接，命中片段用 <mark> 包裹（内部内容同样转义）。在原文上匹配避免了在已转义文本
+ * 中把关键词匹配进 HTML 实体（如 &amp;lt; 内部的 amp/lt），不会在 &lt; 内部插入标签；
+ * 关键词的正则元字符转义同样作用于原文。安全约束：除自产的 <mark> 标签外，
+ * 所有原文片段都经 escapeHtml 后输出，不可注入任何可执行 HTML。
  */
 function highlightKeywords(text: string, keywords?: string[]) {
-  const escapedText = escapeHtml(text ?? '');
-  if (!keywords?.length || !text) return escapedText;
-  const pattern = [...keywords]
+  const source = text ?? '';
+  const escapedAll = escapeHtml(source);
+  const list = keywords ?? [];
+  if (list.length === 0 || !source) return escapedAll;
+  // 在“原文”上过滤（长度以原始关键词计，发生在转义前），再对正则元字符转义；
+  // 长词优先，防嵌套替换。
+  const safePattern = list
+    .filter((keyword) => keyword.length >= 2)
     .toSorted((a, b) => b.length - a.length)
-    .map((k) =>
-      escapeHtml(k).replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`),
+    .map((keyword) =>
+      keyword.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`),
     )
-    .filter((k) => k.length >= 2)
     .join('|');
-  if (!pattern) return escapedText;
-  const re = new RegExp(`(${pattern})`, 'gi');
-  return escapedText.replace(
-    re,
-    '<mark class="rounded-sm bg-amber-200/80 px-0.5 text-inherit dark:bg-amber-500/30">$1</mark>',
-  );
+  if (!safePattern) return escapedAll;
+  const re = new RegExp(`(${safePattern})`, 'gi');
+  let result = '';
+  let lastIndex = 0;
+  for (const match of source.matchAll(re)) {
+    const index = match.index ?? 0;
+    const keyword = match[0];
+    // 非命中段转义 + 命中段转义后包 <mark>（仅此自产标签，其余全部转义为纯文本）
+    result += escapeHtml(source.slice(lastIndex, index));
+    result += `<mark class="${HIGHLIGHT_MARK_CLASS}">${escapeHtml(keyword)}</mark>`;
+    lastIndex = index + keyword.length;
+  }
+  result += escapeHtml(source.slice(lastIndex));
+  return result;
 }
 
 /**

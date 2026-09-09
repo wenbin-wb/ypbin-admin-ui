@@ -3,6 +3,9 @@ import type { AiApi } from './types';
 import { requestClient } from '#/api/request';
 
 // 会话管理（新引擎）
+/** 重新生成等待模型输出的上限：远超实例默认 10s 请求超时（AI 生成耗时不可控） */
+const REGENERATE_TIMEOUT_MS = 120_000;
+
 export function getSessionList() {
   return requestClient.get<AiApi.ChatSession[]>('/ai/chat/sessions');
 }
@@ -34,6 +37,8 @@ export function getSessionMessages(id: string) {
 export function regenerateSessionMessage(id: string) {
   return requestClient.post<AiApi.ChatMessage>(
     `/ai/chat/sessions/${id}/regenerate`,
+    null,
+    { timeout: REGENERATE_TIMEOUT_MS },
   );
 }
 

@@ -96,24 +96,39 @@ export const useAuthStore = defineStore('auth', () => {
     return userInfo;
   }
 
-  async function logout(redirect: boolean = true) {
-    try {
-      await logoutApi();
-    } catch {
-      // 不做任何处理
-    }
-    resetAllStores();
-    accessStore.setLoginExpired(false);
+  const isLoggingOut = ref(false); // 防重入：会话过期（HTTP 401）与主动登出可能并发触发
 
-    // 回登录页带上当前路由地址
-    await router.replace({
-      path: LOGIN_PATH,
-      query: redirect
-        ? {
-            redirect: encodeURIComponent(router.currentRoute.value.fullPath),
-          }
-        : {},
-    });
+  async function logout(redirect: boolean = true) {
+    if (isLoggingOut.value) {
+      return;
+    }
+    isLoggingOut.value = true;
+    try {
+      try {
+        // 会话过期场景下 handleSessionExpired 会先清空 accessToken 再调 logout：
+        // 令牌已空时无法吊销会话，跳过 logoutApi（服务端会以 HTTP 401 应答并再次进入
+        // handleSessionExpired → logout，形成递归）；业务 code-401 的短路见 request.ts。
+        if (accessStore.accessToken) {
+          await logoutApi();
+        }
+      } catch {
+        // 不做任何处理
+      }
+      resetAllStores();
+      accessStore.setLoginExpired(false);
+
+      // 回登录页带上当前路由地址
+      await router.replace({
+        path: LOGIN_PATH,
+        query: redirect
+          ? {
+              redirect: encodeURIComponent(router.currentRoute.value.fullPath),
+            }
+          : {},
+      });
+    } finally {
+      isLoggingOut.value = false;
+    }
   }
 
   async function fetchUserInfo() {

@@ -14,6 +14,8 @@ import { extractErrorMessage } from '#/utils/error';
 const emit = defineEmits(['success']);
 const userId = ref('');
 const roleLoading = ref(false);
+// 详情回填失败标记：失败时不清空既有勾选，且必须阻断提交，避免“确认”把角色清空
+const roleLoadFailed = ref(false);
 
 const [Form, formApi] = useVbenForm({
   schema: [
@@ -44,6 +46,11 @@ interface AssignRolesData {
 
 const [Modal, modalApi] = useVbenModal<AssignRolesData>({
   onConfirm: async () => {
+    // 详情回填失败时禁止提交（否则会把未回填的空角色集覆盖保存上去）
+    if (roleLoadFailed.value) {
+      message.warning($t('system.user.roleLoadBlocked'));
+      return;
+    }
     try {
       modalApi.setState({ confirmLoading: true });
       const { valid } = await formApi.validate();
@@ -62,6 +69,7 @@ const [Modal, modalApi] = useVbenModal<AssignRolesData>({
       const data = modalApi.getData();
       userId.value = data?.id ?? '';
       formApi.reset();
+      roleLoadFailed.value = false;
       modalApi.setState({
         title: `${$t('system.user.assignRoles')} - ${data?.realName ?? ''}`,
       });
@@ -72,15 +80,14 @@ const [Modal, modalApi] = useVbenModal<AssignRolesData>({
           const detail = await getUserDetail(userId.value);
           formApi.setValues({ roleIds: detail?.roleIds ?? [] });
         } catch (error) {
-          formApi.setValues({ roleIds: [] });
+          // 不清空 roleIds（保留回填前状态），标记失败并阻断提交，提示关闭重试
+          roleLoadFailed.value = true;
           message.error(
             extractErrorMessage(error, $t('system.user.roleLoadFailed')),
           );
         } finally {
           roleLoading.value = false;
         }
-      } else {
-        formApi.setValues({ roleIds: [] });
       }
     }
   },

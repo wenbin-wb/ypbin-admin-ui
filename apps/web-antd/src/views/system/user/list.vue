@@ -24,7 +24,7 @@ import {
 } from '#/api';
 import { $t } from '#/locales';
 import { createDateRangeCodec } from '#/utils/date-range-codec';
-import { downloadByBlob } from '#/utils/file';
+import { downloadBlobSafe } from '#/utils/file';
 import { useConfirm } from '#/views/system/_shared/confirm';
 
 import { useColumns, useGridFormSchema } from './data';
@@ -183,11 +183,14 @@ async function onExport() {
       deptId: selectedDeptId.value,
     } as unknown as SystemUserApi.UserQuery;
     const blob = await exportUsers(params);
-    downloadByBlob(
-      blob as Blob,
+    const downloaded = await downloadBlobSafe(
+      blob,
       $t('system.user.exportFileName') || '用户列表.xlsx',
+      $t('system.user.exportFailed'),
     );
-    message.success($t('common.success'));
+    if (downloaded) {
+      message.success($t('common.success'));
+    }
   } catch (error) {
     console.error('Failed to export users:', error);
     message.error($t('system.user.exportFailed'));

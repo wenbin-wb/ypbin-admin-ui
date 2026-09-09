@@ -44,6 +44,7 @@
     "templateDownloadFailed": "Failed to download template",
     "importFailed": "Import failed",
     "roleLoadFailed": "Failed to load current roles",
+    "roleLoadBlocked": "Role info failed to load. Submission is blocked. Close and reopen to retry.",
     "importSuccessCount": "Imported {0} user(s)",
     "importResult": "Import done: {0} succeeded, {1} failed\n{2}",
     "importRowError": "Row {0}: {1}"

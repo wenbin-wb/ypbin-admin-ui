@@ -14,7 +14,7 @@ import { Button, message } from 'ant-design-vue';
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import { exportLogs, getLogList } from '#/api/system/log';
 import { $t } from '#/locales';
-import { downloadByBlob } from '#/utils/file';
+import { downloadBlobSafe } from '#/utils/file';
 
 import { useColumns, useGridFormSchema } from './data';
 import DetailDrawer from './modules/detail.vue';
@@ -60,11 +60,14 @@ async function onExport() {
   try {
     const formValues = gridApi.formApi?.form?.values ?? {};
     const blob = await exportLogs(formValues as SystemLogApi.LogQuery);
-    downloadByBlob(
-      blob as Blob,
+    const downloaded = await downloadBlobSafe(
+      blob,
       $t('system.log.exportFileName') || '操作日志.xlsx',
+      $t('system.log.exportFailed') || $t('system.user.exportFailed'),
     );
-    message.success($t('common.success'));
+    if (downloaded) {
+      message.success($t('common.success'));
+    }
   } catch (error) {
     console.error('Failed to export logs:', error);
     message.error(

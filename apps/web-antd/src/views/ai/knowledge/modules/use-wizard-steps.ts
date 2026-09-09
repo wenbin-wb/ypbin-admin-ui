@@ -124,25 +124,31 @@ export function useWizardSteps(deps: {
     }
   }
 
-  async function doImport() {
-    if (!createdKb.value) return;
+  /**
+   * 执行当前模式的文档导入。成功返回 true；失败已提示并返回 false（调用方据此阻断前进）。
+   * FILE 模式成功后清空已选文件，回退到导入步再次“下一步”不会重复上传同一批文件。
+   */
+  async function doImport(): Promise<boolean> {
+    if (!createdKb.value) return false;
     importing.value = true;
     try {
-      if (importType.value === 'FILE' && files.value.length > 0) {
+      if (importType.value === 'FILE') {
+        if (files.value.length === 0) return false;
         await batchUploadDocuments(createdKb.value.id, files.value);
-      } else if (
-        importType.value === 'URL' &&
-        importUrl.value.trim() &&
-        createdKb.value
-      ) {
+        files.value = [];
+      } else if (importType.value === 'URL' && importUrl.value.trim()) {
         await importDocumentFromUrl(createdKb.value.id, {
           sourceType: importSource.value,
           url: importUrl.value.trim(),
         });
+      } else {
+        return false;
       }
       message.success($t('page.ai.wizard.importSuccess'));
+      return true;
     } catch (error) {
       message.error(extractErrorMessage(error, $t('common.requestFailed')));
+      return false;
     } finally {
       importing.value = false;
     }
@@ -195,20 +201,14 @@ export function useWizardSteps(deps: {
     if (current.value === 1) {
       await createKb();
     }
-    if (
-      current.value === 2 &&
-      importType.value === 'FILE' &&
-      files.value.length > 0
-    ) {
-      // FILE 模式：选中文件后点“下一步”才真正批量上传，避免只收集不落库
-      await doImport();
-    }
-    if (
-      current.value === 2 &&
-      importType.value === 'URL' &&
-      importUrl.value.trim()
-    ) {
-      await doImport();
+    if (current.value === 2) {
+      // 导入失败时中断前进，避免跳过后端实际未落库的文档
+      const hasImport =
+        (importType.value === 'FILE' && files.value.length > 0) ||
+        (importType.value === 'URL' && importUrl.value.trim());
+      if (hasImport && !(await doImport())) {
+        return;
+      }
     }
     if (current.value === 5) {
       await saveShare();

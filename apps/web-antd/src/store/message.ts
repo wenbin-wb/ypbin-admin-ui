@@ -54,6 +54,43 @@ export const useMessageStore = defineStore('message', () => {
   // 防止 markRead/markAllRead/remove 乐观更新后发起的 refresh 与
   // SSE message-unread 触发的 refresh 并发时，旧响应覆盖新状态。
   let refreshVersion = 0;
+  // 本地写动作（已读/删除）进行中的深度：期间 SSE 拉取的快照可能早于写动作的
+  // 服务端提交，直接应用会把刚处理过的条目“回跳”成旧状态，因此只记待补、不立即拉取。
+  let localMutationDepth = 0;
+  let pendingSseRefresh = false;
+
+  /** SSE 收到未读事件后的刷新入口：本地写动作期间延迟到动作结束后统一补拉一次 */
+  function refreshFromSseEvent() {
+    if (localMutationDepth > 0) {
+      pendingSseRefresh = true;
+      return;
+    }
+    void refresh().catch((error) => {
+      console.error('Failed to refresh messages after SSE event:', error);
+    });
+  }
+
+  /**
+   * 在本地写动作期间执行 action（含动作自身的收尾 refresh）。
+   * 动作结束后若期间收到过 SSE 事件，则补拉一次，避免动作窗口内的新消息漏刷。
+   */
+  async function runLocalMutation<T>(action: () => Promise<T>): Promise<T> {
+    localMutationDepth += 1;
+    try {
+      return await action();
+    } finally {
+      localMutationDepth = Math.max(0, localMutationDepth - 1);
+      if (localMutationDepth === 0 && pendingSseRefresh) {
+        pendingSseRefresh = false;
+        void refresh().catch((error) => {
+          console.error(
+            'Failed to refresh messages after local mutation:',
+            error,
+          );
+        });
+      }
+    }
+  }
 
   async function refresh() {
     const version = ++refreshVersion;
@@ -83,36 +120,42 @@ export const useMessageStore = defineStore('message', () => {
     );
   }
 
-  async function markRead(id: string) {
-    await markMessageRead(id);
-    const message = recentMessages.value.find((item) => item.id === id);
-    if (message?.readStatus === 0) {
-      unreadCount.value = Math.max(0, unreadCount.value - 1);
-    }
-    updateRecentMessage(id, 1);
-    await refresh();
+  function markRead(id: string) {
+    return runLocalMutation(async () => {
+      await markMessageRead(id);
+      const message = recentMessages.value.find((item) => item.id === id);
+      if (message?.readStatus === 0) {
+        unreadCount.value = Math.max(0, unreadCount.value - 1);
+      }
+      updateRecentMessage(id, 1);
+      await refresh();
+    });
   }
 
-  async function markAllRead() {
-    await markAllMessagesRead();
-    unreadCount.value = 0;
-    recentMessages.value = recentMessages.value.map((message) => ({
-      ...message,
-      readStatus: 1,
-    }));
-    await refresh();
+  function markAllRead() {
+    return runLocalMutation(async () => {
+      await markAllMessagesRead();
+      unreadCount.value = 0;
+      recentMessages.value = recentMessages.value.map((message) => ({
+        ...message,
+        readStatus: 1,
+      }));
+      await refresh();
+    });
   }
 
-  async function remove(id: string) {
-    await deleteMessage(id);
-    const message = recentMessages.value.find((item) => item.id === id);
-    if (message?.readStatus === 0) {
-      unreadCount.value = Math.max(0, unreadCount.value - 1);
-    }
-    recentMessages.value = recentMessages.value.filter(
-      (message) => message.id !== id,
-    );
-    await refresh();
+  function remove(id: string) {
+    return runLocalMutation(async () => {
+      await deleteMessage(id);
+      const message = recentMessages.value.find((item) => item.id === id);
+      if (message?.readStatus === 0) {
+        unreadCount.value = Math.max(0, unreadCount.value - 1);
+      }
+      recentMessages.value = recentMessages.value.filter(
+        (message) => message.id !== id,
+      );
+      await refresh();
+    });
   }
 
   function queryMessages(params: SystemMessageApi.MessageQuery) {
@@ -160,11 +203,7 @@ export const useMessageStore = defineStore('message', () => {
       source.addEventListener('open', () => {
         retryCount = 0;
       });
-      source.addEventListener('message-unread', () => {
-        void refresh().catch((error) => {
-          console.error('Failed to refresh messages after SSE event:', error);
-        });
-      });
+      source.addEventListener('message-unread', refreshFromSseEvent);
       source.addEventListener('error', () => {
         console.error('SSE connection failed; scheduling reconnect.');
         source.close();

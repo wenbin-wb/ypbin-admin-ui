@@ -8,7 +8,7 @@ import { Alert, Button, message, Upload } from 'ant-design-vue';
 
 import { downloadImportTemplate, importUsers } from '#/api/system/user';
 import { $t } from '#/locales';
-import { downloadByBlob } from '#/utils/file';
+import { downloadBlobSafe } from '#/utils/file';
 
 const emit = defineEmits(['success']);
 
@@ -34,8 +34,14 @@ async function onDownloadTemplate() {
   downloadLoading.value = true;
   try {
     const blob = await downloadImportTemplate();
-    downloadByBlob(blob as Blob, $t('system.user.importTemplateFileName'));
-    message.success($t('common.success'));
+    const downloaded = await downloadBlobSafe(
+      blob,
+      $t('system.user.importTemplateFileName'),
+      $t('system.user.templateDownloadFailed'),
+    );
+    if (downloaded) {
+      message.success($t('common.success'));
+    }
   } catch {
     message.error($t('system.user.templateDownloadFailed'));
   } finally {
@@ -120,9 +126,11 @@ defineExpose({ modalApi });
       <div v-if="failDetails.length > 0" class="mt-3">
         <Alert banner show-icon type="error">
           <template #message>
-            <span class="font-semibold">{{ $t('system.user.importFailed') }} ({{
+            <span class="font-semibold"
+              >{{ $t('system.user.importFailed') }} ({{
                 failDetails.length
-              }})</span>
+              }})</span
+            >
           </template>
           <template #description>
             <ul class="max-h-32 overflow-y-auto pl-4 text-xs">

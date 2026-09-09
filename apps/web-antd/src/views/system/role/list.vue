@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import type { Recordable } from '@vben/types';
 
+import type { RoleSearchValues } from './data';
+
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { SystemRoleApi } from '#/api';
 
@@ -37,7 +39,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     keepSource: true,
     proxyConfig: {
       ajax: {
-        query: async ({ page }, formValues: Recordable<any>) => {
+        query: async ({ page }, formValues: RoleSearchValues) => {
           return await getRoleList({
             page: page.currentPage,
             pageSize: page.pageSize,

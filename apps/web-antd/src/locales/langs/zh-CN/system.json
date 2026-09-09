@@ -44,6 +44,7 @@
     "templateDownloadFailed": "模板下载失败",
     "importFailed": "导入失败",
     "roleLoadFailed": "当前角色加载失败",
+    "roleLoadBlocked": "角色信息加载失败，已禁止提交，请关闭弹窗后重试",
     "importSuccessCount": "导入成功 {0} 条",
     "importResult": "导入完成：成功 {0} 条，失败 {1} 条\n{2}",
     "importRowError": "第{0}行: {1}"
