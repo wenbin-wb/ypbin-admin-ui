@@ -42,6 +42,7 @@
     "importTemplateFileName": "用户导入模板.xlsx",
     "templateDownloadFailed": "模板下载失败",
     "importFailed": "导入失败",
+    "roleLoadFailed": "当前角色加载失败",
     "importSuccessCount": "导入成功 {0} 条",
     "importResult": "导入完成：成功 {0} 条，失败 {1} 条\n{2}",
     "importRowError": "第{0}行: {1}"
@@ -429,6 +430,7 @@
     "templateId": "权限模板",
     "contactName": "联系人",
     "contactPhone": "联系电话",
+    "status": "状态",
     "expireDate": "到期时间"
   },
   "license": {

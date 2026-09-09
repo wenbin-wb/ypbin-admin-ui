@@ -141,7 +141,8 @@ function onRefresh() {
 }
 
 function onCreate() {
-  formDrawerApi.open();
+  // 置空弹层数据，避免沿用上一次“编辑”残留的行数据
+  formDrawerApi.setData(null).open();
 }
 
 function onEdit(row: SystemUserApi.SystemUser) {

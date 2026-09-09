@@ -40,10 +40,11 @@ export function getLogList(params: SystemLogApi.LogQuery) {
 
 /**
  * 导出操作日志（下载 Excel 文件）
+ *
+ * 走 requestClient.download（内部 responseReturn:'body'）而非 get + responseType:'blob'：
+ * 后者沿用实例默认 responseReturn:'data'，defaultResponseInterceptor 会把 Blob 当业务响应
+ * 读取其 code 字段（Blob 无 code）而误判失败；download 由拦截器直接返回 Blob。
  */
 export function exportLogs(params: SystemLogApi.LogQuery) {
-  return requestClient.get('/system/log/export', {
-    params,
-    responseType: 'blob',
-  });
+  return requestClient.download<Blob>('/system/log/export', { params });
 }

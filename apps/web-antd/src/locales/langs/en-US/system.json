@@ -42,6 +42,7 @@
     "importTemplateFileName": "user-import-template.xlsx",
     "templateDownloadFailed": "Failed to download template",
     "importFailed": "Import failed",
+    "roleLoadFailed": "Failed to load current roles",
     "importSuccessCount": "Imported {0} user(s)",
     "importResult": "Import done: {0} succeeded, {1} failed\n{2}",
     "importRowError": "Row {0}: {1}"
@@ -429,6 +430,7 @@
     "templateId": "Auth Template",
     "contactName": "Contact",
     "contactPhone": "Contact Phone",
+    "status": "Status",
     "expireDate": "Expire Date"
   },
   "license": {

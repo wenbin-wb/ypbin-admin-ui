@@ -197,6 +197,14 @@ export function useWizardSteps(deps: {
     }
     if (
       current.value === 2 &&
+      importType.value === 'FILE' &&
+      files.value.length > 0
+    ) {
+      // FILE 模式：选中文件后点“下一步”才真正批量上传，避免只收集不落库
+      await doImport();
+    }
+    if (
+      current.value === 2 &&
       importType.value === 'URL' &&
       importUrl.value.trim()
     ) {

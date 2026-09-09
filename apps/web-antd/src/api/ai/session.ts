@@ -25,6 +25,18 @@ export function getSessionMessages(id: string) {
   );
 }
 
+/**
+ * 重新生成会话最后一条 AI 回复。
+ *
+ * 后端语义：删除最后一条助手回复，以最后一条用户消息重新生成并落库，返回新消息；
+ * 前端调用后需重新拉取消息列表保持一致。
+ */
+export function regenerateSessionMessage(id: string) {
+  return requestClient.post<AiApi.ChatMessage>(
+    `/ai/chat/sessions/${id}/regenerate`,
+  );
+}
+
 export function updateSessionTitle(id: string, title: string) {
   return requestClient.put(`/ai/chat/sessions/${id}/title`, null, {
     params: { title },

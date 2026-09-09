@@ -17,8 +17,6 @@ import { message } from 'ant-design-vue';
 
 import { useAuthStore } from '#/store';
 
-import { refreshTokenApi } from './core';
-
 const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
 
 function createRequestClient(baseURL: string, options?: RequestClientOptions) {
@@ -46,14 +44,13 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
   }
 
   /**
-   * 刷新token逻辑
+   * 刷新 token 逻辑（未启用）。
+   *
+   * 后端不存在 /auth/refresh 端点（accessToken 过期即重新登录），因此不做任何请求；
+   * enableRefreshToken 恒为 false 时该分支不会被触发，保留桩实现防止被误启用。
    */
-  async function doRefreshToken() {
-    const accessStore = useAccessStore();
-    const resp = await refreshTokenApi();
-    const newToken = resp.data;
-    accessStore.setAccessToken(newToken);
-    return newToken;
+  async function doRefreshToken(): Promise<string> {
+    throw new Error('Refresh token is not enabled.');
   }
 
   function formatToken(token: null | string) {
@@ -74,9 +71,13 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
   // 拦截业务 code 401（未授权）
   client.addResponseInterceptor({
     fulfilled: (response) => {
-      const { data } = response;
+      const { config, data } = response;
       if (data && data.code === 401) {
-        doReAuthenticate();
+        // 主动登出（/auth/logout）即使返回 401 也不必再触发重登流程，避免递归
+        const isLogoutCall = String(config?.url ?? '').endsWith('/auth/logout');
+        if (!isLogoutCall) {
+          doReAuthenticate();
+        }
         // 中断请求链路
         throw new Error(data.message || 'Unauthorized');
       }

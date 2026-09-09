@@ -54,12 +54,26 @@ export function useFormSchema(): FormSchema[] {
       component: 'ApiSelect',
       fieldName: 'templateId',
       label: $t('system.tenant.templateId'),
+      rules: 'selectRequired',
       componentProps: {
         api: () => getAuthTemplateList(),
         labelField: 'name',
         valueField: 'id',
         allowClear: true,
       },
+    },
+    {
+      component: 'RadioGroup',
+      componentProps: {
+        options: [
+          { label: $t('common.enabled'), value: 1 },
+          { label: $t('common.disabled'), value: 0 },
+        ],
+        optionType: 'button',
+      },
+      defaultValue: 1,
+      fieldName: 'status',
+      label: $t('system.tenant.status'),
     },
     {
       component: 'Input',

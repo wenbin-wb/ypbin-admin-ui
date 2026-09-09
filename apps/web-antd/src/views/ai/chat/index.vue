@@ -6,10 +6,16 @@ import { nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { Page } from '@vben/common-ui';
 import { IconifyIcon, RotateCw } from '@vben/icons';
 
-import { Button, Tooltip } from 'ant-design-vue';
+import { Button, message, Tooltip } from 'ant-design-vue';
 
-import { chat, createSession } from '#/api/ai';
+import {
+  chat,
+  createSession,
+  getSessionMessages,
+  regenerateSessionMessage,
+} from '#/api/ai';
 import { $t } from '#/locales';
+import { extractErrorMessage } from '#/utils/error';
 import { roleBadge } from '#/views/ai/_shared/role-badge';
 
 import InputBar from './components/InputBar.vue';
@@ -28,6 +34,7 @@ const sidebarOpen = ref(true);
 const messages = ref<AiApi.ChatMessage[]>([]);
 const inputText = ref('');
 const isStreaming = ref(false);
+const regenerating = ref(false);
 let abortController: AbortController | null = null;
 const msgListRef = ref<InstanceType<typeof MessageList>>();
 const welcomeRef = ref<HTMLElement>();
@@ -94,7 +101,7 @@ function handleNewChatWithRole(roleId: string) {
 // ===== 发送 =====
 async function handleSend() {
   const text = inputText.value.trim();
-  if (!text || isStreaming.value) return;
+  if (!text || isStreaming.value || regenerating.value) return;
 
   let sessionId = activeSessionId.value;
   if (!sessionId) {
@@ -180,19 +187,27 @@ function handleQuickQuestion(key: string) {
 }
 
 async function regenerate() {
-  if (isStreaming.value) return;
+  if (isStreaming.value || regenerating.value) return;
+  const sessionId = activeSessionId.value;
+  // 会话尚未落库（无 sessionId）时无法走服务端 regenerate
+  if (!sessionId) return;
   const lastUser = [...messages.value]
     .toReversed()
     .find((m) => m.role === 'user');
   if (!lastUser) return;
-  while (messages.value.length > 0) {
-    const last = messages.value.at(-1);
-    messages.value.pop();
-    if (last?.role === 'user') break;
+  regenerating.value = true;
+  try {
+    // 后端语义接口：删除最后一条助手回复并按最后一条用户消息重新生成、落库
+    await regenerateSessionMessage(sessionId);
+    await loadSessions();
+    messages.value = await getSessionMessages(sessionId);
+    await scrollToBottom(true);
+  } catch (error) {
+    console.error('Failed to regenerate message:', error);
+    message.error(extractErrorMessage(error, $t('page.ai.chat.requestError')));
+  } finally {
+    regenerating.value = false;
   }
-  await scrollToBottom(true);
-  inputText.value = lastUser.content;
-  await handleSend();
 }
 
 const quickQuestions = [
@@ -282,12 +297,17 @@ onUnmounted(() => {
                 </svg>
               </button>
             </div>
-            <!-- 重新生成 -->
+            <!-- 重新生成（走服务端语义接口，删除旧回复并按最后一条用户消息重生成） -->
             <Tooltip
               v-if="messages.length > 0 && !isStreaming"
               :title="$t('page.ai.chat.regenerate')"
             >
-              <Button size="small" type="text" @click="regenerate">
+              <Button
+                :loading="regenerating"
+                size="small"
+                type="text"
+                @click="regenerate"
+              >
                 <RotateCw class="size-4" />
               </Button>
             </Tooltip>

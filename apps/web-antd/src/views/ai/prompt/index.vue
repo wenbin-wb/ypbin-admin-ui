@@ -34,8 +34,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
     keepSource: true,
     proxyConfig: {
       ajax: {
-        query: async () => {
-          const items = await getPromptTemplateList();
+        query: async (_params, formValues: { status?: 0 | 1 }) => {
+          // 透传搜索条件（含 status），使停用模板可被筛出并重新启用
+          const items = await getPromptTemplateList(formValues?.status);
           return { items, total: items.length };
         },
       },

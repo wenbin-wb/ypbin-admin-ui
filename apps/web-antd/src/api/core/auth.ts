@@ -1,4 +1,4 @@
-import { baseRequestClient, requestClient } from '#/api/request';
+import { requestClient } from '#/api/request';
 
 export namespace AuthApi {
   /** 行为验证码轨迹点 */
@@ -39,11 +39,6 @@ export namespace AuthApi {
     accessToken: string;
   }
 
-  export interface RefreshTokenResult {
-    data: string;
-    status: number;
-  }
-
   /** 后端行为验证码数据（tianai ImageCaptchaVO） */
   export interface CaptchaVo {
     id: string;
@@ -74,21 +69,13 @@ export async function getCaptchaApi() {
 }
 
 /**
- * 刷新accessToken
- */
-export async function refreshTokenApi() {
-  return baseRequestClient.post<AuthApi.RefreshTokenResult>('/auth/refresh', {
-    withCredentials: true,
-  });
-}
-
-/**
  * 退出登录
+ *
+ * 走 requestClient：请求拦截器会自动携带 Authorization（Bearer），
+ * 服务端据此吊销会话，确保登出真实生效。
  */
 export async function logoutApi() {
-  return baseRequestClient.post('/auth/logout', {
-    withCredentials: true,
-  });
+  return requestClient.post('/auth/logout');
 }
 
 /**

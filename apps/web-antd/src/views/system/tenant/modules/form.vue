@@ -22,6 +22,7 @@ interface TenantFormValues {
   expireDate?: string;
   name: string;
   remark?: string;
+  status: 0 | 1;
   templateId?: string;
 }
 
@@ -51,6 +52,7 @@ const [Drawer, drawerApi] = useVbenDrawer<TenantFormData>({
         expireDate: values.expireDate,
         name: values.name,
         remark: values.remark,
+        status: values.status,
         templateId: values.templateId,
       };
       const data = drawerApi.getData();

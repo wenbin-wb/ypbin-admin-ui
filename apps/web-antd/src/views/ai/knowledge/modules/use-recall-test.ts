@@ -14,6 +14,43 @@ import { $t } from '#/locales';
 import { extractErrorMessage } from '#/utils/error';
 
 /**
+ * 极简 HTML 转义（& < > " '）。
+ * 知识库片段原文来自外部文档，可能携带 <img onerror> 等载荷；
+ * 任何要交给 v-html 渲染的文本都必须先整体转义，保证按纯文本呈现、不可注入标签。
+ */
+export function escapeHtml(text: string): string {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+/**
+ * 将命中的关键词在片段文本中高亮（长词优先，防嵌套替换）。
+ * 安全约束：先整体 HTML 转义再插入 <mark>，关键词同样转义后匹配，
+ * 因此返回内容中除自产的 <mark> 包裹外不含任何可执行的 HTML。
+ */
+function highlightKeywords(text: string, keywords?: string[]) {
+  const escapedText = escapeHtml(text ?? '');
+  if (!keywords?.length || !text) return escapedText;
+  const pattern = [...keywords]
+    .toSorted((a, b) => b.length - a.length)
+    .map((k) =>
+      escapeHtml(k).replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`),
+    )
+    .filter((k) => k.length >= 2)
+    .join('|');
+  if (!pattern) return escapedText;
+  const re = new RegExp(`(${pattern})`, 'gi');
+  return escapedText.replace(
+    re,
+    '<mark class="rounded-sm bg-amber-200/80 px-0.5 text-inherit dark:bg-amber-500/30">$1</mark>',
+  );
+}
+
+/**
  * 知识库检索测试域：提问、多模式召回（单库/重排/多库）与评估汇总、关键词高亮。
  */
 export function useRecallTest(deps: {
@@ -52,22 +89,6 @@ export function useRecallTest(deps: {
     if (score >= 70) return 'text-emerald-600 dark:text-emerald-400';
     if (score >= 40) return 'text-amber-600 dark:text-amber-400';
     return 'text-red-500';
-  }
-
-  /** 将命中的关键词在片段文本中高亮（长词优先，防嵌套替换） */
-  function highlightKeywords(text: string, keywords?: string[]) {
-    if (!keywords?.length || !text) return text;
-    const pattern = [...keywords]
-      .toSorted((a, b) => b.length - a.length)
-      .map((k) => k.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`))
-      .filter((k) => k.length >= 2)
-      .join('|');
-    if (!pattern) return text;
-    const re = new RegExp(`(${pattern})`, 'gi');
-    return text.replace(
-      re,
-      '<mark class="rounded-sm bg-amber-200/80 px-0.5 text-inherit dark:bg-amber-500/30">$1</mark>',
-    );
   }
 
   async function onTestQuery() {

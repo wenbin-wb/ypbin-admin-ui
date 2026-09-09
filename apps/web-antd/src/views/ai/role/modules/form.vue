@@ -39,14 +39,17 @@ const [Drawer, drawerApi] = useVbenDrawer<AiApi.ChatRole | null>({
     formApi.reset();
     const data = drawerApi.getData();
     if (data) {
-      await formApi.setValues({
+      // 编辑时回填行/详情携带的 systemPrompt（后端 Resp 新增后生效）；
+      // 此刻 Resp 尚无该字段时留空由「rules: required」兜底，禁止空提交覆盖旧提示词。
+      const nextValues: AiApi.ChatRoleSaveReq = {
         category: data.category,
         description: data.description ?? '',
         modelPreference: data.modelPreference ?? '',
         name: data.name,
-        systemPrompt: '',
+        systemPrompt: data.systemPrompt ?? '',
         temperature: data.temperature,
-      });
+      };
+      await formApi.setValues(nextValues);
     }
   },
 });

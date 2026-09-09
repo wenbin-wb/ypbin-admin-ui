@@ -71,6 +71,16 @@ async function getUserList(params: SystemUserApi.UserQuery) {
 }
 
 /**
+ * 获取用户详情
+ *
+ * 列表接口不回填角色/岗位（roleIds/postIds），详情接口才返回，
+ * 分配角色等需要回显的场景须走详情接口取数。
+ */
+async function getUserDetail(id: string) {
+  return requestClient.get<SystemUserApi.SystemUser>(`/system/user/${id}`);
+}
+
+/**
  * 创建用户
  * @param data 用户数据
  */
@@ -125,21 +135,20 @@ async function assignUserRoles(id: string, roleIds: string[]) {
 
 /**
  * 导出用户列表（下载 Excel 文件）
+ *
+ * 走 requestClient.download（内部 responseReturn:'body'）而非 get + responseType:'blob'：
+ * 后者沿用实例默认 responseReturn:'data'，defaultResponseInterceptor 会把 Blob 当业务响应
+ * 读取其 code 字段（Blob 无 code）而误判失败；download 由拦截器直接返回 Blob。
  */
 async function exportUsers(params: SystemUserApi.UserQuery) {
-  return requestClient.get('/system/user/export', {
-    params,
-    responseType: 'blob',
-  });
+  return requestClient.download<Blob>('/system/user/export', { params });
 }
 
 /**
  * 下载用户导入模板
  */
 async function downloadImportTemplate() {
-  return requestClient.get('/system/user/import-template', {
-    responseType: 'blob',
-  });
+  return requestClient.download<Blob>('/system/user/import-template');
 }
 
 /**
@@ -162,6 +171,7 @@ export {
   deleteUser,
   downloadImportTemplate,
   exportUsers,
+  getUserDetail,
   getUserList,
   importUsers,
   resetUserPassword,

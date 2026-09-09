@@ -177,6 +177,8 @@ export namespace AiApi {
     name: string;
     description?: string;
     avatar?: string;
+    /** 系统提示词（后端 Resp 返回后编辑时回填） */
+    systemPrompt?: string;
     category: string;
     modelPreference?: string;
     temperature?: number;

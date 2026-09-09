@@ -47,8 +47,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
     keepSource: true,
     proxyConfig: {
       ajax: {
-        query: async () => {
-          const items = await getModelList(activeModelType.value);
+        query: async (_params, formValues: { status?: 0 | 1 }) => {
+          // 透传搜索条件（含 status），使停用模型可被筛出并重新启用
+          const items = await getModelList(
+            activeModelType.value,
+            formValues?.status,
+          );
           return { items, total: items.length };
         },
       },

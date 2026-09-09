@@ -25,10 +25,6 @@ const captchaPayload = ref<null | {
   track: AuthApi.CaptchaTrack;
 }>(null);
 
-// 演示登录账号：直接用平台超管 admin，每天重置数据库后由 Bootstrap 按 .env 重建，密码与 ADMIN_BOOTSTRAP_PASSWORD 一致
-const DEMO_USERNAME = 'admin';
-const DEMO_PASSWORD = 'pt5aQ5E6t8dkVkMp';
-
 const formSchema = computed((): VbenFormSchema[] => {
   return [
     {
@@ -38,7 +34,6 @@ const formSchema = computed((): VbenFormSchema[] => {
         placeholder: $t('authentication.usernameTip'),
       },
       fieldName: 'username',
-      defaultValue: DEMO_USERNAME,
       label: $t('authentication.username'),
       rules: z.string().min(1, { message: $t('authentication.usernameTip') }),
     },
@@ -49,7 +44,6 @@ const formSchema = computed((): VbenFormSchema[] => {
         placeholder: $t('authentication.password'),
       },
       fieldName: 'password',
-      defaultValue: DEMO_PASSWORD,
       label: $t('authentication.password'),
       rules: z.string().min(1, { message: $t('authentication.passwordTip') }),
     },

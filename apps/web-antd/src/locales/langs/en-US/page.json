@@ -9,7 +9,7 @@
     "socialCallback": "Social Callback",
     "title": "Ypbin Admin",
     "techStack": "Spring Boot · Vue 3 · Sa-Token",
-    "demoTip": "Demo account is pre-filled — just click sign in (reset daily)"
+    "demoTip": "Demo environment data resets daily"
   },
   "ai": {
     "title": "AI Assistant",
