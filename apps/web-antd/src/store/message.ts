@@ -50,16 +50,28 @@ export const useMessageStore = defineStore('message', () => {
   let sseEnabled = false;
   let sseInitializing = false;
   let sseVersion = 0;
+  // 递增版本号：refresh() 的响应仅在该次调用仍是最新版本时应用，
+  // 防止 markRead/markAllRead/remove 乐观更新后发起的 refresh 与
+  // SSE message-unread 触发的 refresh 并发时，旧响应覆盖新状态。
+  let refreshVersion = 0;
 
   async function refresh() {
+    const version = ++refreshVersion;
     try {
       const [messages, count] = await Promise.all([
         getRecentMessages(10),
         getUnreadCount(),
       ]);
+      if (version !== refreshVersion) {
+        // 已有更新的刷新在途/完成，丢弃本次过期结果
+        return;
+      }
       recentMessages.value = messages;
       unreadCount.value = count;
     } catch (error) {
+      if (version !== refreshVersion) {
+        return;
+      }
       console.error('Failed to refresh messages:', error);
       throw error;
     }
@@ -141,7 +153,7 @@ export const useMessageStore = defineStore('message', () => {
       }
 
       const source = new EventSource(
-        `${apiURL}/system/ypbin/sse/subscribe?ticket=${ticket}`,
+        `${apiURL}/system/ypbin/sse/subscribe?ticket=${encodeURIComponent(ticket)}`,
       );
       eventSource = source;
 

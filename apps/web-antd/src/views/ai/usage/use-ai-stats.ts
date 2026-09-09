@@ -2,6 +2,8 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 
 import { computed, ref } from 'vue';
 
+import { message } from 'ant-design-vue';
+
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   getAiStatsDaily,
@@ -11,6 +13,7 @@ import {
   getUsageByModel,
 } from '#/api/ai';
 import { $t } from '#/locales';
+import { extractErrorMessage } from '#/utils/error';
 
 import { useModelColumns } from './data';
 
@@ -115,6 +118,9 @@ export function useAiStats() {
       hotQueries.value = h;
       kbDocs.value = k;
       onSummaryLoaded?.();
+    } catch (error) {
+      // 拉取失败：仅提示并保留已加载数据，避免将已有统计清空
+      message.error(extractErrorMessage(error, $t('common.requestFailed')));
     } finally {
       loading.value = false;
     }

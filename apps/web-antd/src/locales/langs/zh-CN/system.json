@@ -22,6 +22,7 @@
     "assignRoles": "分配角色",
     "resetPassword": "重置密码",
     "newPasswordPlaceholder": "请输入新密码",
+    "passwordRule": "密码长度为 8-32 位，且需同时包含数字与字母",
     "dept": "部门",
     "status": "状态",
     "statusChangeTitle": "切换状态",

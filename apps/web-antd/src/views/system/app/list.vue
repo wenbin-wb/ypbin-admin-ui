@@ -49,10 +49,13 @@ function onEdit(row: SystemAppApi.AppResp) {
   FormDrawerApi.setData(row).open();
 }
 function onDelete(row: SystemAppApi.AppResp) {
-  deleteApp(row.id).then(() => {
-    message.success($t('common.success'));
-    gridApi.query();
-  });
+  deleteApp(row.id)
+    .then(() => {
+      message.success($t('common.success'));
+      gridApi.query();
+    })
+    // 失败提示由全局请求拦截器统一处理，这里仅兜底避免未处理拒绝
+    .catch(() => {});
 }
 
 function onResetSecret(row: SystemAppApi.AppResp) {

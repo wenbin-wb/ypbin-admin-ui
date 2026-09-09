@@ -3,6 +3,8 @@ import type { AiApi } from './types';
 import { useAppConfig } from '@vben/hooks';
 import { preferences } from '@vben/preferences';
 import { useAccessStore } from '@vben/stores';
+
+import { handleSessionExpired } from '#/api/request';
 /**
  * 流式对话（SSE）。vben 的 postSSE 只做原始分块转发、不解析 SSE 帧，
  * 这里直接用 fetch 按标准 SSE 帧格式解析：
@@ -31,6 +33,10 @@ export async function chat(
     signal,
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      // 与会话过期拦截器同逻辑：触发登录过期统一处理（弹窗/登出），随后抛错终止流
+      await handleSessionExpired();
+    }
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   const contentType = response.headers.get('content-type') || '';

@@ -135,11 +135,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       fieldName: 'remark',
       label: $t('system.role.remark'),
     },
-    {
-      component: 'RangePicker',
-      fieldName: 'createTime',
-      label: $t('system.role.createTime'),
-    },
+    // 注意：不提供创建时间范围筛选——后端 RoleQuery 不消费 startTime/endTime 参数
   ];
 }
 

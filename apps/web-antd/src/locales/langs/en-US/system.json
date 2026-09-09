@@ -22,6 +22,7 @@
     "assignRoles": "Assign Roles",
     "resetPassword": "Reset Password",
     "newPasswordPlaceholder": "Enter new password",
+    "passwordRule": "Password must be 8-32 characters and include both digits and letters",
     "dept": "Department",
     "status": "Status",
     "statusChangeTitle": "Change Status",

@@ -189,7 +189,8 @@ async function onSave() {
 
 // 恢复初始值
 async function onReset() {
-  await formApi.resetForm();
+  // formApi.resetForm() 已废弃，统一走 reset()
+  await formApi.reset();
   await formApi.setValues({ ...initialValues.value });
   isDirty.value = false;
   message.success($t('system.config.resetDone'));
@@ -221,10 +222,8 @@ onBeforeUnmount(() =>
     <div class="group-config__toolbar">
       <Space size="small" wrap>
         <Tag color="blue">
-{{
-          $t('system.config.totalCount', [items.length])
-        }}
-</Tag>
+          {{ $t('system.config.totalCount', [items.length]) }}
+        </Tag>
         <Tag v-if="searchKeyword" color="green">
           {{ $t('system.config.filteredCount', [filteredItems.length]) }}
         </Tag>

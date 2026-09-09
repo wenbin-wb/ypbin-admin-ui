@@ -32,10 +32,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
 });
 
 function onForceLogout(row: SystemOnlineUserApi.OnlineUserResp) {
-  deleteOnlineUser(row.token).then(() => {
-    message.success($t('common.success'));
-    gridApi.reload();
-  });
+  deleteOnlineUser(row.token)
+    .then(() => {
+      message.success($t('common.success'));
+      gridApi.reload();
+    })
+    // 失败提示由全局请求拦截器统一处理，这里仅兜底避免未处理拒绝
+    .catch(() => {});
 }
 </script>
 <template>

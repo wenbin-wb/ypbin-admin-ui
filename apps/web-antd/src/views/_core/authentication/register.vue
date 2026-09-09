@@ -7,6 +7,7 @@ import { computed, h, ref } from 'vue';
 import { AuthenticationRegister, z } from '@vben/common-ui';
 
 import { $t } from '#/locales';
+import { isPasswordPolicySatisfied } from '#/utils/password';
 
 defineOptions({ name: 'Register' });
 
@@ -36,7 +37,12 @@ const formSchema = computed((): VbenFormSchema[] => {
           strengthText: () => $t('authentication.passwordStrength'),
         };
       },
-      rules: z.string().min(1, { message: $t('authentication.passwordTip') }),
+      rules: z
+        .string()
+        .min(1, { message: $t('authentication.passwordTip') })
+        .refine(isPasswordPolicySatisfied, {
+          message: $t('system.user.passwordRule'),
+        }),
     },
     {
       component: 'VbenInputPassword',

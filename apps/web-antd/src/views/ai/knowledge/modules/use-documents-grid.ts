@@ -37,14 +37,20 @@ export function useDocumentsGrid(deps: {
     pollTimer = setInterval(async () => {
       const kb = deps.getKb();
       if (!kb) return;
-      // 保持当前分页参数，仅静默替换数据
-      const res = await getDocumentList(kb.id, {
-        page: lastPage.currentPage,
-        pageSize: lastPage.pageSize,
-        keyword: docKeyword.value.trim() || undefined,
-      });
-      gridApi.grid?.loadData(res.items);
-      if (!res.items.some((d) => d.status === 0)) stopPolling();
+      try {
+        // 保持当前分页参数，仅静默替换数据
+        const res = await getDocumentList(kb.id, {
+          page: lastPage.currentPage,
+          pageSize: lastPage.pageSize,
+          keyword: docKeyword.value.trim() || undefined,
+        });
+        gridApi.grid?.loadData(res.items);
+        if (!res.items.some((d) => d.status === 0)) stopPolling();
+      } catch (error) {
+        // 轮询请求失败：停止轮询并提示（grid 工具栏仍可手动刷新），避免静默空转
+        stopPolling();
+        message.error(extractErrorMessage(error, $t('common.requestFailed')));
+      }
     }, 3000);
     isPolling.value = true;
   }

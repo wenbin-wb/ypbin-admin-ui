@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import type { Dayjs } from 'dayjs';
-
 import type { Recordable } from '@vben/types';
 
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
@@ -15,23 +13,10 @@ import { Button, message } from 'ant-design-vue';
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import { deleteRole, getRoleList, updateRoleStatus } from '#/api';
 import { $t } from '#/locales';
-import { createDateRangeCodec } from '#/utils/date-range-codec';
 import { useConfirm } from '#/views/system/_shared/confirm';
 
 import { useColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
-
-interface RoleSearchFormValues extends Record<string, unknown> {
-  createTime?: [Dayjs, Dayjs];
-}
-
-const roleSearchCodec = createDateRangeCodec<RoleSearchFormValues>()({
-  endField: 'endTime',
-  rangeField: 'createTime',
-  startField: 'startTime',
-});
-
-type RoleSearchSubmitValues = ReturnType<typeof roleSearchCodec.encode>;
 
 const { hasAccessByCodes } = useAccess();
 const canEdit = hasAccessByCodes(['system:role:edit']);
@@ -43,7 +28,6 @@ const [FormDrawer, formDrawerApi] = useVbenDrawer({
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
-    codec: roleSearchCodec,
     schema: useGridFormSchema(),
     submitOnChange: true,
   },
@@ -53,7 +37,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     keepSource: true,
     proxyConfig: {
       ajax: {
-        query: async ({ page }, formValues: RoleSearchSubmitValues) => {
+        query: async ({ page }, formValues: Recordable<any>) => {
           return await getRoleList({
             page: page.currentPage,
             pageSize: page.pageSize,

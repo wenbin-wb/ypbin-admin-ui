@@ -9,6 +9,7 @@ import { message } from 'ant-design-vue';
 
 import { changePassword } from '#/api/system/profile';
 import { $t } from '#/locales';
+import { isPasswordPolicySatisfied } from '#/utils/password';
 
 const passwordSettingRef = ref<InstanceType<typeof ProfilePasswordSetting>>();
 const submitting = ref(false);
@@ -31,6 +32,13 @@ const formSchema = computed((): VbenFormSchema[] => {
         passwordStrength: true,
         placeholder: $t('profile.newPasswordPlaceholder'),
       },
+      // 未填写时放行（提交处已有空值拦截），填写时按后端策略即时防呆
+      rules: z
+        .string()
+        .refine((value) => value === '' || isPasswordPolicySatisfied(value), {
+          message: $t('system.user.passwordRule'),
+        })
+        .optional(),
     },
     {
       fieldName: 'confirmPassword',

@@ -19,6 +19,25 @@ import { useAuthStore } from '#/store';
 
 const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
 
+/**
+ * 会话过期统一入口：清空 accessToken，并按「登录过期模式」展示过期弹窗或执行登出。
+ * 与 requestClient 的 401 拦截逻辑共用同一实现，供绕过 requestClient 的裸 fetch
+ * （如 SSE 流式对话）在收到 401 时复用。
+ */
+export async function handleSessionExpired() {
+  const accessStore = useAccessStore();
+  const authStore = useAuthStore();
+  accessStore.setAccessToken(null);
+  if (
+    preferences.app.loginExpiredMode === 'modal' &&
+    accessStore.isAccessChecked
+  ) {
+    accessStore.setLoginExpired(true);
+  } else {
+    await authStore.logout();
+  }
+}
+
 function createRequestClient(baseURL: string, options?: RequestClientOptions) {
   const client = new RequestClient({
     ...options,
@@ -30,17 +49,7 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
    */
   async function doReAuthenticate() {
     console.warn('Access token or refresh token is invalid or expired. ');
-    const accessStore = useAccessStore();
-    const authStore = useAuthStore();
-    accessStore.setAccessToken(null);
-    if (
-      preferences.app.loginExpiredMode === 'modal' &&
-      accessStore.isAccessChecked
-    ) {
-      accessStore.setLoginExpired(true);
-    } else {
-      await authStore.logout();
-    }
+    await handleSessionExpired();
   }
 
   /**

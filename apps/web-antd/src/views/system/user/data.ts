@@ -8,9 +8,11 @@ import { h } from 'vue';
 
 import { Tag } from 'ant-design-vue';
 
+import { z } from '#/adapter/form';
 import { getDeptList } from '#/api/system/dept';
 import { getPostList } from '#/api/system/post';
 import { $t } from '#/locales';
+import { isPasswordPolicySatisfied } from '#/utils/password';
 
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -24,6 +26,14 @@ export function useFormSchema(): VbenFormSchema[] {
       component: 'InputPassword',
       fieldName: 'password',
       label: $t('system.user.password'),
+      // 新建/编辑共用该 schema：编辑不改密码时值为空需放行（.optional + 空串放行），
+      // 填写密码时按后端策略即时防呆（8-32 位且含数字与字母），最终以后端校验为准
+      rules: z
+        .string()
+        .refine((value) => value === '' || isPasswordPolicySatisfied(value), {
+          message: $t('system.user.passwordRule'),
+        })
+        .optional(),
     },
     {
       component: 'Input',

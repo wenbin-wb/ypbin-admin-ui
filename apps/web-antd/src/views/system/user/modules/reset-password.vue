@@ -5,9 +5,10 @@ import { useVbenModal } from '@vben/common-ui';
 
 import { message } from 'ant-design-vue';
 
-import { useVbenForm } from '#/adapter/form';
+import { useVbenForm, z } from '#/adapter/form';
 import { resetUserPassword } from '#/api/system/user';
 import { $t } from '#/locales';
+import { isPasswordPolicySatisfied } from '#/utils/password';
 
 const emit = defineEmits(['success']);
 const userId = ref('');
@@ -18,7 +19,14 @@ const [Form, formApi] = useVbenForm({
       component: 'InputPassword',
       fieldName: 'password',
       label: $t('system.user.password'),
-      rules: 'required',
+      rules: z
+        .string()
+        .min(1, {
+          message: $t('ui.formRules.required', [$t('system.user.password')]),
+        })
+        .refine(isPasswordPolicySatisfied, {
+          message: $t('system.user.passwordRule'),
+        }),
       componentProps: { placeholder: $t('system.user.newPasswordPlaceholder') },
     },
   ],

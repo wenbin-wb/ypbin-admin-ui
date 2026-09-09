@@ -1,7 +1,14 @@
+<script lang="ts">
+// 分享口令只保存在内存（模块级 Map，按 token 隔离），不写入 sessionStorage：
+// 组件卸载时清除对应口令，刷新页面后内存即失需重新输入（安全优先，避免明文持久化）。
+// 说明：路由切换时若组件被缓存（keep-alive）口令自然保留；未缓存则在卸载时一并清除。
+const sharePasswordMap = new Map<string, string>();
+</script>
+
 <script lang="ts" setup>
 import type { AiApi } from '#/api/ai';
 
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { IconifyIcon } from '@vben/icons';
@@ -43,7 +50,7 @@ const config = ref<null | {
 }>(null);
 const configError = ref('');
 
-const password = ref(sessionStorage.getItem(`ypbin-share-pwd-${token}`) ?? '');
+const password = ref(sharePasswordMap.get(token) ?? '');
 const pwdInput = ref('');
 const verified = ref(false);
 const checking = ref(false);
@@ -119,7 +126,7 @@ async function unlock() {
     password.value = pwdInput.value.trim();
     // 密码错误时文档列表接口会抛出业务异常
     await loadDocs();
-    sessionStorage.setItem(`ypbin-share-pwd-${token}`, password.value);
+    sharePasswordMap.set(token, password.value);
     verified.value = true;
   } catch (error) {
     password.value = '';
@@ -180,6 +187,11 @@ onMounted(async () => {
   } catch (error) {
     configError.value = extractErrorMessage(error, $t('page.ai.share.invalid'));
   }
+});
+
+// 组件卸载时清除该 token 的已记忆口令，避免内存中长期留存
+onUnmounted(() => {
+  sharePasswordMap.delete(token);
 });
 </script>
 

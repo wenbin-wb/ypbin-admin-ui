@@ -6,6 +6,7 @@ import type { SystemMessageApi } from '#/api/system/message';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
+import { useAccess } from '@vben/access';
 import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
 import { useWatermark } from '@vben/hooks';
 import { BookOpenText, CircleHelp, SvgGithubIcon } from '@vben/icons';
@@ -36,9 +37,12 @@ const router = useRouter();
 const userStore = useUserStore();
 const authStore = useAuthStore();
 const accessStore = useAccessStore();
+const { hasAccessByCodes } = useAccess();
 const { destroyWatermark, updateWatermark } = useWatermark();
 const { isDark } = usePreferences();
 const showDot = computed(() => unreadCount.value > 0);
+// AI 悬浮助手仅对具备发起对话权限的用户渲染
+const canUseAiAssistant = hasAccessByCodes(['ai:chat:create']);
 
 // 当前用户邮箱来自共享用户信息，资料保存后会立即同步头像下拉
 const userEmail = computed(() => userStore.userInfo?.email ?? '');
@@ -243,5 +247,5 @@ watch(
   <!-- 注意：BasicLayout 无默认插槽（页面内容由内部 RouterView 渲染），
        放在 BasicLayout 内部的普通元素不会挂载；故消息预览弹窗、AI 悬浮助手作为兄弟节点渲染 -->
   <MessagePreview v-model:open="previewVisible" :data="previewData" />
-  <AssistantWidget />
+  <AssistantWidget v-if="canUseAiAssistant" />
 </template>

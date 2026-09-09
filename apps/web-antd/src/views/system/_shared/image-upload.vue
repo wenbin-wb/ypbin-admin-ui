@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { SystemCommonApi } from '#/api/system/common';
 
-import { ref } from 'vue';
+import { onUnmounted, ref } from 'vue';
 
 import { useVbenModal, VCropper } from '@vben/common-ui';
 import { IconifyIcon } from '@vben/icons';
@@ -71,7 +71,24 @@ const [CropModal, cropModalApi] = useVbenModal({
       loading.value = false;
     }
   },
+  // 关闭/取消裁剪弹窗时释放本地预览用的对象 URL，防止内存泄漏
+  onOpenChange(isOpen: boolean) {
+    if (!isOpen) {
+      revokeRawImg();
+    }
+  },
 });
+
+/** 释放当前 rawImg 的 object URL 并清空 */
+function revokeRawImg() {
+  if (rawImg.value) {
+    URL.revokeObjectURL(rawImg.value);
+    rawImg.value = '';
+  }
+}
+
+// 组件卸载时兜底释放，避免残留的 blob URL
+onUnmounted(revokeRawImg);
 
 function onPick() {
   fileInputRef.value?.click();
@@ -90,6 +107,8 @@ function onFileChange(e: Event) {
     message.error($t('ui.formRules.sizeLimit', [props.maxSize]));
     return;
   }
+  // 替换选图前先释放上一次的 object URL
+  revokeRawImg();
   rawImg.value = URL.createObjectURL(file);
   cropModalApi.open();
 }
