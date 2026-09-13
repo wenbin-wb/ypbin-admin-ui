@@ -1,15 +1,20 @@
 version: 2
 updates:
-  # 监控 npm (pnpm) 依赖安全漏洞（open-pull-requests-limit: 0 仅后台告警，不自动创建 PR 分支）
-  - package-ecosystem: "npm"
+  - package-ecosystem: npm
     directory: "/"
     schedule:
-      interval: "monthly"
-    open-pull-requests-limit: 0
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      dev-tooling:
+        dependency-type: development
+    labels:
+      - dependencies
 
-  # 监控 GitHub Actions 版本安全
-  - package-ecosystem: "github-actions"
+  - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: "monthly"
-    open-pull-requests-limit: 0
+      interval: monthly
+    labels:
+      - dependencies
