@@ -1,0 +1,12 @@
+# CodeQL 扫描范围配置
+#
+# 为什么要排除 dist：本仓库的 CodeQL 工作流会先执行 `pnpm -F @vben/web-antd run build`
+# 以生成数据库，构建产物 apps/web-antd/dist/** 随之落盘，而 CodeQL 默认会扫描工作区里的
+# 所有 JS/TS——于是「打包产物」与「上游 Vben 框架代码」的告警混进了本项目的安全面板。
+# 这里只保留源码：产物目录、依赖目录与覆盖率输出一律不扫。
+name: "ypbin-admin-ui CodeQL 配置"
+paths-ignore:
+  - "**/dist/**"
+  - "**/node_modules/**"
+  - "**/coverage/**"
+  - "**/.turbo/**"

@@ -43,6 +43,8 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           queries: security-and-quality
+          # 排除构建产物（工作流会先 build，dist 产物不应进安全面板）
+          config-file: ./.github/codeql/codeql-config.yml
 
       - name: 构建（生成 CodeQL 数据库）
         run: |
