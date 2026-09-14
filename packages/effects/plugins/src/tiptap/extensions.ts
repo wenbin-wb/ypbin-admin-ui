@@ -310,13 +310,14 @@ function createCustomImage(
             // tiptap 3.31 随 ProseMirror 类型更新把处理器签名变为
             // (this: Plugin, view, event, slice[, moved])。两个要点：
             // ① 目标类型带 this: Plugin，**箭头函数无法声明 this 参数**，故改为方法简写并显式标注 this；
-            // ② 新增参数声明为可选，使同一份代码在 3.28（少参数、无 this）下也成立。
+            // ② slice / moved 必须是**必填**参数：可选参数在 TS 里不能赋值给必填参数（方向与直觉相反）。
+            //    注意 3.28 与 3.31 无法共用一份签名，故本改动必须与 @tiptap/* 整组升级同批落地。
             handleDrop(
               this: Plugin,
               view: EditorView,
               event: DragEvent,
-              _slice?: Slice,
-              _moved?: boolean,
+              _slice: Slice,
+              _moved: boolean,
             ) {
               if (!event.dataTransfer?.files.length) return false;
 
@@ -368,7 +369,7 @@ function createCustomImage(
               this: Plugin,
               _view: EditorView,
               event: ClipboardEvent,
-              _slice?: Slice,
+              _slice: Slice,
             ) {
               const items = event.clipboardData?.items;
               if (!items) return false;
