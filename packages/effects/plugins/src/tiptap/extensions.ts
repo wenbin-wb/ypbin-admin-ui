@@ -307,14 +307,17 @@ function createCustomImage(
         new Plugin({
           key: new PluginKey('imageUploadDrop'),
           props: {
-            // tiptap 3.31（ProseMirror 类型更新）把处理器签名扩为 (view, event, slice, moved)，
-            // 这里把新增参数声明为可选：既可赋值给 3.31 的四参签名，也不影响 3.28
-            handleDrop: (
+            // tiptap 3.31 随 ProseMirror 类型更新把处理器签名变为
+            // (this: Plugin, view, event, slice[, moved])。两个要点：
+            // ① 目标类型带 this: Plugin，**箭头函数无法声明 this 参数**，故改为方法简写并显式标注 this；
+            // ② 新增参数声明为可选，使同一份代码在 3.28（少参数、无 this）下也成立。
+            handleDrop(
+              this: Plugin,
               view: EditorView,
               event: DragEvent,
               _slice?: Slice,
               _moved?: boolean,
-            ) => {
+            ) {
               if (!event.dataTransfer?.files.length) return false;
 
               const imageFiles = [...event.dataTransfer.files].filter((f) =>
@@ -361,11 +364,12 @@ function createCustomImage(
         new Plugin({
           key: new PluginKey('imageUploadPaste'),
           props: {
-            handlePaste: (
+            handlePaste(
+              this: Plugin,
               _view: EditorView,
               event: ClipboardEvent,
               _slice?: Slice,
-            ) => {
+            ) {
               const items = event.clipboardData?.items;
               if (!items) return false;
 
