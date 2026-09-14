@@ -194,16 +194,19 @@ export function createToolbarGroups(
         label: $t('ui.tiptap.toolbar.bold'),
       },
       {
-        action: (editor) => editor.chain().focus().toggleItalic().run(),
+        action: (editor) => editor.chain().focus().toggleMark('italic').run(),
         active: { name: 'italic' },
-        can: (editor) => editor.can().chain().focus().toggleItalic().run(),
+        can: (editor) =>
+          editor.can().chain().focus().toggleMark('italic').run(),
         icon: Italic,
         label: $t('ui.tiptap.toolbar.italic'),
       },
       {
-        action: (editor) => editor.chain().focus().toggleUnderline().run(),
+        action: (editor) =>
+          editor.chain().focus().toggleMark('underline').run(),
         active: { name: 'underline' },
-        can: (editor) => editor.can().chain().focus().toggleUnderline().run(),
+        can: (editor) =>
+          editor.can().chain().focus().toggleMark('underline').run(),
         icon: Underline,
         label: $t('ui.tiptap.toolbar.underline'),
       },
