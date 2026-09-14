@@ -331,8 +331,8 @@ catalogs:
       specifier: ^1.1.0
       version: 1.1.0
     naive-ui:
-      specifier: ^2.44.1
-      version: 2.44.1
+      specifier: ^2.45.3
+      version: 2.45.3
     nitropack:
       specifier: ^2.13.4
       version: 2.13.4
@@ -914,7 +914,7 @@ importers:
         version: 14.3.0(vue@3.5.40(typescript@6.0.3))
       naive-ui:
         specifier: 'catalog:'
-        version: 2.44.1(vue@3.5.40(typescript@6.0.3))
+        version: 2.45.3(vue@3.5.40(typescript@6.0.3))
       pinia:
         specifier: ^4.0.2
         version: 4.0.2(@vue/devtools-api@8.1.5)(typescript@6.0.3)(vue@3.5.40(typescript@6.0.3))
@@ -8919,8 +8919,8 @@ packages:
   muggle-string@0.4.1:
     resolution: {integrity: sha512-VNTrAak/KhO2i8dqqnqnAHOa3cYBwXEZe9h+D5h/1ZqFSTEFHdM65lR7RoIqq3tBBYavsOXV84NoHXZ0AkPyqQ==}
 
-  naive-ui@2.44.1:
-    resolution: {integrity: sha512-reo8Esw0p58liZwbUutC7meW24Xbn3EwNv91zReWKm2W4JPu+zfgJRn/F7aO0BFmvN+h2brA2M5lRvYqLq4kuA==}
+  naive-ui@2.45.3:
+    resolution: {integrity: sha512-D83gJ+6zUdkQ5DuUbmlfyaM1t8pV5WMPa6KmL9mByqQuiL12qBdA0n/iEIth4dQw1x/duNGpOS2anpt5FKO1kw==}
     engines: {node: '>=20'}
     peerDependencies:
       vue: ^3.5.40
@@ -11084,8 +11084,8 @@ packages:
       typescript:
         optional: true
 
-  vueuc@0.4.65:
-    resolution: {integrity: sha512-lXuMl+8gsBmruudfxnMF9HW4be8rFziylXFu1VHVNbLVhRTXXV4njvpRuJapD/8q+oFEMSfQMH16E/85VoWRyQ==}
+  vueuc@0.4.66:
+    resolution: {integrity: sha512-hHrZl+0AsrUvqYPBXSXQ2QaSrO3razjeUseLAhJWlOS/Hdfw/Y2MU05fOTP1qn1A3121gMxsHLaEz2V6CkWdTg==}
     peerDependencies:
       vue: ^3.5.40
 
@@ -18227,7 +18227,7 @@ snapshots:
 
   muggle-string@0.4.1: {}
 
-  naive-ui@2.44.1(vue@3.5.40(typescript@6.0.3)):
+  naive-ui@2.45.3(vue@3.5.40(typescript@6.0.3)):
     dependencies:
       '@css-render/plugin-bem': 0.15.14(css-render@0.15.14)
       '@css-render/vue3-ssr': 0.15.14(vue@3.5.40(typescript@6.0.3))
@@ -18247,7 +18247,7 @@ snapshots:
       vdirs: 0.1.8(vue@3.5.40(typescript@6.0.3))
       vooks: 0.2.12(vue@3.5.40(typescript@6.0.3))
       vue: 3.5.40(typescript@6.0.3)
-      vueuc: 0.4.65(vue@3.5.40(typescript@6.0.3))
+      vueuc: 0.4.66(vue@3.5.40(typescript@6.0.3))
 
   nanoid@3.3.16: {}
 
@@ -20749,7 +20749,7 @@ snapshots:
     optionalDependencies:
       typescript: 6.0.3
 
-  vueuc@0.4.65(vue@3.5.40(typescript@6.0.3)):
+  vueuc@0.4.66(vue@3.5.40(typescript@6.0.3)):
     dependencies:
       '@css-render/vue3-ssr': 0.15.14(vue@3.5.40(typescript@6.0.3))
       '@juggle/resize-observer': 3.4.0
