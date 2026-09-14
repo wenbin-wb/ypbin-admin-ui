@@ -1,5 +1,5 @@
 import type { Editor as CoreEditor } from '@tiptap/core';
-import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
+import type { Node as ProseMirrorNode, Slice } from '@tiptap/pm/model';
 import type { EditorView } from '@tiptap/pm/view';
 import type { Extensions } from '@tiptap/vue-3';
 
@@ -307,7 +307,14 @@ function createCustomImage(
         new Plugin({
           key: new PluginKey('imageUploadDrop'),
           props: {
-            handleDrop: (view: EditorView, event: DragEvent) => {
+            // tiptap 3.31（ProseMirror 类型更新）把处理器签名扩为 (view, event, slice, moved)，
+            // 这里把新增参数声明为可选：既可赋值给 3.31 的四参签名，也不影响 3.28
+            handleDrop: (
+              view: EditorView,
+              event: DragEvent,
+              _slice?: Slice,
+              _moved?: boolean,
+            ) => {
               if (!event.dataTransfer?.files.length) return false;
 
               const imageFiles = [...event.dataTransfer.files].filter((f) =>
@@ -354,7 +361,11 @@ function createCustomImage(
         new Plugin({
           key: new PluginKey('imageUploadPaste'),
           props: {
-            handlePaste: (_view: EditorView, event: ClipboardEvent) => {
+            handlePaste: (
+              _view: EditorView,
+              event: ClipboardEvent,
+              _slice?: Slice,
+            ) => {
               const items = event.clipboardData?.items;
               if (!items) return false;
 
