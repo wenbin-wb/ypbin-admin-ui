@@ -66,18 +66,18 @@ catalog:
   '@tanstack/vue-form': ^1.33.2
   '@tanstack/vue-query': ^5.101.4
   '@tanstack/vue-store': ^0.11.0
-  '@tiptap/core': ^3.28.0
-  '@tiptap/extension-document': ^3.28.0
-  '@tiptap/extension-highlight': ^3.28.0
-  '@tiptap/extension-image': ^3.28.0
-  '@tiptap/extension-link': ^3.28.0
-  '@tiptap/extension-placeholder': ^3.28.0
-  '@tiptap/extension-text-align': ^3.28.0
-  '@tiptap/extension-text-style': ^3.28.0
-  '@tiptap/extension-underline': ^3.28.0
-  '@tiptap/pm': ^3.28.0
-  '@tiptap/starter-kit': ^3.28.0
-  '@tiptap/vue-3': ^3.28.0
+  '@tiptap/core': ^3.31.3
+  '@tiptap/extension-document': ^3.31.3
+  '@tiptap/extension-highlight': ^3.31.3
+  '@tiptap/extension-image': ^3.31.3
+  '@tiptap/extension-link': ^3.31.3
+  '@tiptap/extension-placeholder': ^3.31.3
+  '@tiptap/extension-text-align': ^3.31.3
+  '@tiptap/extension-text-style': ^3.31.3
+  '@tiptap/extension-underline': ^3.31.3
+  '@tiptap/pm': ^3.31.3
+  '@tiptap/starter-kit': ^3.31.3
+  '@tiptap/vue-3': ^3.31.3
   '@tsdown/css': ^0.22.13
   '@types/archiver': ^8.0.0
   '@types/html-minifier-terser': ^7.0.2
