@@ -39,7 +39,7 @@ jobs:
           cache: pnpm
 
       - name: 初始化 CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           queries: security-and-quality
@@ -50,4 +50,4 @@ jobs:
           pnpm -F @vben/web-antd run build
 
       - name: 执行 CodeQL 分析
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
