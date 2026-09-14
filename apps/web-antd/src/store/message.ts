@@ -2,6 +2,8 @@ import type { NotificationItem } from '@vben/layouts';
 
 import type { SystemMessageApi } from '#/api/system/message';
 
+import { toPlainText } from '#/utils/text';
+
 import { computed, ref } from 'vue';
 
 import { useAppConfig } from '@vben/hooks';
@@ -31,7 +33,7 @@ function toNotification(
     date: message.createTime,
     id: message.id,
     isRead: message.readStatus === 1,
-    message: message.content.replaceAll(/<[^>]+>/g, '').slice(0, 60),
+    message: toPlainText(message.content),
     title: message.title,
   };
 }

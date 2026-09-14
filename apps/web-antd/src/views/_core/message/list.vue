@@ -11,6 +11,7 @@ import { Button, message, Tabs, Tag } from 'ant-design-vue';
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import { $t } from '#/locales';
 import { useMessageStore } from '#/store';
+import { toPlainText } from '#/utils/text';
 import MessagePreview from '#/views/system/_shared/message-preview.vue';
 
 const messageStore = useMessageStore();
@@ -57,10 +58,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
         minWidth: 320,
         slots: {
           default: ({ row }) => {
-            const text = row.content
-              ? `${row.content}`.replaceAll(/<[^>]+>/g, '').trim()
-              : '';
-            return text.length > 60 ? `${text.slice(0, 60)}...` : text;
+            return toPlainText(row.content);
           },
         },
       },
