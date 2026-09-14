@@ -169,8 +169,8 @@ catalogs:
       specifier: ^5.1.6
       version: 5.1.6
     '@vue/shared':
-      specifier: ^3.5.40
-      version: 3.5.40
+      specifier: ^3.5.42
+      version: 3.5.42
     '@vue/test-utils':
       specifier: ^2.4.11
       version: 2.4.11
@@ -1340,7 +1340,7 @@ importers:
         version: 0.11.0(vue@3.5.40(typescript@6.0.3))
       '@vue/shared':
         specifier: 'catalog:'
-        version: 3.5.40
+        version: 3.5.42
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -6012,6 +6012,9 @@ packages:
 
   '@vue/shared@3.5.40':
     resolution: {integrity: sha512-WxnBtruIqOoV3rA4jeKDWzrYI5h7Cp4+pjwDi8kWGHz+IslhiN+wguLVVhtv2l8VoU02rzDCVfDjgCl1lNpZVg==}
+
+  '@vue/shared@3.5.42':
+    resolution: {integrity: sha512-2rPxex1jQf4jvl9MOHl6YaXCPcrNqz/FstMOEh3QWY+/OME9nQTvl9WYeCwhW7AFjaR0SnngZGlp/wkR6rkI6g==}
 
   '@vue/test-utils@2.4.11':
     resolution: {integrity: sha512-GDqaqZsA6m2E5vNzej0aYiIb6BX8xV9pNSbbbXKOfEYwg7ZNblVX8suyqmUBThq8VIrgAJNxn+z72hVtUeiWHA==}
@@ -15213,6 +15216,8 @@ snapshots:
       '@vue/shared': 3.5.40
 
   '@vue/shared@3.5.40': {}
+
+  '@vue/shared@3.5.42': {}
 
   '@vue/test-utils@2.4.11(@vue/compiler-dom@3.5.40)(@vue/server-renderer@3.5.40)(vue@3.5.40(typescript@6.0.3))':
     dependencies:
