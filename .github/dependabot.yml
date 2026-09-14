@@ -7,8 +7,20 @@ updates:
       day: monday
     open-pull-requests-limit: 10
     groups:
+      # 开发工具链整体一组（含 typescript / vue-tsc / linter），保证同批升级、互相兼容
       dev-tooling:
         dependency-type: development
+      # 运行时生态必须整组同版本升级：tiptap 的命令类型靠各扩展包对 @tiptap/core 做模块增强，
+      # 只升 starter-kit 会造成 core 与扩展版本错配、类型增强失效（曾因此让升级 PR 无法通过校验）
+      tiptap:
+        patterns:
+          - "@tiptap/*"
+      # Vue 运行时 + 编译器需同版本（编译器与运行时版本不一致会产生难以定位的构建问题）
+      vue:
+        patterns:
+          - "vue"
+          - "@vue/*"
+          - "vue-router"
     labels:
       - dependencies
 
