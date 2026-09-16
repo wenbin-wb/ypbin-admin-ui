@@ -26,6 +26,8 @@
     "receivedTime": "Received Time",
     "payload": "Event Properties",
     "payloadEmpty": "No properties",
+    "payloadTranslated": "{0} ({1})",
+    "payloadI18nHint": "Values that look like an i18n key and exist in the language pack are translated into the current language; the original key is kept in parentheses.",
     "unknownEventCode": "Unregistered event code",
     "export": "Export",
     "exportFileName": "tracking-events.xlsx",
