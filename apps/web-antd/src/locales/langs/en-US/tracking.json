@@ -51,6 +51,30 @@
     "sourceBackend": "Backend",
     "sourceIot": "IoT Platform"
   },
+  "analysis": {
+    "title": "Tracking Analysis",
+    "description": "Overview, top events and app distribution are fixed to the last 7 days; the trend chart switches between 7 and 30 days.",
+    "totalEvents": "Total Events",
+    "todayEvents": "Today",
+    "weekEvents": "Events (7d)",
+    "weekUsers": "Active Users (7d)",
+    "weekFailures": "Failures (7d)",
+    "failureRate": "Failure rate {0}",
+    "failureRateUnavailable": "Failure rate -",
+    "trendTitle": "Event Trend",
+    "trendDays7": "Last 7 days",
+    "trendDays30": "Last 30 days",
+    "trendSeries": "Events",
+    "topTitle": "Top Events",
+    "eventCode": "Event Code",
+    "count": "Count",
+    "ratio": "Share",
+    "ratioBasis": "Share = events of this code in 7d / all events in 7d",
+    "appTitle": "App Distribution",
+    "appIdUnset": "Not set",
+    "noData": "No data",
+    "loadFailed": "Failed to load tracking analysis data"
+  },
   "event": {
     "export": "Export tracking events"
   }

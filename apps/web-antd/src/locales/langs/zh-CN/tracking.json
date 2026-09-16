@@ -51,6 +51,30 @@
     "sourceBackend": "后端",
     "sourceIot": "IoT 平台"
   },
+  "analysis": {
+    "title": "埋点分析",
+    "description": "概览、Top 事件与应用分布固定统计近 7 天；趋势图可切换近 7 天 / 近 30 天。",
+    "totalEvents": "总事件数",
+    "todayEvents": "今日事件",
+    "weekEvents": "近 7 天事件",
+    "weekUsers": "近 7 天活跃用户",
+    "weekFailures": "近 7 天失败数",
+    "failureRate": "失败率 {0}",
+    "failureRateUnavailable": "失败率 -",
+    "trendTitle": "事件趋势",
+    "trendDays7": "近 7 天",
+    "trendDays30": "近 30 天",
+    "trendSeries": "事件数",
+    "topTitle": "Top 事件",
+    "eventCode": "事件码",
+    "count": "次数",
+    "ratio": "占比",
+    "ratioBasis": "占比 = 该事件近 7 天次数 / 近 7 天事件总数",
+    "appTitle": "应用分布",
+    "appIdUnset": "未设置",
+    "noData": "暂无数据",
+    "loadFailed": "埋点分析数据加载失败"
+  },
   "event": {
     "export": "导出埋点事件"
   }
