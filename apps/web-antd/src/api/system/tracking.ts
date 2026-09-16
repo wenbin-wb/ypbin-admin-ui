@@ -69,6 +69,20 @@ export namespace SystemTrackingApi {
     date: string;
     count: string;
   }
+
+  /** Top 事件（只有事件码，中文描述由前端按事件目录映射） */
+  export interface TrackTopEvent {
+    eventCode: string;
+    /** 次数（Long，字符串传输） */
+    count: string;
+  }
+
+  /** 应用维度计数（appId 可能为空，表示上报方未带应用标识） */
+  export interface TrackAppCount {
+    appId?: string;
+    /** 次数（Long，字符串传输） */
+    count: string;
+  }
 }
 
 /** 概览统计 */
@@ -85,6 +99,29 @@ export function getTrackOverview() {
 export function getTrackTrend(days: number) {
   return requestClient.get<SystemTrackingApi.TrackTrend[]>(
     '/system/tracking/events/trend',
+    { params: { days } },
+  );
+}
+
+/**
+ * Top 事件排行（按次数降序）
+ * @param days 统计天数（1..90）
+ * @param limit 返回条数（1..50）
+ */
+export function getTrackTopEvents(days: number, limit: number) {
+  return requestClient.get<SystemTrackingApi.TrackTopEvent[]>(
+    '/system/tracking/events/top',
+    { params: { days, limit } },
+  );
+}
+
+/**
+ * 应用维度分布（按次数降序）
+ * @param days 统计天数（1..90）
+ */
+export function getTrackAppDistribution(days: number) {
+  return requestClient.get<SystemTrackingApi.TrackAppCount[]>(
+    '/system/tracking/apps/distribution',
     { params: { days } },
   );
 }
