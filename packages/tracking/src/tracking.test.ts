@@ -11,7 +11,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initTracking, reportApiCall, TrackingEventCodes } from './index';
 
 /** 捕获路由后置钩子，便于在测试里模拟导航 */
-let routeHook: ((to: { meta?: unknown; path: string }) => void) | null = null;
+// 类型从接口派生，避免与 TrackableRouter 的签名各写一份而漂移
+// （此前这里手写成单参数，与接口的三参数签名不兼容——该包此前没有 typecheck 门禁，所以一直没暴露）
+type RouteHook = Parameters<TrackableRouter['afterEach']>[0];
+let routeHook: null | RouteHook = null;
 
 interface SentBody {
   appId: string;
@@ -116,10 +119,13 @@ describe('tracking sdk', () => {
       url: '/tracking/ingest',
     });
 
-    routeHook?.({
-      meta: { title: 'page.system.user' },
-      path: '/system/user?token=secret',
-    });
+    routeHook?.(
+      {
+        meta: { title: 'page.system.user' },
+        path: '/system/user?token=secret',
+      },
+      undefined,
+    );
     await handle.flush();
 
     const body = lastSentBody(fetchMock);
@@ -144,7 +150,7 @@ describe('tracking sdk', () => {
       url: '/tracking/ingest',
     });
 
-    routeHook?.({ path: '/dashboard' });
+    routeHook?.({ path: '/dashboard' }, undefined);
     await handle.flush();
 
     expect(lastSentHeaders(fetchMock)).toEqual({
@@ -162,12 +168,12 @@ describe('tracking sdk', () => {
     });
 
     token = 'first-token';
-    routeHook?.({ path: '/dashboard' });
+    routeHook?.({ path: '/dashboard' }, undefined);
     await handle.flush();
     expect(lastSentHeaders(fetchMock).Authorization).toBe('Bearer first-token');
 
     token = 'second-token';
-    routeHook?.({ path: '/system/user' });
+    routeHook?.({ path: '/system/user' }, undefined);
     await handle.flush();
     expect(lastSentHeaders(fetchMock).Authorization).toBe(
       'Bearer second-token',
@@ -180,7 +186,7 @@ describe('tracking sdk', () => {
       appId: 'ypbin-admin-ui',
       url: '/tracking/ingest',
     });
-    routeHook?.({ path: '/dashboard' });
+    routeHook?.({ path: '/dashboard' }, undefined);
     await handle.flush();
     expect(lastSentHeaders(fetchMock)).not.toHaveProperty('Authorization');
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -192,7 +198,7 @@ describe('tracking sdk', () => {
       getToken: () => undefined,
       url: '/tracking/ingest',
     });
-    routeHook?.({ path: '/system/user' });
+    routeHook?.({ path: '/system/user' }, undefined);
     await handle.flush();
     expect(lastSentHeaders(fetchMock)).not.toHaveProperty('Authorization');
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -207,7 +213,7 @@ describe('tracking sdk', () => {
       url: '/tracking/ingest',
     });
 
-    routeHook?.({ path: '/dashboard' });
+    routeHook?.({ path: '/dashboard' }, undefined);
     await expect(handle.flush()).resolves.toBeUndefined();
 
     expect(lastSentHeaders(fetchMock)).not.toHaveProperty('Authorization');
@@ -224,8 +230,8 @@ describe('tracking sdk', () => {
       url: '/tracking/ingest',
     });
 
-    routeHook?.({ path: '/dashboard' });
-    routeHook?.({ path: '/dashboard' });
+    routeHook?.({ path: '/dashboard' }, undefined);
+    routeHook?.({ path: '/dashboard' }, undefined);
     await handle.flush();
 
     const views = lastSentBody(fetchMock).events.filter(
@@ -240,8 +246,8 @@ describe('tracking sdk', () => {
       url: '/tracking/ingest',
     });
 
-    routeHook?.({ path: '/dashboard' });
-    routeHook?.({ path: '/system/user' });
+    routeHook?.({ path: '/dashboard' }, undefined);
+    routeHook?.({ path: '/system/user' }, undefined);
     await handle.flush();
 
     const leaves = lastSentBody(fetchMock).events.filter(
@@ -316,7 +322,7 @@ describe('tracking sdk', () => {
       url: '/tracking/ingest',
     });
 
-    routeHook?.({ path: '/dashboard' });
+    routeHook?.({ path: '/dashboard' }, undefined);
 
     await expect(handle.flush()).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -338,7 +344,7 @@ describe('tracking sdk', () => {
       url: '/tracking/ingest',
     });
 
-    routeHook?.({ path: '/dashboard' });
+    routeHook?.({ path: '/dashboard' }, undefined);
     globalThis.dispatchEvent(new Event('pagehide'));
 
     expect(sendBeacon).toHaveBeenCalledTimes(1);

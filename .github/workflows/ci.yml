@@ -38,6 +38,11 @@ jobs:
         # 这里显式接入，避免「命令成功但其实没跑」的假绿。
         run: pnpm -F @vben/tracking test
 
+      - name: 类型检查（埋点 SDK）
+        # 与单测同理：该包此前既无 scripts、也无 typecheck 门禁，
+        # 包内一处签名不兼容（测试假 router 的回调参数）一直没被 CI 发现。
+        run: pnpm -F @vben/tracking run typecheck
+
       - name: 构建（web-antd）
         run: pnpm -F @vben/web-antd run build
 
