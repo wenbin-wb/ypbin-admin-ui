@@ -47,6 +47,17 @@ function lastSentBody(fetchMock: ReturnType<typeof vi.fn>): SentBody {
   ) as SentBody;
 }
 
+/** 取出最后一次 fetch 的请求头 */
+function lastSentHeaders(
+  fetchMock: ReturnType<typeof vi.fn>,
+): Record<string, string> {
+  const last = fetchMock.mock.calls.at(-1);
+  return (
+    (last?.[1] as { headers?: Record<string, string> } | undefined)?.headers ??
+    {}
+  );
+}
+
 describe('tracking sdk', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -124,6 +135,87 @@ describe('tracking sdk', () => {
     });
     expect(event?.eventId).toBeTruthy();
     expect(event?.sessionId).toBeTruthy();
+  });
+
+  it('提供令牌时请求头带 Authorization: Bearer <token>', async () => {
+    handle = initTracking(createApp(), createRouter(), {
+      appId: 'ypbin-admin-ui',
+      getToken: () => 'token-from-access-store',
+      url: '/tracking/ingest',
+    });
+
+    routeHook?.({ path: '/dashboard' });
+    await handle.flush();
+
+    expect(lastSentHeaders(fetchMock)).toEqual({
+      Authorization: 'Bearer token-from-access-store',
+      'Content-Type': 'application/json',
+    });
+  });
+
+  it('每次上报都重新取令牌（登录/登出后不沿用旧值）', async () => {
+    let token: string | undefined;
+    handle = initTracking(createApp(), createRouter(), {
+      appId: 'ypbin-admin-ui',
+      getToken: () => token,
+      url: '/tracking/ingest',
+    });
+
+    token = 'first-token';
+    routeHook?.({ path: '/dashboard' });
+    await handle.flush();
+    expect(lastSentHeaders(fetchMock).Authorization).toBe('Bearer first-token');
+
+    token = 'second-token';
+    routeHook?.({ path: '/system/user' });
+    await handle.flush();
+    expect(lastSentHeaders(fetchMock).Authorization).toBe(
+      'Bearer second-token',
+    );
+  });
+
+  it('没有令牌（回调缺失或返回空）时不含 Authorization 头，保持匿名可用', async () => {
+    // 场景一：宿主根本没提供 getToken 回调
+    handle = initTracking(createApp(), createRouter(), {
+      appId: 'ypbin-admin-ui',
+      url: '/tracking/ingest',
+    });
+    routeHook?.({ path: '/dashboard' });
+    await handle.flush();
+    expect(lastSentHeaders(fetchMock)).not.toHaveProperty('Authorization');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 场景二：提供了回调但当前未登录（返回空值）
+    handle.stop();
+    handle = initTracking(createApp(), createRouter(), {
+      appId: 'ypbin-admin-ui',
+      getToken: () => undefined,
+      url: '/tracking/ingest',
+    });
+    routeHook?.({ path: '/system/user' });
+    await handle.flush();
+    expect(lastSentHeaders(fetchMock)).not.toHaveProperty('Authorization');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('取令牌回调抛异常时降级为匿名上报，上报本身不失败', async () => {
+    handle = initTracking(createApp(), createRouter(), {
+      appId: 'ypbin-admin-ui',
+      getToken: () => {
+        throw new Error('store not ready');
+      },
+      url: '/tracking/ingest',
+    });
+
+    routeHook?.({ path: '/dashboard' });
+    await expect(handle.flush()).resolves.toBeUndefined();
+
+    expect(lastSentHeaders(fetchMock)).not.toHaveProperty('Authorization');
+    expect(lastSentBody(fetchMock).events).toHaveLength(1);
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining('获取访问令牌失败'),
+      expect.any(Error),
+    );
   });
 
   it('首屏重定向导致的重复导航只产生一条 page.view', async () => {

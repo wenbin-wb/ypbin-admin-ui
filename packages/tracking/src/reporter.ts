@@ -5,7 +5,9 @@
  * - **不阻塞业务**：入队即返回，上报全部异步进行；
  * - **不重试**：失败只告警不重试——重试会在网络故障时放大流量，而后端是「允许丢弃」的语义；
  * - **离页兜底**：`pagehide` / `visibilitychange` 时用 `sendBeacon` 上报，普通请求在卸载阶段会丢；
- * - **失败可见**：拒绝与失败都会打印告警，不静默吞掉。
+ * - **失败可见**：拒绝与失败都会打印告警，不静默吞掉；
+ * - **身份可选**：宿主提供 `getToken` 时带上 `Authorization: Bearer <token>`（网关据此注入身份头），
+ *   取不到令牌则保持匿名上报——**取令牌失败绝不阻断上报**。
  */
 import type {
   TrackEventBody,
@@ -68,6 +70,8 @@ export class Reporter {
     const events = this.queue.splice(0, this.options.batchSize);
     const body = JSON.stringify({ appId: this.options.appId, events });
     if (globalThis.navigator?.sendBeacon) {
+      // 注意：sendBeacon 的规范不允许设置请求头，因此这一批在服务端仍是匿名身份
+      // （拿身份去换「最后一批必达」不划算：事件丢了就彻底没了，匿名总比丢失好）。
       const sent = globalThis.navigator.sendBeacon(
         this.options.url,
         new Blob([body], { type: 'application/json' }),
@@ -89,6 +93,29 @@ export class Reporter {
     }
   }
 
+  /**
+   * 组装请求头：拿到令牌才加 `Authorization: Bearer <token>`，否则只带 `Content-Type`。
+   *
+   * 取令牌失败（回调抛异常）时**降级为匿名上报**并告警，而不是让整批事件失败——
+   * 埋点是旁路能力，绝不能因为身份获取的问题影响或阻断数据上报。
+   */
+  private buildHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    let token: string | undefined;
+    try {
+      token = this.options.getToken?.();
+    } catch (error) {
+      console.warn('[tracking] 获取访问令牌失败，本批将匿名上报', error);
+      return headers;
+    }
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    return headers;
+  }
+
   private async send(
     events: TrackEventBody[],
     keepalive: boolean,
@@ -96,7 +123,7 @@ export class Reporter {
     try {
       const response = await fetch(this.options.url, {
         body: JSON.stringify({ appId: this.options.appId, events }),
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.buildHeaders(),
         keepalive,
         method: 'POST',
       });

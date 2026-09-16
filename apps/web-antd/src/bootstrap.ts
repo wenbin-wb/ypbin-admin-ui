@@ -4,7 +4,7 @@ import { registerAccessDirective } from '@vben/access';
 import { registerLoadingDirective } from '@vben/common-ui/es/loading';
 import { useAppConfig } from '@vben/hooks';
 import { preferences } from '@vben/preferences';
-import { initStores } from '@vben/stores';
+import { initStores, useAccessStore } from '@vben/stores';
 import '@vben/styles';
 import '@vben/styles/antd';
 import { initTracking } from '@vben/tracking';
@@ -62,6 +62,10 @@ async function bootstrap(namespace: string) {
   // （上报走 SDK 自己的通道，不复用 requestClient，避免与全局错误提示/加载态互相干扰）
   initTracking(app, router, {
     appId: 'ypbin-admin-ui',
+    // 令牌与业务请求客户端**同源**（同一个 accessStore.accessToken，见 api/request.ts 的
+    // 请求拦截器）。这里传回调而非令牌值：登录/登出/过期都会改变令牌，回调每次都取最新值；
+    // 未登录时返回 undefined，SDK 端退化为匿名上报（不阻断上报）。
+    getToken: () => useAccessStore().accessToken ?? undefined,
     url: useAppConfig(import.meta.env, import.meta.env.PROD).trackURL,
   });
 
