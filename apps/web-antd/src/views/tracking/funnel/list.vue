@@ -113,6 +113,17 @@ function progressPercent(percent: null | number): number {
   return percent === null ? 0 : Math.min(100, Math.max(0, percent));
 }
 
+/**
+ * 「较上一步」文案。
+ *
+ * 首步没有上一步，用「—」而不是「不可计算」：后者是「分母缺失」的意思，两者语义不同。
+ */
+function previousStepText(row: FunnelRow): string {
+  return row.stepIndex === 1
+    ? $t('tracking.funnel.notApplicable')
+    : percentText(row.fromPreviousPercent);
+}
+
 /** 步骤校验：不通过时给出提示并拒绝发请求（前端先挡，后端也会再校验一次） */
 function validateSteps(): boolean {
   if (steps.value.length < MIN_STEPS || steps.value.length > MAX_STEPS) {
@@ -350,7 +361,7 @@ async function onDaysChange(option: FunnelDays) {
 
           <template #fromPrevious="{ row }">
             <span class="text-xs tabular-nums">
-              {{ percentText(row.fromPreviousPercent) }}
+              {{ previousStepText(row) }}
             </span>
           </template>
         </FunnelGrid>

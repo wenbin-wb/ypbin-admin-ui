@@ -81,7 +81,10 @@ function cellText(
   if (!cell) {
     return '-';
   }
-  return `${cell.userCount} / ${rateText(cell.retentionRate)}`;
+  return $t('tracking.retention.cellBase', [
+    cell.userCount,
+    rateText(cell.retentionRate),
+  ]);
 }
 
 const [RetentionGrid, retentionGridApi] = useVbenVxeGrid({
