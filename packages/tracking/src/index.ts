@@ -10,7 +10,9 @@
  * - 事件码取自 `events.generated.ts`（由 `scripts/sync-tracking-events.mjs` 从 starter 的事件目录生成）；
  * - 请求体字段与后端 `TrackIngestEvent` 同名，不做任何改名映射；
  * - 上报走**独立通道**（直接 `fetch`/`sendBeacon`），不复用业务请求客户端——
- *   避免全局 loading、错误弹窗与 401 刷新逻辑互相干扰。
+ *   避免全局 loading、错误弹窗与 401 刷新逻辑互相干扰；
+ * - 身份由宿主通过 `getToken` 回调提供（取值口径须与业务请求客户端**同源**），
+ *   本包不 import 任何应用侧 store；取不到令牌即匿名上报，不影响上报本身的可用性。
  */
 import {
   installClickCollector,
