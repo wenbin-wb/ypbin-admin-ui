@@ -11,6 +11,7 @@
     "traceId": "Trace ID",
     "anonId": "Anonymous ID",
     "pageUrl": "Page",
+    "pageUrlRaw": "Actual Path",
     "referrer": "Referrer",
     "ip": "IP",
     "userAgent": "User-Agent",

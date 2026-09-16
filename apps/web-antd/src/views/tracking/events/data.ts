@@ -38,13 +38,24 @@ export function useColumns(): VxeTableGridColumns {
       slots: { default: 'eventCode' },
     },
     { field: 'appId', title: $t('tracking.events.appId'), width: 150 },
-    { field: 'userId', title: $t('tracking.events.userId'), width: 140 },
+    {
+      field: 'userId',
+      title: $t('tracking.events.userId'),
+      width: 140,
+      // 后端 `@RefText("user")` 派生字段优先：有展示名时用展示名，缺失时回退裸 ID
+      formatter: ({ row }) => row.userIdName || row.userId || '',
+    },
     {
       field: 'sessionId',
       title: $t('tracking.events.sessionId'),
       minWidth: 160,
     },
-    { field: 'pageUrl', title: $t('tracking.events.pageUrl'), minWidth: 220 },
+    {
+      field: 'pageUrl',
+      title: $t('tracking.events.pageUrl'),
+      minWidth: 220,
+      slots: { default: 'pageUrl' },
+    },
     {
       field: 'durationMs',
       title: $t('tracking.events.durationMs'),
