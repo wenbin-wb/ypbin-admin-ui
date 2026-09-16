@@ -19,12 +19,17 @@ const record = ref<Partial<SystemTrackingApi.TrackEvent>>({});
  * 抽屉宽度。
  *
  * `drawer.vue` 的基础宽度是 `w-130`（520px），字段较多时过窄；这里用 `class` 覆盖。
- * **不能**写成 `w-[800px]!`：`cn()` 是 `twMerge(clsx(...))`，两个宽度类同为 `!important` 时
- * twMerge 会**保留后写的那个、删掉窄屏自带的 `w-full!`**，手机端抽屉因此变成 800px 溢出，
- * 从而把窄屏（< md）下抽屉自己的 `w-full!` 顶掉、在手机上溢出屏幕。
+ * 两点已按 `cn()`（`twMerge(clsx(...))`）的实际行为核对：
+ * - 宽度类**不能**带 `!`：`w-[800px]!` 会与窄屏自带的 `w-full!` 判为同组冲突，
+ *   twMerge 只保留后写的那个（`w-130`/`w-full!` 一并被删），于是手机端（< md）
+ *   抽屉被钉成 800px 而溢出屏幕；不带 `!` 时两个类都留下，`w-full!` 靠 `!important`
+ *   在窄屏胜出，故保持不带 `!`。
+ * - `isMobile` 只在 **< 768px**（`breakpoints.smaller('md')`）成立，768–800px 的窗口下
+ *   800px 固定宽度仍会横向溢出，故补 `max-w-[calc(100vw-40px)]` 兜底
+ *   （与 `ai/knowledge/modules/documents.vue` 的宽抽屉同款写法）。
  */
 const [Drawer, drawerApi] = useVbenDrawer<SystemTrackingApi.TrackEvent>({
-  class: 'w-[800px]',
+  class: 'w-[800px] max-w-[calc(100vw-40px)]',
   onCancel() {
     drawerApi.close();
   },
@@ -175,7 +180,7 @@ const hasTranslatedPayload = computed(() =>
       <template v-if="hasPayload">
         <div
           v-if="hasTranslatedPayload"
-          class="mb-2 text-xs text-gray-500 dark:text-gray-400"
+          class="mb-2 text-xs text-muted-foreground"
         >
           {{ $t('tracking.events.payloadI18nHint') }}
         </div>
@@ -183,7 +188,7 @@ const hasTranslatedPayload = computed(() =>
           class="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted/60 p-3 text-xs leading-relaxed"
           >{{ prettyPayload }}</pre>
       </template>
-      <div v-else class="text-sm text-gray-500 dark:text-gray-400">
+      <div v-else class="text-sm text-muted-foreground">
         {{ $t('tracking.events.payloadEmpty') }}
       </div>
     </div>
