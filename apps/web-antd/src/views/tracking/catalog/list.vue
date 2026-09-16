@@ -109,7 +109,7 @@ const [Grid] = useVbenVxeGrid({
         <div class="p-2">
           <div
             v-if="row.properties.length === 0"
-            class="text-sm text-gray-500 dark:text-gray-400"
+            class="text-sm text-muted-foreground"
           >
             {{ $t('tracking.catalog.noProperty') }}
           </div>

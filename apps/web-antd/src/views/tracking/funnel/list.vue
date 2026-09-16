@@ -116,7 +116,8 @@ function progressPercent(percent: null | number): number {
 /**
  * 「较上一步」文案。
  *
- * 首步没有上一步，用「—」而不是「不可计算」：后者是「分母缺失」的意思，两者语义不同。
+ * 首步没有上一步，用「-」而不是「不可计算」：后者是「分母缺失」的意思，两者语义不同。
+ * 占位符统一用半角短横线（与本目录其它页面、以及 `system/license` 等既有页面一致）。
  */
 function previousStepText(row: FunnelRow): string {
   return row.stepIndex === 1
@@ -339,7 +340,7 @@ async function onDaysChange(option: FunnelDays) {
           <template #eventCode="{ row }">
             <div class="flex flex-col">
               <span>{{ row.eventCode }}</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">
+              <span class="text-xs text-muted-foreground">
                 {{ eventDescription(row.eventCode) }}
               </span>
             </div>

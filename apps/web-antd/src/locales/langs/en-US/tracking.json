@@ -99,7 +99,7 @@
     "sessionCount": "Sessions",
     "conversionFromFirst": "vs. First Step",
     "conversionFromPrevious": "vs. Previous Step",
-    "notApplicable": "—",
+    "notApplicable": "-",
     "unavailable": "Not computable",
     "truncated": "{0} sessions had their event sequence truncated; they may have lost later steps, so every step count is a lower bound (the real number can only be higher).",
     "noData": "No data",

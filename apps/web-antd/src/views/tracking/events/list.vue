@@ -116,7 +116,7 @@ async function onExport() {
       <template #eventCode="{ row }">
         <div class="flex flex-col">
           <span>{{ row.eventCode }}</span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">
+          <span class="text-xs text-muted-foreground">
             {{ eventDescription(row.eventCode) }}
           </span>
         </div>

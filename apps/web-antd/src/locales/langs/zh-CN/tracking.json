@@ -99,7 +99,7 @@
     "sessionCount": "会话数",
     "conversionFromFirst": "相对首步",
     "conversionFromPrevious": "较上一步",
-    "notApplicable": "—",
+    "notApplicable": "-",
     "unavailable": "不可计算",
     "truncated": "有 {0} 个会话的事件序列被截断，这些会话可能丢失了后续步骤，因此各步会话数为下界（实际完成数只会更多）。",
     "noData": "暂无数据",
