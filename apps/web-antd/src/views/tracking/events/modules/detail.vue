@@ -19,7 +19,8 @@ const record = ref<Partial<SystemTrackingApi.TrackEvent>>({});
  * 抽屉宽度。
  *
  * `drawer.vue` 的基础宽度是 `w-130`（520px），字段较多时过窄；这里用 `class` 覆盖。
- * **不能**写成 `w-[800px]!`：`!important` 会让 tailwind-merge 保留两个 important 宽度类，
+ * **不能**写成 `w-[800px]!`：`cn()` 是 `twMerge(clsx(...))`，两个宽度类同为 `!important` 时
+ * twMerge 会**保留后写的那个、删掉窄屏自带的 `w-full!`**，手机端抽屉因此变成 800px 溢出，
  * 从而把窄屏（< md）下抽屉自己的 `w-full!` 顶掉、在手机上溢出屏幕。
  */
 const [Drawer, drawerApi] = useVbenDrawer<SystemTrackingApi.TrackEvent>({
