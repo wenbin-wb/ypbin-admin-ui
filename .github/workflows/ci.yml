@@ -32,6 +32,12 @@ jobs:
       - name: Typecheck（web-antd）
         run: pnpm -F @vben/web-antd run typecheck
 
+      - name: 单元测试（埋点 SDK）
+        # 该 SDK 有真实逻辑（批量、队列、URL 截断、令牌携带）且已有单测，
+        # 但包内原本没有任何 scripts，`pnpm -F @vben/tracking test` 是空转（无输出却成功）；
+        # 这里显式接入，避免「命令成功但其实没跑」的假绿。
+        run: pnpm -F @vben/tracking test
+
       - name: 构建（web-antd）
         run: pnpm -F @vben/web-antd run build
 
