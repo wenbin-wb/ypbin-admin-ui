@@ -11,8 +11,6 @@ export const TrackingEventCodes = {
   API_REQUEST_END: 'api.request.end',
   AUTH_USER_LOGIN: 'auth.user.login',
   AUTH_USER_LOGOUT: 'auth.user.logout',
-  IOT_COLLECTOR_ERROR: 'iot.collector.error',
-  IOT_COLLECTOR_READ: 'iot.collector.read',
   SYSTEM_USER_EXPORT: 'system.user.export',
   UI_CLICK_ACTION: 'ui.click.action',
   UI_PAGE_LEAVE: 'ui.page.leave',
@@ -38,8 +36,6 @@ export const TRACKING_EVENT_PROPERTIES: Record<
   'api.request.end': { apiPath: 256, bizCode: 0, httpMethod: 16 },
   'auth.user.login': { authType: 32 },
   'auth.user.logout': {},
-  'iot.collector.error': { errorType: 64, protocolCode: 32 },
-  'iot.collector.read': { pointCount: 0, protocolCode: 32, successCount: 0 },
   'system.user.export': { rowCount: 0 },
   'ui.click.action': { actionKey: 128, targetTag: 32 },
   'ui.page.leave': { routeKey: 128, stayMs: 0 },
@@ -136,50 +132,6 @@ export const TRACKING_EVENT_CATALOG: TrackingEventCatalog = {
     source: 'backend',
     since: '3.2.0',
     properties: [],
-  },
-  'iot.collector.error': {
-    code: 'iot.collector.error',
-    description: 'IoT 采集异常（异常分类必须取有限枚举值，避免标签基数爆炸）',
-    source: 'iot',
-    since: '3.2.0',
-    properties: [
-      {
-        name: 'errorType',
-        type: 'string',
-        maxLength: 64,
-        description: '异常分类（有限枚举值）',
-      },
-      {
-        name: 'protocolCode',
-        type: 'string',
-        maxLength: 32,
-        description: '协议 code',
-      },
-    ],
-  },
-  'iot.collector.read': {
-    code: 'iot.collector.read',
-    description: 'IoT 采集读取结果（由平台侧适配器装饰器上报）',
-    source: 'iot',
-    since: '3.2.0',
-    properties: [
-      {
-        name: 'pointCount',
-        type: 'integer',
-        description: '读取点位数',
-      },
-      {
-        name: 'protocolCode',
-        type: 'string',
-        maxLength: 32,
-        description: '协议 code',
-      },
-      {
-        name: 'successCount',
-        type: 'integer',
-        description: '成功点位数',
-      },
-    ],
   },
   'system.user.export': {
     code: 'system.user.export',
