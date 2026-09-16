@@ -702,6 +702,9 @@ importers:
       '@vben/styles':
         specifier: workspace:*
         version: link:../../packages/styles
+      '@vben/tracking':
+        specifier: workspace:*
+        version: link:../../packages/tracking
       '@vben/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -1990,6 +1993,8 @@ importers:
       '@vben-core/design':
         specifier: workspace:*
         version: link:../@core/base/design
+
+  packages/tracking: {}
 
   packages/types:
     dependencies:

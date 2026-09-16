@@ -38,6 +38,8 @@
     "check:type": "turbo run typecheck",
     "check:type:changed": "turbo run typecheck --filter='...[HEAD]'",
     "clean": "node ./scripts/clean.mjs",
+    "sync:tracking-events": "node scripts/sync-tracking-events.mjs",
+    "check:tracking-events": "node scripts/sync-tracking-events.mjs --check",
     "commit": "czg",
     "dev": "turbo-run dev",
     "dev:antd": "pnpm -F @vben/web-antd run dev",

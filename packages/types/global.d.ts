@@ -11,6 +11,8 @@ export interface VbenAdminProAppConfigRaw {
   VITE_GLOB_API_URL: string;
   VITE_GLOB_AUTH_DINGDING_CLIENT_ID: string;
   VITE_GLOB_AUTH_DINGDING_CORP_ID: string;
+  /** 埋点上报地址；为空表示不启用埋点（运行时注入，生产可改 _app-config 文件而无需重新构建） */
+  VITE_GLOB_TRACK_URL: string;
 }
 
 interface AuthConfig {
@@ -23,6 +25,7 @@ interface AuthConfig {
 export interface ApplicationConfig {
   apiURL: string;
   auth: AuthConfig;
+  trackURL: string;
 }
 
 declare global {
