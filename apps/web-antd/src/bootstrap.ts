@@ -2,10 +2,12 @@ import { createApp, watchEffect } from 'vue';
 
 import { registerAccessDirective } from '@vben/access';
 import { registerLoadingDirective } from '@vben/common-ui/es/loading';
+import { useAppConfig } from '@vben/hooks';
 import { preferences } from '@vben/preferences';
 import { initStores } from '@vben/stores';
 import '@vben/styles';
 import '@vben/styles/antd';
+import { initTracking } from '@vben/tracking';
 
 import { useTitle } from '@vueuse/core';
 
@@ -55,6 +57,13 @@ async function bootstrap(namespace: string) {
 
   // 配置路由及路由守卫
   app.use(router);
+
+  // 埋点：只有配置了 VITE_GLOB_TRACK_URL 才真正启用；未配置时 SDK 会打印告警且不安装任何采集器
+  // （上报走 SDK 自己的通道，不复用 requestClient，避免与全局错误提示/加载态互相干扰）
+  initTracking(app, router, {
+    appId: 'ypbin-admin-ui',
+    url: useAppConfig(import.meta.env, import.meta.env.PROD).trackURL,
+  });
 
   // 配置Motion插件
   const { MotionPlugin } = await import('@vben/plugins/motion');

@@ -1,0 +1,21 @@
+{
+  "name": "@vben/tracking",
+  "version": "5.7.0",
+  "description": "埋点 SDK：页面/点击/异常/Web Vitals 采集，上报 ypbin-starter-tracking 采集端点，零运行时依赖。",
+  "homepage": "https://github.com/wenbin-wb/ypbin-admin-ui",
+  "bugs": "https://github.com/wenbin-wb/ypbin-admin-ui/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wenbin-wb/ypbin-admin-ui.git",
+    "directory": "packages/tracking"
+  },
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  }
+}

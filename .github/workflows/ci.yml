@@ -34,3 +34,27 @@ jobs:
 
       - name: 构建（web-antd）
         run: pnpm -F @vben/web-antd run build
+
+  tracking-events-drift:
+    name: 校验埋点事件码未漂移
+    runs-on: ubuntu-latest
+    steps:
+      # 前端事件码是生成的：事实源在 starter 仓库，故一并检出比对（与站点校验配置元数据同理）
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 检出 starter（事件目录事实源）
+        uses: actions/checkout@v4
+        with:
+          repository: wenbin-wb/ypbin-starter
+          path: ypbin-starter
+
+      - name: 配置 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+
+      - name: 校验前端事件码与 starter 事件目录一致
+        env:
+          STARTER_REPO_ROOT: ${{ github.workspace }}/ypbin-starter
+        run: node scripts/sync-tracking-events.mjs --check

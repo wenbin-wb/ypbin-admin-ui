@@ -12,6 +12,7 @@ import {
   RequestClient,
 } from '@vben/request';
 import { useAccessStore } from '@vben/stores';
+import { reportApiCall } from '@vben/tracking';
 
 import { message } from 'ant-design-vue';
 
@@ -38,11 +39,86 @@ export async function handleSessionExpired() {
   }
 }
 
+/**
+ * 把一次接口调用交给埋点 SDK（失败或慢调用才会真正上报）。
+ *
+ * 拿不到起始时间时**直接跳过**而不是上报 0 耗时：宁可少一条数据，也不要污染耗时口径。
+ */
+function reportTrackedCall(
+  callStartedAt: WeakMap<object, number>,
+  config: unknown,
+  data: unknown,
+  httpOk: boolean,
+): void {
+  try {
+    if (!config || typeof config !== 'object') {
+      return;
+    }
+    const startedAt = callStartedAt.get(config);
+    if (startedAt === undefined) {
+      return;
+    }
+    const requestConfig = config as { method?: string; url?: string };
+    const bizCode = (data as { code?: number } | undefined)?.code;
+    const success =
+      httpOk && (typeof bizCode === 'number' ? bizCode === 200 : true);
+    reportApiCall({
+      bizCode,
+      durationMs: Date.now() - startedAt,
+      httpMethod: requestConfig.method ?? 'GET',
+      path: requestConfig.url ?? '',
+      success,
+    });
+  } catch {
+    // 采集失败不得影响业务请求
+  }
+}
+
 function createRequestClient(baseURL: string, options?: RequestClientOptions) {
   const client = new RequestClient({
     ...options,
     baseURL,
   });
+
+  /**
+   * 接口耗时埋点。
+   *
+   * 挂在 axios 实例自身上（而非业务拦截器链）有两处考虑：① 不改变既有拦截器的注册顺序与语义；
+   * ② 我的响应回调会先于 `defaultResponseInterceptor` 执行，因此拿到的是**原始 R 信封**，
+   *   可以同时记录 HTTP 状态与业务 code。
+   *
+   * 只有失败或慢调用会上报（阈值见 SDK 的 `slowApiThresholdMs`），且全程 try/catch——
+   * 埋点不得影响任何业务请求。
+   */
+  const callStartedAt = new WeakMap<object, number>();
+  client.instance.interceptors.request.use((config) => {
+    try {
+      callStartedAt.set(config, Date.now());
+    } catch {
+      // 采集失败不得影响业务请求
+    }
+    return config;
+  });
+  client.instance.interceptors.response.use(
+    (response) => {
+      reportTrackedCall(callStartedAt, response.config, response.data, true);
+      return response;
+    },
+    // 失败路径：只按结构取出 config 与响应体，避免为本文件新增 axios 直接依赖
+    (error: unknown) => {
+      const failure = error as {
+        config?: unknown;
+        response?: { data?: unknown };
+      };
+      reportTrackedCall(
+        callStartedAt,
+        failure?.config,
+        failure?.response?.data,
+        false,
+      );
+      return Promise.reject(error);
+    },
+  );
 
   /**
    * 重新认证逻辑

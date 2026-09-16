@@ -19,11 +19,13 @@ export function useAppConfig(
     VITE_GLOB_API_URL,
     VITE_GLOB_AUTH_DINGDING_CORP_ID,
     VITE_GLOB_AUTH_DINGDING_CLIENT_ID,
+    VITE_GLOB_TRACK_URL,
   } = config;
 
   const applicationConfig: ApplicationConfig = {
     apiURL: VITE_GLOB_API_URL,
     auth: {},
+    trackURL: VITE_GLOB_TRACK_URL ?? '',
   };
   if (VITE_GLOB_AUTH_DINGDING_CORP_ID && VITE_GLOB_AUTH_DINGDING_CLIENT_ID) {
     applicationConfig.auth.dingding = {
