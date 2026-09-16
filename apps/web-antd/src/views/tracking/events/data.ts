@@ -5,6 +5,14 @@ import { TRACKING_EVENT_CATALOG } from '@vben/tracking';
 
 import { $t } from '#/locales';
 
+/**
+ * 空值占位。
+ *
+ * IP/referrer 这类字段在上报方缺失时是空串，直接留空会让使用者分不清
+ * 「没有这一列的数据」和「这一行恰好为空」，故统一显示为短横线。
+ */
+const EMPTY_TEXT = '-';
+
 /** 结果标签选项：与后端 success 取值一致（1 成功、0 失败） */
 function resultOptions() {
   return [
@@ -55,6 +63,20 @@ export function useColumns(): VxeTableGridColumns {
       title: $t('tracking.events.pageUrl'),
       minWidth: 220,
       slots: { default: 'pageUrl' },
+    },
+    {
+      field: 'referrer',
+      title: $t('tracking.events.referrer'),
+      minWidth: 180,
+      // 后端该字段常为空串（直接访问、上报方未带来源）
+      formatter: ({ cellValue }) => cellValue || EMPTY_TEXT,
+    },
+    {
+      field: 'ip',
+      title: $t('tracking.events.ip'),
+      width: 140,
+      // 后端返回的已是脱敏值（如 183.179.215.0），前端不再加工
+      formatter: ({ cellValue }) => cellValue || EMPTY_TEXT,
     },
     {
       field: 'durationMs',

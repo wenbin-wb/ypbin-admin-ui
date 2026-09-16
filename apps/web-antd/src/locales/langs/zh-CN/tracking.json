@@ -26,6 +26,8 @@
     "receivedTime": "接收时间",
     "payload": "事件属性",
     "payloadEmpty": "无属性",
+    "payloadTranslated": "{0}（{1}）",
+    "payloadI18nHint": "属性值形如 i18n key 且能在语言包中命中时，已按当前语言翻译；括号内保留原始 key。",
     "unknownEventCode": "未登记事件码",
     "export": "导出",
     "exportFileName": "埋点事件.xlsx",

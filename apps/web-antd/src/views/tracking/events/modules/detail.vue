@@ -10,6 +10,7 @@ import { Descriptions, DescriptionsItem } from 'ant-design-vue';
 
 import { $t } from '#/locales';
 
+import { humanizePayload, translatePayloadValue } from '../payload';
 import { usePageTitle } from '../use-page-title';
 
 const record = ref<Partial<SystemTrackingApi.TrackEvent>>({});
@@ -82,13 +83,28 @@ const durationText = computed(() =>
  * 后端保证 payload 是已裁剪的白名单键值对；这里用 `JSON.stringify(…, 2)` 展开——
  * 属性值可能较长（如 errorMessage/stackDigest 上限 512 字符），故模板里用
  * `whitespace-pre-wrap break-all` 换行而不是横向溢出。
+ *
+ * 展示前先过 `humanizePayload`：上报方会把 i18n key 当普通字符串塞进 payload
+ * （如 `routeTitle: "tracking.events.title"`），直接展示等于让使用者看 key。
  */
 const prettyPayload = computed(() =>
-  JSON.stringify(record.value.payload ?? {}, null, 2),
+  JSON.stringify(humanizePayload(record.value.payload), null, 2),
 );
 
 const hasPayload = computed(
   () => Object.keys(record.value.payload ?? {}).length > 0,
+);
+
+/**
+ * 是否真的有属性值被翻译过。
+ *
+ * 说明文案只在「括号里的原始 key」确实出现时才展示——否则对绝大多数 payload
+ * 都是一句用不上的噪音。
+ */
+const hasTranslatedPayload = computed(() =>
+  Object.values(record.value.payload ?? {}).some(
+    (value) => translatePayloadValue(value) !== value,
+  ),
 );
 </script>
 
@@ -155,11 +171,17 @@ const hasPayload = computed(
       <div class="mb-2 text-sm font-medium">
         {{ $t('tracking.events.payload') }}
       </div>
-      <div v-if="hasPayload">
+      <template v-if="hasPayload">
+        <div
+          v-if="hasTranslatedPayload"
+          class="mb-2 text-xs text-gray-500 dark:text-gray-400"
+        >
+          {{ $t('tracking.events.payloadI18nHint') }}
+        </div>
         <pre
           class="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted/60 p-3 text-xs leading-relaxed"
           >{{ prettyPayload }}</pre>
-      </div>
+      </template>
       <div v-else class="text-sm text-gray-500 dark:text-gray-400">
         {{ $t('tracking.events.payloadEmpty') }}
       </div>

@@ -257,6 +257,8 @@
     "title": "Online Users",
     "token": "Session ID",
     "username": "Account",
+    "ip": "IP",
+    "deviceType": "Device Type",
     "loginTime": "Login Time",
     "forceLogout": "Force Logout"
   },
