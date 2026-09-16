@@ -83,6 +83,89 @@ export namespace SystemTrackingApi {
     /** 次数（Long，字符串传输） */
     count: string;
   }
+
+  /**
+   * 漏斗单步结果。
+   *
+   * `conversionRate` 是后端算好的**相对首步**转化率（0~1，首步为 1）；
+   * 首步会话数为 0 时后端返回 null（分母缺失，不伪造成 0）。「较上一步」的转化率后端不给，
+   * 由前端按相邻两步的 sessionCount 现算。
+   */
+  export interface TrackFunnelStep {
+    /** 步骤序号（从 1 开始） */
+    stepIndex: number;
+    eventCode: string;
+    /** 走到本步的会话数（Long，字符串传输） */
+    sessionCount: string;
+    /** 相对首步的转化率（0~1，字符串传输；分母缺失时为 null） */
+    conversionRate: null | string;
+  }
+
+  /**
+   * 漏斗分析结果。
+   *
+   * 注意 `data` 是**对象**不是数组；`steps` 才是数组。
+   */
+  export interface TrackFunnel {
+    /** 各步骤结果（按请求的步骤顺序） */
+    steps: TrackFunnelStep[];
+    /**
+     * 事件序列被截断的会话数（Long，字符串传输）。
+     *
+     * 大于 0 时各步 sessionCount 只是**下限**：被截断的会话可能丢失了后续步骤。
+     */
+    truncatedSessionCount: string;
+  }
+
+  /** 留存矩阵单元 */
+  export interface TrackRetentionCell {
+    /** 相对首次出现日的天数偏移（0 为首次出现当日） */
+    dayOffset: number;
+    /** 该偏移日再次出现的去重用户数（Long，字符串传输） */
+    userCount: string;
+    /** 留存率（0~1，字符串传输；该行基数为 0 时为 null） */
+    retentionRate: null | string;
+  }
+
+  /** 留存矩阵的一行（一个「首次出现日」） */
+  export interface TrackRetentionRow {
+    /** 首次出现日（yyyy-MM-dd） */
+    cohortDate: string;
+    /** 该日首次出现的去重用户数（D0 基数，Long 按字符串传输） */
+    cohortSize: string;
+    /** 各偏移日的留存单元（长度等于 matrixDays） */
+    cells: TrackRetentionCell[];
+  }
+
+  /** 留存摘要列（D1/D7/D30 中本次窗口内可观察的那些） */
+  export interface TrackRetentionSummary {
+    dayOffset: number;
+    /** 参与统计的首次出现用户数之和（分母，Long 按字符串传输） */
+    cohortSize: string;
+    /** 该偏移日再次出现的去重用户数之和（分子，Long 按字符串传输） */
+    userCount: string;
+    /** 加权留存率（0~1，字符串传输；分母为 0 时为 null） */
+    retentionRate: null | string;
+  }
+
+  /**
+   * 留存分析结果：完整矩阵 + 摘要列。
+   *
+   * 只覆盖登录用户（匿名事件没有 user_id，不进留存）；
+   * 矩阵是 `matrixDays × matrixDays` 的完整网格（当前 `matrixDays = min(days, 7)`）。
+   */
+  export interface TrackRetention {
+    /** 请求的分析天数 */
+    days: number;
+    /** 矩阵网格边长（行数 = 列数） */
+    matrixDays: number;
+    /** 矩阵行的首次出现日（升序，yyyy-MM-dd） */
+    cohortDates: string[];
+    /** 矩阵列的偏移日（升序，0..matrixDays-1） */
+    dayOffsets: number[];
+    rows: TrackRetentionRow[];
+    summary: TrackRetentionSummary[];
+  }
 }
 
 /** 概览统计 */
@@ -140,6 +223,31 @@ export function getTrackEventList(params: SystemTrackingApi.TrackEventQuery) {
  * 后者沿用实例默认 responseReturn:'data'，defaultResponseInterceptor 会把 Blob 当业务响应
  * 读取其 code 字段（Blob 无 code）而误判失败；download 由拦截器直接返回 Blob。
  */
+/**
+ * 会话级漏斗分析
+ *
+ * @param steps 逗号分隔的事件码（2..8 个，按会话内发生顺序）
+ * @param days 统计天数（1..90）
+ */
+export function getTrackFunnel(steps: string, days: number) {
+  return requestClient.get<SystemTrackingApi.TrackFunnel>(
+    '/system/tracking/funnel',
+    { params: { days, steps } },
+  );
+}
+
+/**
+ * 用户留存矩阵与摘要
+ *
+ * @param days 分析天数（1..90；30 才有 D30 摘要，矩阵固定最长 7×7）
+ */
+export function getTrackRetention(days: number) {
+  return requestClient.get<SystemTrackingApi.TrackRetention>(
+    '/system/tracking/retention',
+    { params: { days } },
+  );
+}
+
 export function exportTrackEvents(params: SystemTrackingApi.TrackEventQuery) {
   return requestClient.download<Blob>('/system/tracking/events/export', {
     params,
