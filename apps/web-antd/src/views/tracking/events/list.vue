@@ -19,8 +19,12 @@ import { downloadBlobSafe } from '#/utils/file';
 
 import { useColumns, useGridFormSchema } from './data';
 import DetailDrawer from './modules/detail.vue';
+import { usePageTitle } from './use-page-title';
 
 const [Detail, drawerApi] = useVbenDrawer({ connectedComponent: DetailDrawer });
+
+/** 页面地址 → 菜单标题（映射不到时回退原始地址） */
+const { pageTitle } = usePageTitle();
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: { schema: useGridFormSchema(), submitOnChange: true },
@@ -116,6 +120,10 @@ async function onExport() {
             {{ eventDescription(row.eventCode) }}
           </span>
         </div>
+      </template>
+
+      <template #pageUrl="{ row }">
+        {{ pageTitle(row.pageUrl) }}
       </template>
 
       <template #action="{ row }">

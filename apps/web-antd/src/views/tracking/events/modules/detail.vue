@@ -10,9 +10,19 @@ import { Descriptions, DescriptionsItem } from 'ant-design-vue';
 
 import { $t } from '#/locales';
 
+import { usePageTitle } from '../use-page-title';
+
 const record = ref<Partial<SystemTrackingApi.TrackEvent>>({});
 
+/**
+ * 抽屉宽度。
+ *
+ * `drawer.vue` 的基础宽度是 `w-130`（520px），字段较多时过窄；这里用 `class` 覆盖。
+ * **不能**写成 `w-[800px]!`：`!important` 会让 tailwind-merge 保留两个 important 宽度类，
+ * 从而把窄屏（< md）下抽屉自己的 `w-full!` 顶掉、在手机上溢出屏幕。
+ */
 const [Drawer, drawerApi] = useVbenDrawer<SystemTrackingApi.TrackEvent>({
+  class: 'w-[800px]',
   onCancel() {
     drawerApi.close();
   },
@@ -28,6 +38,16 @@ const [Drawer, drawerApi] = useVbenDrawer<SystemTrackingApi.TrackEvent>({
 });
 
 defineExpose({ drawerApi });
+
+/** 页面地址 → 菜单标题；未命中菜单树时回退原始地址 */
+const { pageTitle } = usePageTitle();
+
+const pageTitleText = computed(() => pageTitle(record.value.pageUrl));
+
+/** 命中菜单标题时额外展示原始地址，便于排查（两者相同则无需重复展示） */
+const showRawPageUrl = computed(
+  () => !!record.value.pageUrl && pageTitleText.value !== record.value.pageUrl,
+);
 
 /** 事件码说明；目录里没有该码时如实标注，不回退成空串 */
 const eventDescription = computed(() => {
@@ -100,6 +120,12 @@ const hasPayload = computed(
         {{ record.traceId }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.pageUrl')">
+        {{ pageTitleText }}
+      </DescriptionsItem>
+      <DescriptionsItem
+        v-if="showRawPageUrl"
+        :label="$t('tracking.events.pageUrlRaw')"
+      >
         {{ record.pageUrl }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.referrer')">

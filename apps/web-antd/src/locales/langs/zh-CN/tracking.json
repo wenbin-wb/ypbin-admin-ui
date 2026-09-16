@@ -11,6 +11,7 @@
     "traceId": "链路 ID",
     "anonId": "匿名标识",
     "pageUrl": "页面",
+    "pageUrlRaw": "实际路径",
     "referrer": "来源",
     "ip": "IP",
     "userAgent": "User-Agent",
