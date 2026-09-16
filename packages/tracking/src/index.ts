@@ -231,6 +231,11 @@ export function reportApiCall(input: ApiCallInput): void {
   });
 }
 
-export { TrackingEventCodes } from './events.generated';
-export type { TrackingEventCode } from './events.generated';
+export { TRACKING_EVENT_CATALOG, TrackingEventCodes } from './events.generated';
+export type {
+  TrackingEventCatalog,
+  TrackingEventCatalogItem,
+  TrackingEventCode,
+  TrackingEventProperty,
+} from './events.generated';
 export type * from './types';
