@@ -18,8 +18,16 @@ const [Grid, gridApi] = useVbenVxeGrid({
     columns: useColumns(),
     height: 'auto',
     keepSource: true,
-    pagerConfig: { enabled: false },
-    proxyConfig: { ajax: { query: async () => await getOnlineUserList() } },
+    proxyConfig: {
+      ajax: {
+        query: async ({ page }, formValues) =>
+          await getOnlineUserList({
+            page: page.currentPage,
+            pageSize: page.pageSize,
+            ...formValues,
+          }),
+      },
+    },
     rowConfig: { keyField: 'token' },
     toolbarConfig: {
       custom: true,
@@ -31,11 +39,16 @@ const [Grid, gridApi] = useVbenVxeGrid({
   } as VxeTableGridOptions<SystemOnlineUserApi.OnlineUserResp>,
 });
 
+/** 强退后刷新列表：沿用列表页既有约定用 `query`（保持当前页码），不跳回第一页。 */
+function onRefresh() {
+  gridApi.query();
+}
+
 function onForceLogout(row: SystemOnlineUserApi.OnlineUserResp) {
   deleteOnlineUser(row.token)
     .then(() => {
       message.success($t('common.success'));
-      gridApi.reload();
+      onRefresh();
     })
     // 失败提示由全局请求拦截器统一处理，这里仅兜底避免未处理拒绝
     .catch(() => {});
