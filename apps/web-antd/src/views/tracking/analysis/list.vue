@@ -147,14 +147,32 @@ function eventDescription(eventCode: string): string {
  */
 type TrendChartOption = Parameters<typeof renderEcharts>[0];
 
+/**
+ * 趋势图配置。
+ *
+ * **每日事件数是离散计数，用柱状而不是折线**：同一仓 `views/dashboard/analytics/
+ * analytics-visits.vue` 画的也是"按周期桶统计的计数"，用的就是渐变柱状；而
+ * `analytics-trends.vue` 画的是小时级连续曲线（20 个点的合成数据），那套 `smooth` 折线
+ * 只适合连续量。折线会在两个日期之间连线、`smooth` 还会把 0→92 的跳变画成缓慢上升的
+ * S 形，计数类数据因此读出根本不存在的中间值；柱状没有插值可言，"某天多少就是多少"。
+ *
+ * `grid.right` 是给 x 轴最右端标签留的：`containLabel` 只处理垂直于坐标轴的方向
+ * （底部 x 轴只影响高度），横向的边缘标签无人保护，而右端标签居中于最后一根刻度，
+ * 会有一半宽度压到绘图区外、被画布裁掉。柱状图的标签居中于"类别带"内，7 天视图下
+ * 天然不会溢出；30 天视图下类别带仅约 37px，右端标签仍可能越出绘图区约 13px，
+ * 故显式留出 32px（大于该溢出量）。
+ */
 function buildTrendOption(
   points: SystemTrackingApi.TrackTrend[],
 ): TrendChartOption {
   return {
-    grid: { bottom: 8, containLabel: true, left: 8, right: 16, top: 24 },
+    grid: { bottom: 8, containLabel: true, left: 8, right: 32, top: 24 },
     series: [
       {
-        areaStyle: {
+        barMaxWidth: 32,
+        data: points.map((point) => toCount(point.count)),
+        itemStyle: {
+          borderRadius: [6, 6, 0, 0],
           color: {
             type: 'linear',
             x: 0,
@@ -162,26 +180,21 @@ function buildTrendOption(
             y: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: 'rgba(0,102,245,0.45)' },
-              { offset: 1, color: 'rgba(0,102,245,0.02)' },
+              { offset: 0, color: '#0066f5' },
+              { offset: 1, color: 'rgba(0,102,245,0.25)' },
             ],
           },
         },
-        data: points.map((point) => toCount(point.count)),
-        itemStyle: { color: '#0066f5' },
-        lineStyle: { color: '#0066f5', width: 2.5 },
         name: $t('tracking.analysis.trendSeries'),
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 4,
-        type: 'line',
+        type: 'bar',
       },
     ],
     tooltip: { trigger: 'axis' },
     xAxis: {
       axisLabel: { hideOverlap: true },
       axisTick: { show: false },
-      boundaryGap: false,
+      // 类别带两侧留白：标签落在带内，右端标签因此不会越过绘图区被裁掉
+      boundaryGap: true,
       data: points.map((point) => point.date),
       splitLine: { show: false },
       type: 'category',
@@ -363,7 +376,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- 趋势折线图：7 / 30 天切换 -->
+      <!-- 事件趋势柱状图：7 / 30 天切换 -->
       <div class="rounded-xl border border-border bg-card p-4">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 class="text-base font-semibold">
