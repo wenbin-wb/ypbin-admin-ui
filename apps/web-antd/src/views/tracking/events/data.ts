@@ -68,7 +68,7 @@ export function useColumns(): VxeTableGridColumns {
       field: 'referrer',
       title: $t('tracking.events.referrer'),
       minWidth: 180,
-      // 后端该字段常为空串（直接访问、上报方未带来源）
+      // 该字段仍可能是空串（首屏既无外部来源也无上一页），故保留占位符
       formatter: ({ cellValue }) => cellValue || EMPTY_TEXT,
     },
     {

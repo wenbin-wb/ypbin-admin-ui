@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { CSSProperties } from 'vue';
+
 import type { SystemTrackingApi } from '#/api/system/tracking';
 
 import { computed, ref } from 'vue';
@@ -29,6 +31,27 @@ function toText(value?: null | string): string {
   // 空串同样算缺失，故用 `||` 而不是 `??`
   return value || EMPTY_TEXT;
 }
+
+/**
+ * label 列宽（`label-style` 会落在 `.ant-descriptions-item-label` 单元格上）。
+ *
+ * 边框模式下 antd 的描述表是 `table-layout: auto`，不给 label 列指定宽度时它会被压到
+ * **min-content**（最长标签里最长单词的宽度），于是 `User-Agent` / `Received Time`
+ * 这类标签被挤到换行、value 列也被切得很碎。
+ *
+ * 用组件公开的 `label-style` 而不是自写 CSS 选择器，依据是按本仓锁定的
+ * `ant-design-vue@4.2.6` + `vue@3.5.42` 实测（SSR 渲染 bordered 描述表）：边框模式走
+ * `es/descriptions/Row.js` 的 `['th','td']` 分支，labelStyle 被并进单元格 style，
+ * 最终落在 `<th class="ant-descriptions-item-label" style="width:160px">`
+ * （非边框模式才会挂到内层 `<span>` 上）。
+ *
+ * 取 160px 的依据：`size="small"` 的水平内边距是 `padding`=16px（`descriptionsSmallPadding`
+ * 为 `paddingXS padding`）、冒号前后还有 2px + 8px（`marginXXS/2` + `marginXS`），
+ * 故内容区约 160-32=128px；本页最长标签是英文 `Received Time`（按 14px 字号约 100px），
+ * 中文语言包下最长是 `User-Agent`（约 72px），足够容纳且对窄屏（抽屉已按
+ * `max-w-[calc(100vw-40px)]` 兜底）影响可控。
+ */
+const LABEL_CELL_STYLE: CSSProperties = { width: '160px' };
 
 /**
  * 抽屉宽度。
@@ -131,7 +154,12 @@ const hasTranslatedPayload = computed(() =>
 
 <template>
   <Drawer>
-    <Descriptions bordered size="small" :column="1">
+    <Descriptions
+      bordered
+      size="small"
+      :column="1"
+      :label-style="LABEL_CELL_STYLE"
+    >
       <DescriptionsItem :label="$t('tracking.events.eventId')">
         {{ toText(record.eventId) }}
       </DescriptionsItem>
