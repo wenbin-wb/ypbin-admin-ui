@@ -16,6 +16,21 @@ import { usePageTitle } from '../use-page-title';
 const record = ref<Partial<SystemTrackingApi.TrackEvent>>({});
 
 /**
+ * 空值占位。
+ *
+ * 与同模块列表 `views/tracking/events/data.ts`、`views/system/online-user/data.ts`
+ * 同一约定：上报方/老数据没带某字段时统一显示短横线，直接留空会让使用者分不清
+ * 「这一项没有值」和「这一项没取到」。
+ */
+const EMPTY_TEXT = '-';
+
+/** 字符串空值 → 占位符（`undefined`/空串；'0' 这类非空字符串照原样展示） */
+function toText(value?: null | string): string {
+  // 空串同样算缺失，故用 `||` 而不是 `??`
+  return value || EMPTY_TEXT;
+}
+
+/**
  * 抽屉宽度。
  *
  * `drawer.vue` 的基础宽度是 `w-130`（520px），字段较多时过窄；这里用 `class` 覆盖。
@@ -51,11 +66,11 @@ const showRawPageUrl = computed(
   () => !!record.value.pageUrl && pageTitleText.value !== record.value.pageUrl,
 );
 
-/** 事件码说明；目录里没有该码时如实标注，不回退成空串 */
+/** 事件码说明；事件码缺失时显示占位符，目录里没有该码时如实标注，不回退成空串 */
 const eventDescription = computed(() => {
   const code = record.value.eventCode;
   if (!code) {
-    return '';
+    return EMPTY_TEXT;
   }
   return (
     TRACKING_EVENT_CATALOG[code]?.description ??
@@ -63,7 +78,7 @@ const eventDescription = computed(() => {
   );
 });
 
-/** 结果文案；success 为 null（老数据）时留空，不臆造"失败" */
+/** 结果文案；success 为 null（老数据）时显示占位符，不臆造"失败" */
 const resultText = computed(() => {
   if (record.value.success === 1) {
     return $t('tracking.events.success');
@@ -71,11 +86,11 @@ const resultText = computed(() => {
   if (record.value.success === 0) {
     return $t('tracking.events.fail');
   }
-  return '';
+  return EMPTY_TEXT;
 });
 
 const durationText = computed(() =>
-  record.value.durationMs ? `${record.value.durationMs} ms` : '',
+  record.value.durationMs ? `${record.value.durationMs} ms` : EMPTY_TEXT,
 );
 
 /**
@@ -113,31 +128,31 @@ const hasTranslatedPayload = computed(() =>
   <Drawer>
     <Descriptions bordered size="small" :column="1">
       <DescriptionsItem :label="$t('tracking.events.eventId')">
-        {{ record.eventId }}
+        {{ toText(record.eventId) }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.eventCode')">
-        {{ record.eventCode }}
+        {{ toText(record.eventCode) }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.catalog.description')">
         {{ eventDescription }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.appId')">
-        {{ record.appId }}
+        {{ toText(record.appId) }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.userId')">
-        {{ record.userIdName || record.userId }}
+        {{ toText(record.userIdName || record.userId) }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.anonId')">
-        {{ record.anonId }}
+        {{ toText(record.anonId) }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.sessionId')">
-        {{ record.sessionId }}
+        {{ toText(record.sessionId) }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.traceId')">
-        {{ record.traceId }}
+        {{ toText(record.traceId) }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.pageUrl')">
-        {{ pageTitleText }}
+        {{ toText(pageTitleText) }}
       </DescriptionsItem>
       <DescriptionsItem
         v-if="showRawPageUrl"
@@ -146,13 +161,13 @@ const hasTranslatedPayload = computed(() =>
         {{ record.pageUrl }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.referrer')">
-        {{ record.referrer }}
+        {{ toText(record.referrer) }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.ip')">
-        {{ record.ip }}
+        {{ toText(record.ip) }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.userAgent')">
-        {{ record.userAgent }}
+        {{ toText(record.userAgent) }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.durationMs')">
         {{ durationText }}
@@ -161,10 +176,10 @@ const hasTranslatedPayload = computed(() =>
         {{ resultText }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.eventTime')">
-        {{ record.eventTime }}
+        {{ toText(record.eventTime) }}
       </DescriptionsItem>
       <DescriptionsItem :label="$t('tracking.events.receivedTime')">
-        {{ record.receivedTime }}
+        {{ toText(record.receivedTime) }}
       </DescriptionsItem>
     </Descriptions>
 
