@@ -15,10 +15,35 @@ const MAX_TEXT_LENGTH = 512;
 const SESSION_KEY = 'ypbin-tracking-session';
 const ANON_KEY = 'ypbin-tracking-anon';
 
-/** 匿名标识与来源只在首次进入时确定，随后整个会话沿用 */
+/** 会话级状态：匿名标识、会话 ID 只在首次进入时确定，随后整个会话沿用 */
 let sessionId = '';
 let anonId = '';
-let referrer = '';
+/**
+ * 整页加载时的真实外部来源（`document.referrer` 的 pathname）。
+ *
+ * 浏览器只在**整页加载且来自其它站点**时才给 `document.referrer`，SPA 内部跳转永远拿不到；
+ * 故它只用于**入口那一次页面浏览**的归因——若永久优先，站内来源将永远看不到它
+ * （生产用 hash 路由，同源 referrer 经 `sanitizeUrl` 只剩 pathname `/`，见 `takePageViewReferrer`）。
+ */
+let externalReferrer = '';
+/** 整页加载的外部来源是否已被入口页面浏览消费（只归因一次，不覆盖后续站内来源） */
+let externalReferrerUsed = false;
+/**
+ * 最近一次被上报过页面浏览的路由（即下一个页面浏览的「上一页」；仅内存，不落存储）。
+ *
+ * 刻意**不复用** `currentPagePath`：路由钩子在 `ui.page.view` 上报**之前**就已写入新路径
+ * （见 `installPageCollector`），若拿它当来源，每次页面浏览都会命中「来源 = 自己」的自引用守卫。
+ * 本变量只在页面浏览被解析时推进，语义始终是「上一个页面浏览的路径」，与
+ * `currentPageUrl()`（本页自身路径）是两件事。
+ */
+let lastPageViewUrl = '';
+/**
+ * 当前页面的来源：进入本页时解析一次后**冻结**。
+ *
+ * 本页的所有事件（页面浏览 / 离开 / 点击 / 接口 / 异常 / Web Vitals）都用它——若每次回读
+ * 「最近一次页面浏览的路由」，非页面浏览事件拿到的会是**自己所在的页面**（自引用）。
+ */
+let pageReferrer = '';
 
 /** 当前页面路径；由路由钩子写入，是 SDK 内唯一的“当前页面”事实源 */
 let currentPagePath = '';
@@ -63,9 +88,14 @@ export function initContext(): void {
     anonId = randomId('a');
     writeSessionStorage(ANON_KEY, anonId);
   }
-  referrer = sanitizeUrl(document.referrer, MAX_TEXT_LENGTH);
-  // 尚未有导航写入路由路径：先按地址栏解析（hash 路由取 hash 段），
-  // 保证首屏在路由钩子跑之前发生的事件也能拿到正确路径
+  // 整页加载的真实外部来源：只用于入口那一次页面浏览的归因（见 takePageViewReferrer）
+  externalReferrer = sanitizeUrl(document.referrer, MAX_TEXT_LENGTH);
+  externalReferrerUsed = false;
+  // 重新初始化即视为新的「当前会话内页面序列」，否则上一轮的最后页面会被当成本轮首屏的来源
+  lastPageViewUrl = '';
+  pageReferrer = '';
+  // 尚未有导航写入路由路径：此时 currentPageUrl() 会退回 resolvePageUrl() 按地址栏解析
+  // （hash 路由取 hash 段），保证首屏在路由钩子跑之前发生的事件也能拿到正确路径
   currentPagePath = '';
 }
 
@@ -79,8 +109,45 @@ export function currentAnonId(): string {
   return anonId;
 }
 
-/** 来源（已去查询串）；无来源时为空串 */
-export function currentReferrer(): string {
+/**
+ * 当前页面的来源（已去查询串）：进入本页时解析并冻结，本页所有事件共用；
+ * 无来源（首屏且直接访问）时为空串。
+ */
+export function currentPageReferrer(): string {
+  return pageReferrer;
+}
+
+/**
+ * 解析本次 `ui.page.view` 的来源，并把「本页来源」冻结为它、把本页记为当前页。
+ *
+ * **必须在构造事件体之前调用**（`index.ts` 的 `track` 已保证）。四条边界在此收口：
+ * - 首屏没有上一页时返回空串，不伪造来源；
+ * - 整页加载的外部来源（`document.referrer`）**只归因入口那一次**页面浏览：若永久优先，
+ *   hash 路由下同源整页跳转（如 OAuth 回跳）的 referrer 经 `sanitizeUrl` 只剩 `/`，
+ *   会把整个会话的站内来源全部盖掉；
+ * - 与当前页相同（同页重复上报）时不把自身当来源，避免自引用；
+ * - 结果一律过 `sanitizeUrl`（去查询串 + 按 `MAX_TEXT_LENGTH` 截断），不引入超出既有字段长度的内容。
+ *
+ * 传参的路径解析**不在本函数里做第二套**：`pageUrl` 必须是 `index.ts` 经
+ * `resolvePageUrl()`（全 SDK 唯一解析入口，处理 hash / history 两种路由）解析后的结果。
+ *
+ * @param pageUrl 本次页面浏览的地址（由 `resolvePageUrl` 解析，未清洗亦可）
+ */
+export function takePageViewReferrer(pageUrl: string): string {
+  const sanitized = sanitizeUrl(pageUrl, MAX_TEXT_LENGTH);
+  let resolved = '';
+  if (externalReferrer && !externalReferrerUsed) {
+    resolved = externalReferrer;
+    externalReferrerUsed = true;
+  } else if (sanitized && sanitized !== lastPageViewUrl) {
+    resolved = lastPageViewUrl;
+  }
+  // 统一自引用守卫：与当前页相同（含外部来源恰好就是当前页）时如实留空
+  const referrer = resolved === sanitized ? '' : resolved;
+  if (sanitized) {
+    lastPageViewUrl = sanitized;
+  }
+  pageReferrer = referrer;
   return referrer;
 }
 

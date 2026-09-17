@@ -29,6 +29,7 @@ interface SentBody {
     eventId: string;
     pageUrl?: string;
     payload: Record<string, unknown>;
+    referrer?: string;
     sessionId: string;
     success?: boolean;
   }>;
@@ -66,6 +67,25 @@ function lastSentHeaders(
   );
 }
 
+/** 取出最后一次请求体里的页面浏览事件 */
+function pageViews(fetchMock: ReturnType<typeof vi.fn>): SentBody['events'] {
+  return lastSentBody(fetchMock).events.filter(
+    (event) => event.eventCode === TrackingEventCodes.UI_PAGE_VIEW,
+  );
+}
+
+/**
+ * 覆盖 `document.referrer`（测试环境默认为空串），模拟「从站外整页加载进来」。
+ *
+ * 必须在 `initTracking` **之前**调用：SDK 只在初始化时读一次它。
+ */
+function stubDocumentReferrer(value: string): void {
+  Object.defineProperty(document, 'referrer', {
+    configurable: true,
+    value,
+  });
+}
+
 describe('tracking sdk', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -92,6 +112,8 @@ describe('tracking sdk', () => {
   afterEach(() => {
     handle?.stop();
     handle = null;
+    // 立即解除对 document.referrer 的覆盖，避免污染后续用例
+    Reflect.deleteProperty(document, 'referrer');
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -261,6 +283,141 @@ describe('tracking sdk', () => {
     expect(leaves).toHaveLength(1);
     expect(leaves[0]?.payload.routeKey).toBe('/dashboard');
     expect(typeof leaves[0]?.durationMs).toBe('number');
+  });
+
+  describe('referrer（来源取本页来源）', () => {
+    it('首屏没有上一页时来源为空，不伪造来源', async () => {
+      handle = initTracking(createApp(), createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+
+      routeHook?.({ path: '/dashboard' }, undefined);
+      await handle.flush();
+
+      const [view] = pageViews(fetchMock);
+      expect(view?.pageUrl).toBe('/dashboard');
+      expect(view?.referrer).toBe('');
+    });
+
+    it('第二次页面浏览的来源是上一个路由', async () => {
+      handle = initTracking(createApp(), createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+
+      routeHook?.({ path: '/dashboard' }, undefined);
+      routeHook?.({ path: '/system/user' }, undefined);
+      await handle.flush();
+
+      const views = pageViews(fetchMock);
+      expect(views).toHaveLength(2);
+      expect(views[0]?.referrer).toBe('');
+      expect(views[1]?.referrer).toBe('/dashboard');
+    });
+
+    it('整页加载带来的外部来源用于入口页，且同样去掉查询串', async () => {
+      stubDocumentReferrer('https://www.google.com/search?q=secret');
+      handle = initTracking(createApp(), createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+
+      routeHook?.({ path: '/dashboard' }, undefined);
+      routeHook?.({ path: '/system/user' }, undefined);
+      await handle.flush();
+
+      const views = pageViews(fetchMock);
+      expect(views[0]?.referrer).toBe('/search');
+      // 外部来源只归因入口那一次：站内跳转仍取上一个路由，否则 hash 路由下
+      // 同源整页跳转的 referrer 会被 sanitizeUrl 归一成 `/` 并永久压掉站内来源
+      expect(views[1]?.referrer).toBe('/dashboard');
+    });
+
+    it('外部来源与当前页相同时不把自身当来源', async () => {
+      stubDocumentReferrer('https://admin.example.com/dashboard');
+      handle = initTracking(createApp(), createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+
+      routeHook?.({ path: '/dashboard' }, undefined);
+      await handle.flush();
+
+      // 同址整页加载（新开标签页/整页跳同页）不得产生 pageUrl === referrer
+      const [view] = pageViews(fetchMock);
+      expect(view?.pageUrl).toBe('/dashboard');
+      expect(view?.referrer).toBe('');
+    });
+
+    it('非页面浏览事件用「本页来源」，而不是本页自身', async () => {
+      handle = initTracking(createApp(), createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+
+      routeHook?.({ path: '/dashboard' }, undefined);
+      routeHook?.({ path: '/system/user' }, undefined);
+      reportApiCall({
+        durationMs: 5000,
+        httpMethod: 'get',
+        path: '/system/user/list',
+        success: false,
+      });
+      await handle.flush();
+
+      const events = lastSentBody(fetchMock).events;
+      const leave = events.find(
+        (event) => event.eventCode === TrackingEventCodes.UI_PAGE_LEAVE,
+      );
+      const api = events.find(
+        (event) => event.eventCode === TrackingEventCodes.API_REQUEST_END,
+      );
+      // 离开 /dashboard 的事件：来源是 /dashboard 的来源（首屏为空），不是它自己
+      expect(leave?.pageUrl).toBe('/dashboard');
+      expect(leave?.referrer).toBe('');
+      // 在 /system/user 上发生的接口事件：来源是 /dashboard（本页来源），不是自身
+      expect(api?.referrer).toBe('/dashboard');
+    });
+
+    it('同一页面重复上报时不把自己当上一页', async () => {
+      // 采集器对 500ms 内的重复导航去重（见 installPageCollector），
+      // 故用可控时钟越过该窗口，制造「同一路径连续两次上报」这一真实场景。
+      let now = 1_700_000_000_000;
+      vi.spyOn(Date, 'now').mockImplementation(() => now);
+
+      handle = initTracking(createApp(), createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+
+      routeHook?.({ path: '/dashboard' }, undefined);
+      now += 1000;
+      routeHook?.({ path: '/dashboard' }, undefined);
+      await handle.flush();
+
+      const views = pageViews(fetchMock);
+      expect(views).toHaveLength(2);
+      expect(views[0]?.referrer).toBe('');
+      expect(views[1]?.referrer).toBe('');
+    });
+
+    it('来源按字段长度上限截断，不引入超长内容', async () => {
+      const longPath = `/${'y'.repeat(600)}`;
+      handle = initTracking(createApp(), createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+
+      routeHook?.({ path: longPath }, undefined);
+      routeHook?.({ path: '/system/user' }, undefined);
+      await handle.flush();
+
+      const views = pageViews(fetchMock);
+      // MAX_TEXT_LENGTH = 512
+      expect(views[0]?.referrer).toBe('');
+      expect(views[1]?.referrer).toHaveLength(512);
+    });
   });
 
   it('接口埋点只上报失败或慢调用', async () => {
@@ -518,6 +675,59 @@ describe('tracking sdk', () => {
       expect(eventOf(TrackingEventCodes.UI_CLICK_ACTION)?.pageUrl).toBe(
         '/system/user',
       );
+    });
+
+    /**
+     * 合并用例：**路径解析统一**与**「本页来源」语义**必须同时成立。
+     *
+     * 两件事分别在各自的 describe 里被覆盖，但「在同一段真实时序里同时正确」是另一回事：
+     * 页面路径走 `resolvePageUrl`（hash 路由取 hash 段），来源走 `takePageViewReferrer`
+     * （外部来源只归因入口一次、同页不串、非页面浏览事件用冻结的本页来源）。任一被改弱，
+     * 本用例都会转红。
+     */
+    it('hash 路由下路径与来源同时正确（外部来源只归因入口，站内来源取上一页）', async () => {
+      globalThis.history.replaceState(
+        null,
+        '',
+        '/#/system/license?token=secret',
+      );
+      expect(globalThis.location.pathname).toBe('/');
+      stubDocumentReferrer('https://www.google.com/search?q=secret');
+
+      const app = createApp();
+      handle = initTracking(app, createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+
+      // 路由钩子尚未跑过：pageUrl 必须由 hash 段解析出来（#51 的语义）
+      reportVueError(app);
+
+      // 入口页浏览：来源是整页加载带来的外部来源（已去查询串）
+      routeHook?.({ path: '/system/license' }, undefined);
+      // 站内跳转：外部来源只归因入口一次，这里必须退化为上一个路由
+      routeHook?.({ path: '/system/user' }, undefined);
+      // 在 /system/user 上发生的非页面浏览事件：来源是「本页来源」，不是本页自身
+      reportApiCall({
+        durationMs: 5000,
+        httpMethod: 'get',
+        path: '/system/user/list',
+        success: false,
+      });
+      await handle.flush();
+
+      const views = pageViews(fetchMock);
+      expect(views).toHaveLength(2);
+      expect(views[0]?.pageUrl).toBe('/system/license');
+      expect(views[0]?.referrer).toBe('/search');
+      expect(views[1]?.pageUrl).toBe('/system/user');
+      expect(views[1]?.referrer).toBe('/system/license');
+
+      const error = eventOf(TrackingEventCodes.WEB_ERROR_JS);
+      expect(error?.pageUrl).toBe('/system/license');
+      const api = eventOf(TrackingEventCodes.API_REQUEST_END);
+      expect(api?.pageUrl).toBe('/system/user');
+      expect(api?.referrer).toBe('/system/license');
     });
   });
 });

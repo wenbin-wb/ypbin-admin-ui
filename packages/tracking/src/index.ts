@@ -13,6 +13,9 @@
  *   避免全局 loading、错误弹窗与 401 刷新逻辑互相干扰；
  * - 身份由宿主通过 `getToken` 回调提供（取值口径须与业务请求客户端**同源**），
  *   本包不 import 任何应用侧 store；取不到令牌即匿名上报，不影响上报本身的可用性。
+ * - `referrer` 在 SPA 里取**进入本页之前的那个路由**（`document.referrer` 只在整页加载时
+ *   才有值，对站内跳转恒为空，故只归因入口那一次页面浏览）；语义与边界见 `context.ts` 的
+ *   `takePageViewReferrer`。
  */
 import {
   installClickCollector,
@@ -22,11 +25,12 @@ import {
 } from './collectors';
 import {
   currentAnonId,
+  currentPageReferrer,
   currentPageUrl,
-  currentReferrer,
   currentSessionId,
   initContext,
   resolvePageUrl,
+  takePageViewReferrer,
   truncate,
 } from './context';
 import { Reporter } from './reporter';
@@ -113,10 +117,12 @@ function buildBody(input: TrackEventInput, appId: string): TrackEventBody {
     // 事件 ID 由客户端生成，是服务端的去重键
     eventId: `${currentSessionId()}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     eventTime: new Date().toISOString(),
-    // 路径解析只有一个入口：显式传入的地址按同一规则清洗，未传入时解析当前页面
+    // 路径解析只有一个入口（context.ts 的 resolvePageUrl）：显式传入的地址按同一规则清洗，
+    // 未传入时解析当前页面——hash 路由下真实路由在 location.hash 里，pathname 恒为 '/'
     pageUrl: resolvePageUrl(input.pageUrl),
     payload: prunePayload(input.eventCode, input.payload),
-    referrer: currentReferrer(),
+    // 页面浏览的来源由 track() 解析后随入参带上（本页的来源）；其余事件用冻结的「本页来源」
+    referrer: truncate(input.referrer ?? currentPageReferrer()),
     sessionId: currentSessionId(),
     success: input.success,
   };
@@ -128,7 +134,16 @@ function track(input: TrackEventInput): void {
     return;
   }
   try {
-    current.reporter.enqueue(buildBody(input, current.options.appId));
+    // `ui.page.view` 的来源在构造事件体之前解析，并把「本页来源」冻结给本页后续的所有事件
+    // （首屏无上一页则为空串）。页面地址同样走唯一的解析入口，避免与本页路径两套口径。
+    const enriched: TrackEventInput =
+      input.eventCode === TrackingEventCodes.UI_PAGE_VIEW
+        ? {
+            ...input,
+            referrer: takePageViewReferrer(resolvePageUrl(input.pageUrl)),
+          }
+        : input;
+    current.reporter.enqueue(buildBody(enriched, current.options.appId));
   } catch (error) {
     // 采集失败不得影响业务
     console.warn('[tracking] 事件入队失败', error);

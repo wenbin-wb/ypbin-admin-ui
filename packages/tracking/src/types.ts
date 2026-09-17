@@ -79,6 +79,13 @@ export interface TrackEventInput {
   pageUrl?: string;
   /** 事件属性，键必须在事件目录的白名单内，否则服务端会拒绝该键 */
   payload?: Record<string, unknown>;
+  /**
+   * 来源；**仅供 SDK 内部为 `ui.page.view` 填入「本页的来源」**，业务与采集器无需传。
+   *
+   * 缺省时由 SDK 用 `currentPageReferrer()` 补齐（进入本页时解析并冻结的值），
+   * 故显式传空串表示「本次确实没有来源」，与「没传」不是一回事；写入事件体前统一截断。
+   */
+  referrer?: string;
   /** 结果是否成功 */
   success?: boolean;
 }
