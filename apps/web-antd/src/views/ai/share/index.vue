@@ -84,7 +84,8 @@ async function loadDocs() {
   try {
     const res = await getShareDocuments(
       token,
-      { page: 1, pageSize: 200 },
+      // 后端 PageQuery.pageSize 上限为 100（@Max(100)），侧边栏一次取满分页上限
+      { page: 1, pageSize: 100 },
       password.value || undefined,
     );
     docs.value = (res.items ?? []).filter((d) => d.status === 1);

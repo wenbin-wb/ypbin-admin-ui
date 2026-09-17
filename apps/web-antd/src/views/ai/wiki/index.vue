@@ -89,7 +89,8 @@ async function loadDocs(kbId: string) {
   docContent.value = '';
   docError.value = '';
   try {
-    const res = await getDocumentList(kbId, { page: 1, pageSize: 200 });
+    // 后端 PageQuery.pageSize 上限为 100（@Max(100)），侧边栏一次取满分页上限
+    const res = await getDocumentList(kbId, { page: 1, pageSize: 100 });
     // 只展示就绪文档
     docs.value = (res.items ?? []).filter((d) => d.status === 1);
     // 自动加载第一篇
@@ -362,7 +363,8 @@ onMounted(loadKbs);
               <div class="mb-1.5 flex items-center gap-2">
                 <span
                   class="inline-flex size-4 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary"
-                  >#{{ idx + 1 }}</span>
+                  >#{{ idx + 1 }}</span
+                >
                 <span class="truncate text-xs text-muted-foreground">{{
                   src.source
                 }}</span>
