@@ -4,7 +4,12 @@
  * 走**公开 API**（`initTracking` / `reportApiCall`），用假的 `fetch` 与假的路由实例验证
  * 真正发出去的东西——只验类型不足以证明事件形状正确。
  */
-import type { TrackableApp, TrackableRouter, TrackingHandle } from './types';
+import type {
+  TrackableApp,
+  TrackableErrorHandler,
+  TrackableRouter,
+  TrackingHandle,
+} from './types';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -370,5 +375,149 @@ describe('tracking sdk', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 生产用 hash 路由（`createWebHashHistory`）：`location.pathname` 恒为 `/`，真实路由在
+   * `location.hash` 里。此前各采集器各自读 `pathname`，真机上 `web.error.js` 等事件的
+   * `pageUrl` 一律是 `/`。这组用例把「退化条件本身」也写成断言，改坏必转红。
+   */
+  describe('页面路径解析（pageUrl）', () => {
+    /** 触发 Vue 全局错误处理——异常采集器的公开入口 */
+    function reportVueError(app: TrackableApp): void {
+      (app.config.errorHandler as TrackableErrorHandler)(
+        new Error('boom'),
+        undefined,
+        'render',
+      );
+    }
+
+    /** 追加一个白名单点击元素并派发点击 */
+    function clickTracked(actionKey: string): void {
+      const element = document.createElement('button');
+      element.dataset.track = actionKey;
+      document.body.append(element);
+      element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      element.remove();
+    }
+
+    function eventOf(code: string) {
+      return lastSentBody(fetchMock).events.find(
+        (event) => event.eventCode === code,
+      );
+    }
+
+    it('hash 路由：web.error.js 取 hash 里的路由段，而不是恒为 / 的 pathname', async () => {
+      globalThis.history.replaceState(null, '', '/#/system/license');
+      // 前置条件：先把「pathname 恒为 /」这个退化场景本身钉死
+      expect(globalThis.location.pathname).toBe('/');
+      expect(globalThis.location.hash).toBe('#/system/license');
+
+      const app = createApp();
+      handle = initTracking(app, createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+      reportVueError(app);
+      await handle.flush();
+
+      expect(eventOf(TrackingEventCodes.WEB_ERROR_JS)?.pageUrl).toBe(
+        '/system/license',
+      );
+    });
+
+    it('hash 路由：hash 里的查询串同样被剥掉（不泄漏令牌）', async () => {
+      globalThis.history.replaceState(
+        null,
+        '',
+        '/#/system/license?token=secret',
+      );
+
+      const app = createApp();
+      handle = initTracking(app, createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+      reportVueError(app);
+      await handle.flush();
+
+      expect(eventOf(TrackingEventCodes.WEB_ERROR_JS)?.pageUrl).toBe(
+        '/system/license',
+      );
+    });
+
+    it('hash 路由：点击采集器与接口埋点同样取路由段', async () => {
+      globalThis.history.replaceState(null, '', '/#/system/user');
+
+      handle = initTracking(createApp(), createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+      clickTracked('user.create');
+      reportApiCall({
+        durationMs: 2500,
+        httpMethod: 'get',
+        path: '/system/user/list',
+        success: true,
+      });
+      await handle.flush();
+
+      expect(eventOf(TrackingEventCodes.UI_CLICK_ACTION)?.pageUrl).toBe(
+        '/system/user',
+      );
+      expect(eventOf(TrackingEventCodes.API_REQUEST_END)?.pageUrl).toBe(
+        '/system/user',
+      );
+    });
+
+    it('history 路由：hash 为空时取 pathname（本地开发路径不被破坏）', async () => {
+      globalThis.history.replaceState(null, '', '/system/license');
+      expect(globalThis.location.hash).toBe('');
+
+      const app = createApp();
+      handle = initTracking(app, createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+      reportVueError(app);
+      await handle.flush();
+
+      expect(eventOf(TrackingEventCodes.WEB_ERROR_JS)?.pageUrl).toBe(
+        '/system/license',
+      );
+    });
+
+    it('hash 不是路由形态（普通锚点）时退回 pathname，保持既有行为', async () => {
+      globalThis.history.replaceState(null, '', '/system/license#section');
+      expect(globalThis.location.hash).toBe('#section');
+
+      const app = createApp();
+      handle = initTracking(app, createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+      reportVueError(app);
+      await handle.flush();
+
+      expect(eventOf(TrackingEventCodes.WEB_ERROR_JS)?.pageUrl).toBe(
+        '/system/license',
+      );
+    });
+
+    it('导航后所有采集器复用路由解析出的路径（优先于地址栏）', async () => {
+      globalThis.history.replaceState(null, '', '/#/dashboard');
+
+      handle = initTracking(createApp(), createRouter(), {
+        appId: 'ypbin-admin-ui',
+        url: '/tracking/ingest',
+      });
+      routeHook?.({ meta: {}, path: '/system/user?token=secret' }, undefined);
+      clickTracked('user.create');
+      await handle.flush();
+
+      expect(eventOf(TrackingEventCodes.UI_CLICK_ACTION)?.pageUrl).toBe(
+        '/system/user',
+      );
+    });
   });
 });

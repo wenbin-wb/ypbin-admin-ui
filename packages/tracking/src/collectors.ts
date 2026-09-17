@@ -14,7 +14,12 @@ import type {
   TrackEventInput,
 } from './types';
 
-import { sanitizeUrl, truncate } from './context';
+import {
+  currentPageUrl,
+  sanitizeUrl,
+  setCurrentPagePath,
+  truncate,
+} from './context';
 import { TrackingEventCodes } from './events.generated';
 
 /** 采集回调：把事件交给 SDK 入队 */
@@ -61,13 +66,17 @@ export function installPageCollector(
     lastReportedPath = to.path;
     lastReportedAt = now;
     reportLeave();
-    current = { path: sanitizeUrl(to.path), startedAt: performance.now() };
+    // 路由解析出的路径回写上下文：此后点击/异常/性能采集器与 reportApiCall
+    // 统一走 currentPageUrl()，不再各自读 location.pathname（hash 路由下它恒为 '/'）
+    setCurrentPagePath(to.path);
+    const path = currentPageUrl();
+    current = { path, startedAt: performance.now() };
     const title = (to.meta as { title?: unknown } | undefined)?.title;
     track({
       eventCode: TrackingEventCodes.UI_PAGE_VIEW,
-      pageUrl: sanitizeUrl(to.path),
+      pageUrl: path,
       payload: {
-        routeKey: sanitizeUrl(to.path),
+        routeKey: path,
         routeTitle: truncate(typeof title === 'string' ? title : '', 128),
       },
     });
@@ -108,7 +117,7 @@ export function installClickCollector(track: TrackFn): () => void {
       }
       track({
         eventCode: TrackingEventCodes.UI_CLICK_ACTION,
-        pageUrl: sanitizeUrl(globalThis.location?.pathname ?? ''),
+        pageUrl: currentPageUrl(),
         payload: {
           actionKey: truncate(actionKey, 128),
           targetTag: truncate(tracked.tagName.toLowerCase(), 32),
@@ -177,7 +186,7 @@ function reportError(track: TrackFn, error: unknown, errorType: string): void {
     const stack = error instanceof Error ? (error.stack ?? '') : '';
     track({
       eventCode: TrackingEventCodes.WEB_ERROR_JS,
-      pageUrl: sanitizeUrl(globalThis.location?.pathname ?? ''),
+      pageUrl: currentPageUrl(),
       payload: {
         errorMessage: truncate(message, MAX_STACK_LENGTH),
         errorType: truncate(errorType, 64),
@@ -272,7 +281,7 @@ export function installVitalsCollector(track: TrackFn): () => void {
       }
       track({
         eventCode: TrackingEventCodes.WEB_VITAL_REPORT,
-        pageUrl: sanitizeUrl(globalThis.location?.pathname ?? ''),
+        pageUrl: currentPageUrl(),
         payload: { metric, rating: ratingOf(metric, value), value },
       });
     }
@@ -295,17 +304,30 @@ export function installVitalsCollector(track: TrackFn): () => void {
   };
 }
 
-/** 指标评级；阈值取自 Web Vitals 官方推荐值 */
+/**
+ * 指标评级；阈值取自 Web Vitals 官方推荐值。
+ *
+ * 刻意写成两个函数而不是嵌套三元：oxlint 的 `unicorn/no-nested-ternary` 要求嵌套三元加括号，
+ * 而 oxfmt 会把括号去掉，两者互相冲突——去掉嵌套三元才能同时满足这两道门禁。
+ */
 function ratingOf(metric: string, value: number): string {
   if (metric === 'LCP') {
-    return value <= 2500
-      ? 'good'
-      : (value <= 4000
-        ? 'needs-improvement'
-        : 'poor');
+    return ratingByThreshold(value, 2500, 4000);
   }
   if (metric === 'CLS') {
-    return value <= 0.1 ? 'good' : (value <= 0.25 ? 'needs-improvement' : 'poor');
+    return ratingByThreshold(value, 0.1, 0.25);
   }
-  return value <= 800 ? 'good' : (value <= 1800 ? 'needs-improvement' : 'poor');
+  return ratingByThreshold(value, 800, 1800);
+}
+
+/** 三档评级：不超过 goodMax 为 good，不超过 needsImprovementMax 为 needs-improvement，否则 poor */
+function ratingByThreshold(
+  value: number,
+  goodMax: number,
+  needsImprovementMax: number,
+): string {
+  if (value <= goodMax) {
+    return 'good';
+  }
+  return value <= needsImprovementMax ? 'needs-improvement' : 'poor';
 }

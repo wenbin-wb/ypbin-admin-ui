@@ -242,7 +242,8 @@ const options = computed(() => {
       {
         pageSize: 20,
         background: true,
-        pageSizes: [10, 20, 30, 50, 100, 200],
+        // 上限 100：后端 PageQuery.pageSize 为 @Max(100)，档位超出必被拒（全站共享配置）
+        pageSizes: [10, 20, 30, 50, 100],
         className: 'mt-2 w-full',
         layouts: isMobile.value ? mobileLayouts : layouts,
         size: 'mini' as const,

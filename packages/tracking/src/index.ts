@@ -22,10 +22,11 @@ import {
 } from './collectors';
 import {
   currentAnonId,
+  currentPageUrl,
   currentReferrer,
   currentSessionId,
   initContext,
-  sanitizeUrl,
+  resolvePageUrl,
   truncate,
 } from './context';
 import { Reporter } from './reporter';
@@ -112,9 +113,8 @@ function buildBody(input: TrackEventInput, appId: string): TrackEventBody {
     // 事件 ID 由客户端生成，是服务端的去重键
     eventId: `${currentSessionId()}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     eventTime: new Date().toISOString(),
-    pageUrl: input.pageUrl
-      ? sanitizeUrl(input.pageUrl)
-      : sanitizeUrl(globalThis.location?.pathname ?? ''),
+    // 路径解析只有一个入口：显式传入的地址按同一规则清洗，未传入时解析当前页面
+    pageUrl: resolvePageUrl(input.pageUrl),
     payload: prunePayload(input.eventCode, input.payload),
     referrer: currentReferrer(),
     sessionId: currentSessionId(),
@@ -221,7 +221,7 @@ export function reportApiCall(input: ApiCallInput): void {
   track({
     durationMs: input.durationMs,
     eventCode: TrackingEventCodes.API_REQUEST_END,
-    pageUrl: sanitizeUrl(globalThis.location?.pathname ?? ''),
+    pageUrl: currentPageUrl(),
     payload: {
       apiPath: truncate(input.path.split('?')[0] ?? input.path, 256),
       bizCode: input.bizCode ?? 0,
