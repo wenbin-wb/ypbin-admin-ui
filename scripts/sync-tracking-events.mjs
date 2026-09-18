@@ -20,11 +20,13 @@
  *     **向后兼容**：宿主仓未提供 project 目录时按「纯 base」生成（这正是分层的意义：starter 能被别的项目引用）；
  *     而本仓（admin-ui）的生成物含宿主事件，故 CI/本地都必须检出宿主仓，否则生成物少码、漂移门禁会如实报红。
  *
- * `--check` 退出码（**「找不到宿主目录」不等于「漂移」，两者必须能分辨**）：
+ * `--check` 退出码（**「找不到事实源」不等于「漂移」，两者必须能分辨**）：
  *   0 = 生成物与 base + project 合并结果一致；
  *   1 = 真漂移（生成物与事实源合并结果不同）；
- *   2 = 检出/配置问题：显式给了 `HOST_REPO_ROOT` 却无此目录，或生成物声明含宿主事件却没找到宿主目录。
- *       —— 此时比较基准本身不完整，**不能**下「事件码已漂移」的结论（那会把排查方向带偏）。
+ *   2 = 检出/配置/数据问题，比较基准不可信，**不能**下「事件码已漂移」的结论（那会把排查方向带偏）：
+ *       base 或 project 层事件目录缺失/读不到/不是合法 JSON、schemaVersion 不支持，
+ *       或生成物声明含宿主事件却未找到宿主目录（`HOST_REPO_ROOT` 指向不存在的目录即此列）。
+ *       这类问题在比较之前就会失败——基准不完整时，漂移无从判定。
  */
 import { existsSync, readdirSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -48,6 +50,9 @@ const targetFile = join(
 
 /** 调用方是否**显式**指定了宿主仓根目录（显式指定即承诺「本该有宿主」） */
 const hostRootExplicit = (process.env.HOST_REPO_ROOT ?? '') !== '';
+
+/** 调用方是否**直接指定了宿主目录文件**（优先级高于 `HOST_REPO_ROOT`，见 `findHostCatalog`） */
+const hostFileExplicit = (process.env.HOST_TRACKING_EVENTS ?? '') !== '';
 
 /** project 层在宿主仓内的相对约定路径（与运行时 `TrackingEventCatalog.RESOURCE_PATH` 同值） */
 const HOST_CATALOG_SUFFIX = join('META-INF', 'ypbin', 'tracking-events.json');
@@ -387,18 +392,53 @@ async function readIfExists(file) {
   return readFile(file, 'utf8');
 }
 
-if (!existsSync(sourceFile)) {
-  console.error(`✖ 找不到 base 层事件目录：${sourceFile}`);
-  console.error('  请设置 STARTER_REPO_ROOT 指向 ypbin-starter 仓库根目录。');
-  process.exit(1);
+/**
+ * 读取并解析一层事件目录。
+ *
+ * 事实源**读不到**或**不是合法 JSON**属配置/数据问题，与「事件码漂移」性质不同：
+ * 未捕获的 `SyntaxError` 会让 Node 以退出码 1 结束，等于又把配置问题报成了漂移，故统一收口到 2。
+ *
+ * @param file  事件目录文件
+ * @param layer 层名（base / project），仅用于报错措辞
+ */
+async function readCatalog(file, layer) {
+  let raw;
+  try {
+    raw = await readFile(file, 'utf8');
+  } catch (error) {
+    console.error(
+      `✖ 配置/检出问题（不是事件码漂移）：${layer} 层事件目录读不到：${file}`,
+    );
+    console.error(`  ${error.message}`);
+    process.exit(2);
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    console.error(
+      `✖ 配置/数据问题（不是事件码漂移）：${layer} 层事件目录不是合法 JSON：${file}`,
+    );
+    console.error(`  ${error.message}`);
+    process.exit(2);
+  }
 }
 
-const baseCatalog = JSON.parse(await readFile(sourceFile, 'utf8'));
+if (!existsSync(sourceFile)) {
+  console.error(
+    `✖ 配置/检出问题（不是事件码漂移）：找不到 base 层事件目录：${sourceFile}`,
+  );
+  console.error(
+    '  请设置 STARTER_REPO_ROOT 指向 ypbin-starter 仓库根目录（该目录缺失属检出问题，不是事件码漂移）。',
+  );
+  process.exit(2);
+}
+
+const baseCatalog = await readCatalog(sourceFile, 'base');
 if (baseCatalog.schemaVersion !== 1) {
   console.error(
     `✖ 不支持的 base 层事件目录 schemaVersion：${baseCatalog.schemaVersion}`,
   );
-  process.exit(1);
+  process.exit(2);
 }
 
 // project 层是可选的：找不到即「纯 base 宿主」（向后兼容），多份则直接报错（不按不可靠顺序择一）
@@ -406,7 +446,9 @@ if (baseCatalog.schemaVersion !== 1) {
 // ⚠ 但「显式给了 HOST_REPO_ROOT、该目录却不存在」不属于「宿主只读 base」，而是检出/配置问题：
 // 若继续按纯 base 生成/比对，就会把配置错误报成「事件码已漂移」，把排查方向带偏（本仓 CI 真踩过）。
 // 故当场失败并用独立退出码 2 表明性质，既不生成也不比对。
-if (hostRootExplicit && !existsSync(hostRoot)) {
+// 注意必须让位于 `HOST_TRACKING_EVENTS`：那是「直接指定宿主目录文件」的更高优先级入口，
+// 与 HOST_REPO_ROOT 同时存在时不该因为后者失效而失败（否则会无端压掉一条既有用法）。
+if (hostRootExplicit && !hostFileExplicit && !existsSync(hostRoot)) {
   console.error(
     `✖ 配置/检出问题（不是事件码漂移）：HOST_REPO_ROOT 指向的宿主仓目录不存在：${hostRoot}`,
   );
@@ -419,12 +461,12 @@ const hostCatalogFile = findHostCatalog();
 const projectCatalog =
   hostCatalogFile === null
     ? { events: [], schemaVersion: baseCatalog.schemaVersion }
-    : JSON.parse(await readFile(hostCatalogFile, 'utf8'));
+    : await readCatalog(hostCatalogFile, 'project');
 if (projectCatalog.schemaVersion !== 1) {
   console.error(
     `✖ 不支持的 project 层事件目录 schemaVersion：${projectCatalog.schemaVersion}`,
   );
-  process.exit(1);
+  process.exit(2);
 }
 
 const merge = mergeCatalogs(baseCatalog, projectCatalog);
