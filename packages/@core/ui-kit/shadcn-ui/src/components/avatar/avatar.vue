@@ -14,7 +14,16 @@ import { computed } from 'vue';
 import { Avatar, AvatarFallback, AvatarImage } from '../../ui';
 
 interface Props extends AvatarFallbackProps, AvatarImageProps, AvatarRootProps {
-  alt?: string;
+  /**
+   * 替代文本，同时是「无头像时回退文字」的来源。
+   *
+   * 允许 `null`：调用方会把后端的可空字段经中间组件透传进来——
+   * `apps/web-antd/src/layouts/basic.vue` 的 `:text="userStore.userInfo?.realName"`
+   * → `packages/effects/layouts/src/widgets/user-dropdown/user-dropdown.vue` 的
+   * `<VbenAvatar :alt="text" />`；`realName` 在 `@vben-core/typings` 里声明为
+   * `string`，但后端可能返回 `null`。
+   */
+  alt?: null | string;
   class?: ClassType;
   dot?: boolean;
   dotClass?: ClassType;
@@ -42,8 +51,19 @@ const imageStyle = computed<CSSProperties>(() => {
   return {};
 });
 
+/**
+ * 归一后的 `alt`：`null` 与「未提供」等价，都取默认值 `avatar`（与 `withDefaults` 的默认值保持一致）。
+ *
+ * `withDefaults` 只兜 `undefined`——显式传入的 `null` 会原样进来，于是渲染期的
+ * `null.slice(-2)` 抛出 `Cannot read properties of null (reading 'slice')`
+ * （生产环境 chunk `avatar-*.js` 上报的正是这个位置），故这里再归一一次。
+ */
+const normalizedAlt = computed(() => {
+  return props.alt ?? 'avatar';
+});
+
 const text = computed(() => {
-  return props.alt.slice(-2).toUpperCase();
+  return normalizedAlt.value.slice(-2).toUpperCase();
 });
 
 const rootStyle = computed(() => {
@@ -63,7 +83,7 @@ const rootStyle = computed(() => {
     class="relative flex shrink-0 items-center"
   >
     <Avatar :class="props.class" class="size-full">
-      <AvatarImage :alt="alt" :src="src" :style="imageStyle" />
+      <AvatarImage :alt="normalizedAlt" :src="src" :style="imageStyle" />
       <AvatarFallback>{{ text }}</AvatarFallback>
     </Avatar>
     <span
