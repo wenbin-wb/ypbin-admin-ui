@@ -1,26 +1,36 @@
 #!/usr/bin/env node
 /**
- * 埋点事件码同步器。
+ * 埋点事件码同步器（读**两份**：starter 的 base + 宿主后端的 project）。
  *
- * 事实源是 **ypbin-starter 仓库的 `docs/tracking-events.json`**（唯一事实源，见 starter 的
- * `tools/export-tracking-events.mjs`）。本脚本把它派生为前端可直接引用的 TS 常量，
- * 避免在页面里手写事件码字符串造成前后端漂移。
+ * 事件目录是**两层**的（分层方案见 starter 的 `docs/MODULES.md` 与 `tools/export-tracking-events.mjs`）：
+ *   - **base**：ypbin-starter 仓库的 `docs/tracking-events.json`（平台通用事件）；
+ *   - **project**：宿主后端仓内 `META-INF/ypbin/tracking-events.json`（宿主自有业务事件，随宿主 jar 打包）。
+ * 运行时由 starter 用 `classpath*:` 取回两份并按「同一事件码以 project 为准」合并；本脚本在**构建期**做同一件事，
+ * 把联合结果派生为前端可直接引用的 TS 常量，避免在页面里手写事件码字符串造成前后端漂移。
+ * 合并口径与运行时 `TrackingCatalogMerger` 对齐：`description`/属性名集合/属性 `type`/`maxLength`
+ * （未声明即「不限制」，按 0 归一后比较）。
  *
  * 用法：
  *   node scripts/sync-tracking-events.mjs            # 生成 packages/tracking/src/events.generated.ts
- *   node scripts/sync-tracking-events.mjs --check    # 只校验生成物与事实源一致（CI 漂移门禁）
+ *   node scripts/sync-tracking-events.mjs --check    # 只校验生成物与两份事实源合并结果一致（CI 漂移门禁）
  *
- * 事实源位置：默认取同级的 `../ypbin-starter`，可用环境变量 `STARTER_REPO_ROOT` 覆盖
- * （CI 里会单独检出 starter 仓库）。
+ * 事实源位置（均可用环境变量覆盖，CI 里会把两个仓分别检出）：
+ *   - base：`STARTER_REPO_ROOT`，默认同级 `../ypbin-starter`；
+ *   - project：`HOST_REPO_ROOT`，默认同级 `../ypbin-admin`；也可用 `HOST_TRACKING_EVENTS` 直接指定文件。
+ *     **向后兼容**：宿主仓未提供 project 目录时按「纯 base」生成（这正是分层的意义：starter 能被别的项目引用）；
+ *     而本仓（admin-ui）的生成物含宿主事件，故 CI/本地都必须检出宿主仓，否则生成物少码、漂移门禁会如实报红。
  */
+import { existsSync, readdirSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const repoRoot = resolve(import.meta.dirname, '..');
 const starterRoot = process.env.STARTER_REPO_ROOT
   ? resolve(process.env.STARTER_REPO_ROOT)
   : resolve(repoRoot, '..', 'ypbin-starter');
+const hostRoot = process.env.HOST_REPO_ROOT
+  ? resolve(process.env.HOST_REPO_ROOT)
+  : resolve(repoRoot, '..', 'ypbin-admin');
 const sourceFile = join(starterRoot, 'docs', 'tracking-events.json');
 const targetFile = join(
   repoRoot,
@@ -30,7 +40,140 @@ const targetFile = join(
   'events.generated.ts',
 );
 
+/** project 层在宿主仓内的相对约定路径（与运行时 `TrackingEventCatalog.RESOURCE_PATH` 同值） */
+const HOST_CATALOG_SUFFIX = join('META-INF', 'ypbin', 'tracking-events.json');
+
+/** 遍历宿主仓时跳过的目录（构建产物/依赖，纯性能考虑） */
+const SKIPPED_DIRS = new Set([
+  '.git',
+  '.turbo',
+  'dist',
+  'node_modules',
+  'target',
+]);
+
 const checkMode = process.argv.includes('--check');
+
+/**
+ * 在宿主仓内定位 project 层目录文件。
+ *
+ * **为什么不写死模块路径**：宿主是多模块仓，"哪个模块承载宿主目录"是宿主的自由（admin 当前放在
+ * `ypbin-common/src/main/resources`，因为它要同时出现在 auth 与 system 的类路径上）。写死模块路径会让
+ * 宿主换模块时本脚本静默失明；故改为递归查找，并按运行时同款规则处理多份：
+ * 0 份 = 纯 base（宿主未使用分层能力），>1 份 = 直接报错（无法确定覆盖优先级，运行时同样是启动即失败）。
+ *
+ * @returns project 层文件路径；宿主未提供时返回 null
+ */
+function findHostCatalog() {
+  const explicit = process.env.HOST_TRACKING_EVENTS;
+  if (explicit) {
+    const file = resolve(explicit);
+    if (!existsSync(file)) {
+      throw new Error(`HOST_TRACKING_EVENTS 指定的宿主事件目录不存在: ${file}`);
+    }
+    return file;
+  }
+  if (!existsSync(hostRoot)) {
+    return null;
+  }
+  const found = [];
+  const walk = (current) => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const path = join(current, entry.name);
+      if (entry.isDirectory()) {
+        if (!SKIPPED_DIRS.has(entry.name)) {
+          walk(path);
+        }
+        continue;
+      }
+      if (!entry.isFile()) {
+        continue;
+      }
+      // 只认「资源根/META-INF/ypbin/tracking-events.json」，避免把测试夹具或生成物误当事实源
+      if (
+        path.endsWith(join('src', 'main', 'resources', HOST_CATALOG_SUFFIX)) ||
+        path.endsWith(join('resources', HOST_CATALOG_SUFFIX))
+      ) {
+        found.push(path);
+      }
+    }
+  };
+  walk(hostRoot);
+  if (found.length > 1) {
+    throw new Error(
+      `宿主仓出现 ${found.length} 份 project 层事件目录，无法确定覆盖优先级（运行时同样会启动失败）：\n  - ${found.join('\n  - ')}`,
+    );
+  }
+  return found.length === 1 ? found[0] : null;
+}
+
+/** 属性长度上限的归一化口径：目录只为 string 声明 maxLength，其余类型缺省即「不限制」（0） */
+function normalizedMaxLength(property) {
+  return property.maxLength ?? 0;
+}
+
+/**
+ * 判断 project 侧定义相对 base 侧是否**确有字段变化**（口径与运行时 `TrackingCatalogMerger` 一致）。
+ *
+ * @returns 有变化返回 true
+ */
+function overridesBase(baseEvent, projectEvent) {
+  if (baseEvent.description !== projectEvent.description) {
+    return true;
+  }
+  const baseProperties = new Map(
+    (baseEvent.properties ?? []).map((property) => [property.name, property]),
+  );
+  const projectProperties = new Map(
+    (projectEvent.properties ?? []).map((property) => [
+      property.name,
+      property,
+    ]),
+  );
+  if (baseProperties.size !== projectProperties.size) {
+    return true;
+  }
+  for (const [name, property] of projectProperties) {
+    const before = baseProperties.get(name);
+    if (
+      before === undefined ||
+      before.type !== property.type ||
+      normalizedMaxLength(before) !== normalizedMaxLength(property)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * 合并 base 与 project：同一事件码**以 project 为准**，并给出被覆盖的事件码。
+ *
+ * @returns 联合目录（事件按码升序）与被覆盖事件码
+ */
+function mergeCatalogs(baseCatalog, projectCatalog) {
+  const merged = new Map(
+    baseCatalog.events.map((event) => [event.code, event]),
+  );
+  const overriddenCodes = [];
+  const addedCodes = [];
+  for (const event of projectCatalog.events) {
+    const previous = merged.get(event.code);
+    if (previous === undefined) {
+      addedCodes.push(event.code);
+    } else if (overridesBase(previous, event)) {
+      overriddenCodes.push(event.code);
+    }
+    merged.set(event.code, event);
+  }
+  return {
+    addedCodes,
+    events: [...merged.keys()]
+      .toSorted((a, b) => a.localeCompare(b))
+      .map((code) => merged.get(code)),
+    overriddenCodes: overriddenCodes.toSorted((a, b) => a.localeCompare(b)),
+  };
+}
 
 /** 事件码 -> TS 常量名（大写下划线） */
 function constantName(code) {
@@ -60,8 +203,11 @@ function sortedProperties(event) {
  *
  * 每个对象都**逐属性换行**输出：oxfmt 的 `objectWrap` 语义是「原文本已换行则保持换行」，
  * 若这里输出单行紧凑形式，格式化后会被改写成分行形式，漂移门禁就会长期误报。
+ *
+ * @param events          联合目录（按码升序）
+ * @param overriddenCodes 被宿主 project 层覆盖的事件码；命中者在条目上方输出可见标注
  */
-function renderCatalogEntries(events) {
+function renderCatalogEntries(events, overriddenCodes) {
   return events
     .map((event) => {
       const header = [
@@ -95,15 +241,24 @@ function renderCatalogEntries(events) {
           ? `    properties: [\n${properties.join('\n')}\n    ],`
           : '    properties: [],',
       );
-      return `  ${quote(event.code)}: {\n${body.join('\n')}\n  },`;
+      // 被 project 覆盖的码必须**在生成物里可见**（分层方案对"覆盖"的审计要求）；
+      // 无覆盖时一行都不输出，避免生成物出现空噪音
+      const marker = overriddenCodes.has(event.code)
+        ? '  // ⚠️ 本事件码被宿主 project 层覆盖：以下定义以 project 为准，starter base 的定义已失效\n'
+        : '';
+      return `${marker}  ${quote(event.code)}: {\n${body.join('\n')}\n  },`;
     })
     .join('\n');
 }
 
-function render(catalog) {
-  const events = catalog.events.toSorted((a, b) =>
-    a.code.localeCompare(b.code),
-  );
+/**
+ * 渲染生成物。
+ *
+ * @param merge   合并结果（联合目录 + 被覆盖的事件码）
+ * @param hasHost 是否找到宿主 project 层目录（决定头部是否声明「只含 base」）
+ */
+function render(merge, hasHost) {
+  const events = merge.events;
   const constants = events
     .map((event) => `  ${constantName(event.code)}: ${quote(event.code)},`)
     .join('\n');
@@ -116,14 +271,25 @@ function render(catalog) {
       return `  ${quote(event.code)}: ${entries ? `{ ${entries} }` : '{}'},`;
     })
     .join('\n');
-  const catalogEntries = renderCatalogEntries(events);
+  const catalogEntries = renderCatalogEntries(
+    events,
+    new Set(merge.overriddenCodes),
+  );
+  // 头部只写"逻辑来源"，**绝不写绝对路径**——否则本地与 CI 的检出路径不同会让漂移门禁长期误报
+  const projectLine = hasHost
+    ? ' *   2) project —— 宿主后端仓（默认同级 `../ypbin-admin`）的 `META-INF/ypbin/tracking-events.json`（宿主自有业务事件）。'
+    : ' *   2) project —— 宿主后端仓的 project 层目录**本次未找到**，故生成物只含 base 事件（纯 base 宿主）。';
 
   return `/**
  * 埋点事件码与属性白名单（生成物，请勿手工修改）。
  *
- * 事实源：ypbin-starter 仓库的 \`docs/tracking-events.json\`；
+ * 事实源：**base + project 两层合并**
+ *   1) base —— ypbin-starter 仓库的 \`docs/tracking-events.json\`（平台通用事件）；
+${projectLine}
+ * 同一事件码以 project 为准；运行时由 starter 用 \`classpath*:\` 读两份并按同一规则合并
+ * （口径见 starter 的 \`docs/MODULES.md\`）。修改事件目录请改对应层的文件，然后重跑本脚本，
+ * 否则 CI 的「校验埋点事件码未漂移」会失败。
  * 生成器：本仓库 \`scripts/sync-tracking-events.mjs\`。
- * 修改事件目录请到 starter 仓库改事实源，然后重跑本脚本，否则 CI 的漂移门禁会失败。
  */
 
 /** 事件码常量：页面里禁止手写事件码字符串 */
@@ -202,33 +368,70 @@ async function readIfExists(file) {
 }
 
 if (!existsSync(sourceFile)) {
-  console.error(`✖ 找不到事件目录事实源：${sourceFile}`);
+  console.error(`✖ 找不到 base 层事件目录：${sourceFile}`);
   console.error('  请设置 STARTER_REPO_ROOT 指向 ypbin-starter 仓库根目录。');
   process.exit(1);
 }
 
-const catalog = JSON.parse(await readFile(sourceFile, 'utf8'));
-if (catalog.schemaVersion !== 1) {
-  console.error(`✖ 不支持的事件目录 schemaVersion：${catalog.schemaVersion}`);
+const baseCatalog = JSON.parse(await readFile(sourceFile, 'utf8'));
+if (baseCatalog.schemaVersion !== 1) {
+  console.error(
+    `✖ 不支持的 base 层事件目录 schemaVersion：${baseCatalog.schemaVersion}`,
+  );
   process.exit(1);
 }
 
-const content = render(catalog);
+// project 层是可选的：找不到即「纯 base 宿主」（向后兼容），多份则直接报错（不按不可靠顺序择一）
+const hostCatalogFile = findHostCatalog();
+const projectCatalog =
+  hostCatalogFile === null
+    ? { events: [], schemaVersion: baseCatalog.schemaVersion }
+    : JSON.parse(await readFile(hostCatalogFile, 'utf8'));
+if (projectCatalog.schemaVersion !== 1) {
+  console.error(
+    `✖ 不支持的 project 层事件目录 schemaVersion：${projectCatalog.schemaVersion}`,
+  );
+  process.exit(1);
+}
+
+const merge = mergeCatalogs(baseCatalog, projectCatalog);
+const content = render(merge, hostCatalogFile !== null);
+
+// 覆盖是本方案唯一有意偏离「禁静默降级」的取舍：必须让人看见，故一律 print（走 stderr，不污染 CI 的 stdout）
+for (const code of merge.overriddenCodes) {
+  console.error(
+    `⚠ 事件码 ${code} 被宿主 project 层覆盖（以 project 为准，base 定义已失效）`,
+  );
+}
+for (const code of merge.addedCodes.toSorted((a, b) => a.localeCompare(b))) {
+  console.error(`+ 宿主 project 层新增事件码：${code}`);
+}
+console.error(
+  hostCatalogFile === null
+    ? `  合并结果：base=${baseCatalog.events.length} project=0（宿主未提供 project 层） 合计=${merge.events.length}`
+    : `  合并结果：base=${baseCatalog.events.length} project=${projectCatalog.events.length} ` +
+        `新增=${merge.addedCodes.length} 覆盖=${merge.overriddenCodes.length} 合计=${merge.events.length}`,
+);
 
 if (checkMode) {
   const current = await readIfExists(targetFile);
   if (current !== content) {
-    console.error('✖ 前端事件码与 starter 事件目录不一致（已漂移）：');
+    console.error('✖ 前端事件码与 base + project 合并结果不一致（已漂移）：');
     console.error(`  - ${targetFile.slice(repoRoot.length + 1)}`);
     console.error('  修复：node scripts/sync-tracking-events.mjs');
+    if (hostCatalogFile === null) {
+      console.error(
+        '  ⚠ 本次未找到宿主 project 层目录：若本仓生成物含宿主事件，请检出宿主仓或设置 HOST_REPO_ROOT。',
+      );
+    }
     process.exit(1);
   }
   console.log(
-    `✓ 前端事件码与 starter 事件目录一致（${catalog.events.length} 个事件）`,
+    `✓ 前端事件码与 base + project 合并结果一致（${merge.events.length} 个事件）`,
   );
 } else {
   await writeFile(targetFile, content, 'utf8');
   console.log(
-    `✓ 已生成前端事件码：${targetFile.slice(repoRoot.length + 1)}（${catalog.events.length} 个事件）`,
+    `✓ 已生成前端事件码：${targetFile.slice(repoRoot.length + 1)}（${merge.events.length} 个事件）`,
   );
 }
