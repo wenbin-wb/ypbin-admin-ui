@@ -1,9 +1,13 @@
 /**
  * 埋点事件码与属性白名单（生成物，请勿手工修改）。
  *
- * 事实源：ypbin-starter 仓库的 `docs/tracking-events.json`；
+ * 事实源：**base + project 两层合并**
+ *   1) base —— ypbin-starter 仓库的 `docs/tracking-events.json`（平台通用事件）；
+ *   2) project —— 宿主后端仓（默认同级 `../ypbin-admin`）的 `META-INF/ypbin/tracking-events.json`（宿主自有业务事件）。
+ * 同一事件码以 project 为准；运行时由 starter 用 `classpath*:` 读两份并按同一规则合并
+ * （口径见 starter 的 `docs/MODULES.md`）。修改事件目录请改对应层的文件，然后重跑本脚本，
+ * 否则 CI 的「校验埋点事件码未漂移」会失败。
  * 生成器：本仓库 `scripts/sync-tracking-events.mjs`。
- * 修改事件目录请到 starter 仓库改事实源，然后重跑本脚本，否则 CI 的漂移门禁会失败。
  */
 
 /** 事件码常量：页面里禁止手写事件码字符串 */
