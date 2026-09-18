@@ -20,8 +20,9 @@ interface Props extends AvatarFallbackProps, AvatarImageProps, AvatarRootProps {
    * 允许 `null`：调用方会把后端的可空字段经中间组件透传进来——
    * `apps/web-antd/src/layouts/basic.vue` 的 `:text="userStore.userInfo?.realName"`
    * → `packages/effects/layouts/src/widgets/user-dropdown/user-dropdown.vue` 的
-   * `<VbenAvatar :alt="text" />`；`realName` 在 `@vben-core/typings` 里声明为
-   * `string`，但后端可能返回 `null`。
+   * `<VbenAvatar :alt="text" />`；`realName` 在 `@vben-core/typings` 里已按后端
+   * 实际契约声明为可空（`null | string`，对应 DB 里允许 NULL 的
+   * `sys_user.real_name`），本组件负责最后一道归一。
    */
   alt?: null | string;
   class?: ClassType;

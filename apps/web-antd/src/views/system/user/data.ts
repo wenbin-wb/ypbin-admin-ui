@@ -165,7 +165,7 @@ export function useDescriptionItems(
   const enabled = row?.status === 1;
   return [
     { label: $t('system.user.userName'), content: row?.username },
-    { label: $t('system.user.realName'), content: row?.realName },
+    { label: $t('system.user.realName'), content: row?.realName ?? '' },
     { label: $t('system.user.nickname'), content: row?.nickname },
     {
       label: $t('system.user.dept'),

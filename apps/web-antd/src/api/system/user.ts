@@ -40,7 +40,11 @@ export namespace SystemUserApi {
     id: string;
     username: string;
     password?: string;
-    realName: string;
+    /**
+     * 真实姓名，后端可空（`sys_user.real_name` 允许 NULL），
+     * 展示前需回退 `username` 或空串
+     */
+    realName: null | string;
     nickname?: string;
     deptId?: string;
     deptIdName?: string;

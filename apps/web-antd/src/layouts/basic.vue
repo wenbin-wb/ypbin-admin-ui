@@ -8,7 +8,7 @@ import { useRouter } from 'vue-router';
 
 import { useAccess } from '@vben/access';
 import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
-import { useWatermark } from '@vben/hooks';
+import { resolveWatermarkContent, useWatermark } from '@vben/hooks';
 import { BookOpenText, CircleHelp, SvgGithubIcon } from '@vben/icons';
 import {
   BasicLayout,
@@ -190,7 +190,10 @@ watch(
           ],
           type: 'linear',
         },
-        content: content || `${username} - ${realName}`,
+        // 自定义文案为空时回退「用户名 - 显示名」；两个字段都可能为空
+        // （`realName` 后端可返回 `null`，`userInfo` 未加载时经可选链得到 `undefined`），
+        // 由 `resolveWatermarkContent` 过滤空片段后再拼接，避免渲染出 `undefined` / `null` 字面量
+        content: resolveWatermarkContent({ content, realName, username }),
       });
     } else {
       destroyWatermark();
