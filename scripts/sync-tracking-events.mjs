@@ -19,6 +19,12 @@
  *   - project：`HOST_REPO_ROOT`，默认同级 `../ypbin-admin`；也可用 `HOST_TRACKING_EVENTS` 直接指定文件。
  *     **向后兼容**：宿主仓未提供 project 目录时按「纯 base」生成（这正是分层的意义：starter 能被别的项目引用）；
  *     而本仓（admin-ui）的生成物含宿主事件，故 CI/本地都必须检出宿主仓，否则生成物少码、漂移门禁会如实报红。
+ *
+ * `--check` 退出码（**「找不到宿主目录」不等于「漂移」，两者必须能分辨**）：
+ *   0 = 生成物与 base + project 合并结果一致；
+ *   1 = 真漂移（生成物与事实源合并结果不同）；
+ *   2 = 检出/配置问题：显式给了 `HOST_REPO_ROOT` 却无此目录，或生成物声明含宿主事件却没找到宿主目录。
+ *       —— 此时比较基准本身不完整，**不能**下「事件码已漂移」的结论（那会把排查方向带偏）。
  */
 import { existsSync, readdirSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -40,8 +46,22 @@ const targetFile = join(
   'events.generated.ts',
 );
 
+/** 调用方是否**显式**指定了宿主仓根目录（显式指定即承诺「本该有宿主」） */
+const hostRootExplicit = (process.env.HOST_REPO_ROOT ?? '') !== '';
+
 /** project 层在宿主仓内的相对约定路径（与运行时 `TrackingEventCatalog.RESOURCE_PATH` 同值） */
 const HOST_CATALOG_SUFFIX = join('META-INF', 'ypbin', 'tracking-events.json');
+
+/**
+ * 生成物头部「project 层事实源」的两行文案。
+ *
+ * **单点定义**：`render()` 用它输出，`--check` 也用它判定「已提交的生成物是否声明含宿主事件」——
+ * 若在判定处再抄一份字面量，两处就会各自漂移，判定随之失准。
+ */
+const PROJECT_SOURCE_WITH_HOST =
+  ' *   2) project —— 宿主后端仓（默认同级 `../ypbin-admin`）的 `META-INF/ypbin/tracking-events.json`（宿主自有业务事件）。';
+const PROJECT_SOURCE_PURE_BASE =
+  ' *   2) project —— 宿主后端仓的 project 层目录**本次未找到**，故生成物只含 base 事件（纯 base 宿主）。';
 
 /** 遍历宿主仓时跳过的目录（构建产物/依赖，纯性能考虑） */
 const SKIPPED_DIRS = new Set([
@@ -277,8 +297,8 @@ function render(merge, hasHost) {
   );
   // 头部只写"逻辑来源"，**绝不写绝对路径**——否则本地与 CI 的检出路径不同会让漂移门禁长期误报
   const projectLine = hasHost
-    ? ' *   2) project —— 宿主后端仓（默认同级 `../ypbin-admin`）的 `META-INF/ypbin/tracking-events.json`（宿主自有业务事件）。'
-    : ' *   2) project —— 宿主后端仓的 project 层目录**本次未找到**，故生成物只含 base 事件（纯 base 宿主）。';
+    ? PROJECT_SOURCE_WITH_HOST
+    : PROJECT_SOURCE_PURE_BASE;
 
   return `/**
  * 埋点事件码与属性白名单（生成物，请勿手工修改）。
@@ -382,6 +402,19 @@ if (baseCatalog.schemaVersion !== 1) {
 }
 
 // project 层是可选的：找不到即「纯 base 宿主」（向后兼容），多份则直接报错（不按不可靠顺序择一）
+//
+// ⚠ 但「显式给了 HOST_REPO_ROOT、该目录却不存在」不属于「宿主只读 base」，而是检出/配置问题：
+// 若继续按纯 base 生成/比对，就会把配置错误报成「事件码已漂移」，把排查方向带偏（本仓 CI 真踩过）。
+// 故当场失败并用独立退出码 2 表明性质，既不生成也不比对。
+if (hostRootExplicit && !existsSync(hostRoot)) {
+  console.error(
+    `✖ 配置/检出问题（不是事件码漂移）：HOST_REPO_ROOT 指向的宿主仓目录不存在：${hostRoot}`,
+  );
+  console.error(
+    '  请核对宿主仓是否已检出、路径是否正确；若宿主确实只读 base，请去掉 HOST_REPO_ROOT。',
+  );
+  process.exit(2);
+}
 const hostCatalogFile = findHostCatalog();
 const projectCatalog =
   hostCatalogFile === null
@@ -416,14 +449,32 @@ console.error(
 if (checkMode) {
   const current = await readIfExists(targetFile);
   if (current !== content) {
+    // 「未找到宿主目录」有两种性质完全不同的原因，必须分开下结论：
+    //   ① 已提交的生成物**声明含宿主事件** ⇒ 本该有宿主目录却没找到，是检出/配置问题：
+    //      比较基准本身不完整，此时说「事件码已漂移」是**错误结论**（会把排查带偏）；
+    //   ② 生成物本就是纯 base（宿主未使用分层能力）⇒ 找不到属正常，此时的差异才是真漂移。
+    const artifactDeclaresHost = (current ?? '').includes(
+      PROJECT_SOURCE_WITH_HOST,
+    );
+    if (hostCatalogFile === null && artifactDeclaresHost) {
+      console.error(
+        '✖ 配置/检出问题（不是事件码漂移）：生成物声明含宿主 project 层事件，但本次未找到宿主目录，比较基准不完整。',
+      );
+      console.error(
+        `  - 宿主仓根目录：${hostRoot}${
+          existsSync(hostRoot)
+            ? '（目录存在，但其中没有 META-INF/ypbin/tracking-events.json）'
+            : '（目录不存在）'
+        }`,
+      );
+      console.error(
+        '  请核对：① 宿主仓是否已检出；② HOST_REPO_ROOT 是否指向宿主仓根目录；③ 宿主仓检出到的分支是否已含该目录。',
+      );
+      process.exit(2);
+    }
     console.error('✖ 前端事件码与 base + project 合并结果不一致（已漂移）：');
     console.error(`  - ${targetFile.slice(repoRoot.length + 1)}`);
     console.error('  修复：node scripts/sync-tracking-events.mjs');
-    if (hostCatalogFile === null) {
-      console.error(
-        '  ⚠ 本次未找到宿主 project 层目录：若本仓生成物含宿主事件，请检出宿主仓或设置 HOST_REPO_ROOT。',
-      );
-    }
     process.exit(1);
   }
   console.log(

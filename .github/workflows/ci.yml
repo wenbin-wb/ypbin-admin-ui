@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -51,7 +51,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # 事件目录分两层：base 在 starter 仓、project 在宿主后端仓（admin）。前端生成物是**两者合并**的结果，
-      # 故两仓都要检出——只检出 starter 会退化成「纯 base」生成物，与已提交的联合生成物不一致（门禁会如实报红）
+      # 故两仓都要检出——只检出 starter 会退化成「纯 base」生成物，与已提交的联合生成物不一致（门禁会如实报红）。
+      # ⚠ 两仓的默认分支名并不同：starter 是 `master`、admin 是 `main`（starter 从未有 main）。
+      # 这里显式写 `ref:` 而不是依赖默认分支：门禁的比对基准必须一眼可见——两仓各自的分支
+      # 若还没合入「base 迁出 / 宿主目录」，本门禁必然失败，而此时失败性质是**检出/配置**而非事件码漂移，
+      # 生成器会以退出码 2 明确区分（见 scripts/sync-tracking-events.mjs 头部说明）。
       - name: 检出代码
         uses: actions/checkout@v4
 
@@ -59,12 +63,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wenbin-wb/ypbin-starter
+          ref: master
           path: ypbin-starter
 
       - name: 检出 admin（宿主 project 层事件目录）
         uses: actions/checkout@v4
         with:
           repository: wenbin-wb/ypbin-admin
+          ref: main
           path: ypbin-admin
 
       - name: 配置 Node
@@ -74,6 +80,9 @@ jobs:
 
       - name: 校验前端事件码与 base + project 合并结果一致
         env:
+          # 这两个路径必须与上方 checkout 的 `path:` 逐字一致（${{ github.workspace }} 即检出根目录）。
+          # 生成器据 HOST_REPO_ROOT 递归定位宿主 project 层目录；显式给了却不含该目录时
+          # 以退出码 2 报「配置/检出问题」，不会误报成事件码漂移。
           STARTER_REPO_ROOT: ${{ github.workspace }}/ypbin-starter
           HOST_REPO_ROOT: ${{ github.workspace }}/ypbin-admin
         run: node scripts/sync-tracking-events.mjs --check
