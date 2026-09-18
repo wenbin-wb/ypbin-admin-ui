@@ -24,13 +24,31 @@
  *   0 = 生成物与 base + project 合并结果一致；
  *   1 = 真漂移（生成物与事实源合并结果不同）；
  *   2 = 检出/配置/数据问题，比较基准不可信，**不能**下「事件码已漂移」的结论（那会把排查方向带偏）：
- *       base 或 project 层事件目录缺失/读不到/不是合法 JSON/**结构不合法**（`events` 非数组、事件或属性
- *       元素缺字符串 `code`/`name` 等）、schemaVersion 不支持、宿主仓内出现多份 project 层目录，或生成物
- *       声明含宿主事件却未找到宿主目录（`HOST_REPO_ROOT` 指向不存在的目录或不是目录即此列）。
+ *       base 或 project 层事件目录缺失/读不到/不是合法 JSON/**结构或类型不合法**（见下「生成前自检」）、
+ *       schemaVersion 不支持、宿主仓内出现多份 project 层目录，或生成物声明含宿主事件却未找到宿主目录
+ *       （`HOST_REPO_ROOT` 指向不存在的目录或不是目录即此列）。
  *       这类问题在比较之前就会失败——基准不完整时，漂移无从判定。
  *   契约边界：project 层目录只认「资源根下的 META-INF/ypbin/tracking-events.json」这一白名单位置
  *       （与运行时同口径，见 `findHostCatalog`）；宿主换到别的位置会被按「未找到」处理并退 2，属预期。
  *   即：**除真漂移（1）外，本脚本不以任何其它方式退出 1**（未捕获异常会让 Node 固定退 1，故异常一律收口）。
+ *
+ * 生成前自检（**核心：不让「非法数据」以退出码 0 产出非法 TS**）：
+ *   本脚本在合并/渲染**之前**校验两层目录数据（`assertCatalogShape`，逐层执行），口径对照运行时
+ *   `TrackingCatalogLoader`（它 base/project 两份资源各自校验）与 starter 侧 `validate()`：
+ *     ① `events` 必须是**非空**数组——运行时对空目录直接启动失败（`has no events`），故空集合非法；
+ *     ② **同一层内**事件码不得重复——运行时对同层重复码直接启动失败（`duplicated tracking event code`）；
+ *        只有**跨层**同码才是合法的「覆盖」（打印 WARN），两者性质不同，不可混为一谈；
+ *     ③ `description`（事件与属性）声明时必须为字符串：运行时绑定 `String`，且它是生成物里的字符串字面量；
+ *        换行/回车/制表/U+2028/U+2029 等由 `quote()` **转义**后写入（不是拒绝）——运行时接受这些字符，
+ *        故此处不比运行时更严；裸拼接才会产出语法非法的 TS；
+ *     ④ `maxLength` 声明时必须是**正整数**：运行时绑定 `Integer`（非整数启动即失败），
+ *        starter 侧 `validate()` 亦要求 string 属性声明正整数；
+ *     ⑤ `type` 必须是运行时 `normalize()` 支持的四种之一（string/integer/number/boolean）——与 starter
+ *        `validate()` 同口径；未知类型在运行时会让该属性的**所有取值被静默丢弃**；
+ *     ⑥ 事件码必须能派生**合法且唯一**的 TS 常量名（生成器能力边界，见 `assertGeneratable`）。
+ *   任一项不满足即退 2 并打印层名与元素序号（1 起算）；它们都是数据问题，不是漂移。
+ *   ⚠ 生成物的语法合法性**不靠**「跑一遍 tsc」兜底（低配机代价过高）：字符串一律经 `quote()` 单趟转义，
+ *   数字只接受已验证的整数，对象键按「必要时才加引号」输出——由构造保证合法。
  */
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -71,6 +89,13 @@ const PROJECT_SOURCE_WITH_HOST =
   ' *   2) project —— 宿主后端仓（默认同级 `../ypbin-admin`）的 `META-INF/ypbin/tracking-events.json`（宿主自有业务事件）。';
 const PROJECT_SOURCE_PURE_BASE =
   ' *   2) project —— 宿主后端仓的 project 层目录**本次未找到**，故生成物只含 base 事件（纯 base 宿主）。';
+
+/**
+ * 运行时支持的属性类型集合（口径来源：starter `TrackIngestService#normalize` 的 switch 分支，
+ * 以及 starter 侧 `validate()` 的 `PROPERTY_TYPES`）。**不在集合内的类型不是「未知就放过」**：
+ * 运行时 `normalize` 的 `default -> null` 会让该属性的所有取值被判为 typeMismatch 并静默丢弃。
+ */
+const PROPERTY_TYPES = new Set(['string', 'integer', 'number', 'boolean']);
 
 /** 遍历宿主仓时跳过的目录（构建产物/依赖，纯性能考虑） */
 const SKIPPED_DIRS = new Set([
@@ -178,6 +203,10 @@ function overridesBase(baseEvent, projectEvent) {
 /**
  * 合并 base 与 project：同一事件码**以 project 为准**，并给出被覆盖的事件码。
  *
+ * **前置条件**：两层各自都**没有同层重复码**（由 `assertCatalogShape` 保证）。这里用 Map 承载合并结果，
+ * 天然是「后者胜出」语义，但同层重复码已在更早一步被判为数据错误并以退出码 2 终止——所以本函数里
+ * 出现的每一次覆盖都必然是**跨层**覆盖（base 被 project 覆盖），与打印的 WARN 措辞一致。
+ *
  * @returns 联合目录（事件按码升序）与被覆盖事件码
  */
 function mergeCatalogs(baseCatalog, projectCatalog) {
@@ -209,15 +238,65 @@ function constantName(code) {
   return code.replaceAll('.', '_').replaceAll('-', '_').toUpperCase();
 }
 
+/** 单个反斜杠；`String.raw` 无法表达它——`` String.raw`\` `` 会把结束反引号一起转义掉，故用普通字面量 */
+// oxlint-disable-next-line unicorn/prefer-string-raw -- 见上：String.raw 无法表达单个反斜杠
+const BACKSLASH = '\\';
+
+/** `\uXXXX` 形态的转义前缀（反斜杠 + u 两个字符） */
+const UNICODE_ESCAPE_PREFIX = String.raw`\u`;
+
+/** C0 控制字符的码点上界（含）与 DEL 的码点：这两类字符无法直接出现在字符串字面量里 */
+const LAST_C0_CODE_POINT = 31;
+const DELETE_CODE_POINT = 127;
+
+/**
+ * 单引号字符串字面量的转义表：字符 → 它在字面量里的转义序列（值本身即「反斜杠 + 字符」两个字符）。
+ *
+ * 覆盖「不能出现在单引号字符串字面量里」的全部字符：反斜杠、单引号、行终止符（\n \r 与 U+2028/U+2029）；
+ * 其余 C0 控制字符与 DEL 由 `quote()` 走 \uXXXX 兜底。**单趟按码点映射**，故不存在
+ * 「先替换 A 再把 A 的转义序列二次转义」的次序陷阱（旧实现按 `\\` → `'` 顺序链式 replaceAll，漏掉了换行，
+ * 于是含换行的 description 会写出裸换行、生成物成为语法非法的 TS，而 `--check` 只比对文本、照样退 0）。
+ */
+const STRING_ESCAPES = new Map([
+  [BACKSLASH, String.raw`\\`],
+  ["'", String.raw`\'`],
+  ['\n', String.raw`\n`],
+  ['\r', String.raw`\r`],
+  ['\u2028', String.raw`\u2028`],
+  ['\u2029', String.raw`\u2029`],
+]);
+
 /**
  * 转义单引号字符串。
  *
- * 这里必须写转义序列：`String.raw` 无法表达单个反斜杠——`` String.raw`\` `` 会把结束反引号一起转义掉，
- * 直接变成未终止的模板串，故对 unicorn/prefer-string-raw 做逐行豁免。
+ * 目的只有一个：**无论输入是什么字符串，输出都是合法的 TS 字符串字面量**（不做数据合法性判断，
+ * 那属于 `assertCatalogShape` 的职责；两层分工＝「数据是否合法」与「文本是否可序列化」）。
+ * 按码点遍历而不是用正则替换：既不触发 `no-control-regex`，也不会把一个码点拆成两个代理码元。
  */
 function quote(text) {
-  // oxlint-disable-next-line unicorn/prefer-string-raw -- 单个反斜杠无法用 String.raw 表达
-  return `'${String(text).replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
+  const escaped = [...String(text)].map((character) => {
+    const mapped = STRING_ESCAPES.get(character);
+    if (mapped !== undefined) {
+      return mapped;
+    }
+    const codePoint = character.codePointAt(0);
+    // C0 控制字符与 DEL 无法直接出现在字面量里（其余字符按原样输出）
+    return codePoint <= LAST_C0_CODE_POINT || codePoint === DELETE_CODE_POINT
+      ? `${UNICODE_ESCAPE_PREFIX}${codePoint.toString(16).padStart(4, '0')}`
+      : character;
+  });
+  return `'${escaped.join('')}'`;
+}
+
+/**
+ * 对象字面量的键：是合法标识符就裸写（保持与 oxfmt 的 `quoteProps: as-needed` 一致，否则漂移门禁会长期误报），
+ * 否则退化为带引号的字符串键。
+ *
+ * 属性名在运行时没有格式约束（只做 JSON 键匹配），所以这里**刻意不校验** a-zA-Z0-9 之外的名字，
+ * 而是让它安全地输出——比"直接拒绝"更贴近运行时契约，同时保证生成物语法合法。
+ */
+function propertyKey(name) {
+  return /^[A-Z_$][\w$]*$/i.test(name) ? name : quote(name);
 }
 
 /** 按属性名排序的事件属性列表（事实源里的顺序不作契约） */
@@ -250,7 +329,8 @@ function renderCatalogEntries(events, overriddenCodes) {
           `        name: ${quote(property.name)},`,
           `        type: ${quote(property.type ?? '')},`,
         ];
-        // maxLength 只对字符串有意义，事实源对数值型属性刻意不声明，此时整体省略（表示"不截断"）
+        // maxLength 只对字符串有意义，事实源对数值型属性刻意不声明，此时整体省略（表示"不截断"）。
+        // 裸插值在这里是安全的：assertCatalogShape / assertGeneratable 已保证它只可能是正整数。
         if (property.maxLength !== undefined && property.maxLength !== null) {
           fields.push(`        maxLength: ${property.maxLength},`);
         }
@@ -294,7 +374,10 @@ function render(merge, hasHost) {
   const properties = events
     .map((event) => {
       const entries = sortedProperties(event)
-        .map((property) => `${property.name}: ${property.maxLength ?? 0}`)
+        .map(
+          (property) =>
+            `${propertyKey(property.name)}: ${property.maxLength ?? 0}`,
+        )
         .join(', ');
       // 无属性的事件必须输出 `{}`；写成 `{  }` 会被 oxfmt 归一，导致漂移门禁长期误报
       return `  ${quote(event.code)}: ${entries ? `{ ${entries} }` : '{}'},`;
@@ -397,13 +480,16 @@ async function readIfExists(file) {
 }
 
 /**
- * 校验事件目录的**结构**（只保证后续合并不会崩，不重复事实源所在仓的语义校验）。
+ * 校验事件目录的**结构与类型**（只保证后续合并/渲染不会崩、生成物可序列化，不重复事实源所在仓的语义校验）。
  *
  * 为什么必须做：本脚本对 project 层（宿主仓）**没有上游兜底**——admin 仓没有任何构建期校验该文件，
- * 只要 JSON 结构被改坏（`events` 不是数组、元素为 null、`code` 不是字符串），后续 merge/render 就会抛异常，
- * 而 Node 对未捕获异常固定退 1，等于把「数据问题」报成「事件码已漂移」——正是本文件退出码契约要消除的误导。
- * 语义校验（事件码格式 / source / since / 属性类型）仍归事实源所在仓（starter 的
- * `tools/export-tracking-events.mjs` 有 `validate()`），此处刻意不比运行时更严，避免宿主合法用法被误拦。
+ * 只要 JSON 结构被改坏（`events` 不是数组/为空、元素为 null、`code` 不是字符串、`description` 不是字符串、
+ * `maxLength` 不是正整数），后续 merge/render 就会抛异常或**写出语法非法的 TS**，而 Node 对未捕获异常
+ * 固定退 1 / `--check` 只比对文本，等于把「数据问题」报成「事件码已漂移」或干脆**假绿**。
+ * 口径**逐条对照运行时**（见文件头「生成前自检」）：空 `events`、同层重复码、`description` 非字符串、
+ * `maxLength` 非正整数、`type` 不在运行时支持集内——运行时分别表现为启动失败或静默丢弃，无一比运行时更严。
+ * 事件码格式 / source / since 等**语义**校验仍归事实源所在仓（starter 的
+ * `tools/export-tracking-events.mjs` 有 `validate()`），此处不做，避免宿主合法用法被误拦。
  *
  * @param catalog 已解析的目录对象
  * @param layer   层名（base / project），仅用于报错措辞
@@ -428,25 +514,134 @@ function assertCatalogShape(catalog, layer) {
   if (!Array.isArray(catalog.events)) {
     fail('events 必须是数组');
   }
-  for (const event of catalog.events) {
+  // 空目录不是「没事件」而是**非法**：运行时 TrackingCatalogLoader 对 base/project 任一份空目录都直接
+  // 抛 `tracking event catalog has no events`（启动即失败），故这里必须与运行时同判，而不是生成一份空映射。
+  if (catalog.events.length === 0) {
+    fail(
+      'events 不能为空数组（运行时对空目录直接启动失败：tracking event catalog has no events）',
+    );
+  }
+  const seenCodes = new Map();
+  catalog.events.forEach((event, index) => {
+    const position = `第 ${index + 1} 条`;
     if (
       event === null ||
       typeof event !== 'object' ||
       typeof event.code !== 'string'
     ) {
-      fail('每个事件必须是含字符串 code 的对象');
+      fail(`${position}事件必须是含字符串 code 的对象`);
+    }
+    // 同层重复码是**数据错误**，不是「后者胜出」更不是「覆盖」：运行时会在载入期直接抛
+    // `duplicated tracking event code`（TrackingCatalogLoader#read），故此处同样判非法，
+    // 并指出重复的码与两个位置，便于直接定位。
+    const firstIndex = seenCodes.get(event.code);
+    if (firstIndex !== undefined) {
+      fail(
+        `第 ${firstIndex + 1} 条与${position}出现重复事件码 ${event.code}` +
+          '（同层重复属数据错误；运行时同样启动失败。跨层同码才是合法的「覆盖」，会打印 WARN）',
+      );
+    }
+    seenCodes.set(event.code, index);
+    if (
+      event.description !== undefined &&
+      event.description !== null &&
+      typeof event.description !== 'string'
+    ) {
+      fail(
+        `${position}事件 ${event.code} 的 description 必须是字符串（运行时绑定 String）`,
+      );
     }
     const properties = event.properties ?? [];
     if (!Array.isArray(properties)) {
       fail(`事件 ${event.code} 的 properties 必须是数组`);
     }
-    for (const property of properties) {
+    properties.forEach((property, propertyIndex) => {
+      const propertyPosition = `事件 ${event.code} 的第 ${propertyIndex + 1} 个属性`;
       if (
         property === null ||
         typeof property !== 'object' ||
         typeof property.name !== 'string'
       ) {
-        fail(`事件 ${event.code} 的每个属性必须是含字符串 name 的对象`);
+        fail(`${propertyPosition}必须是含字符串 name 的对象`);
+      }
+      if (property.type !== undefined && !PROPERTY_TYPES.has(property.type)) {
+        fail(
+          `${propertyPosition} ${property.name} 的 type 非法：${JSON.stringify(property.type)}` +
+            `（运行时仅支持 ${[...PROPERTY_TYPES].join('/')}；未知类型会让该属性的所有取值被静默丢弃）`,
+        );
+      }
+      if (
+        property.maxLength !== undefined &&
+        property.maxLength !== null &&
+        !(Number.isInteger(property.maxLength) && property.maxLength > 0)
+      ) {
+        fail(
+          `${propertyPosition} ${property.name} 的 maxLength 必须是正整数，当前为 ` +
+            `${JSON.stringify(property.maxLength)}（运行时绑定 Integer，非整数启动即失败；` +
+            'starter 侧 validate() 亦要求 string 属性声明正整数）',
+        );
+      }
+      if (
+        property.description !== undefined &&
+        property.description !== null &&
+        typeof property.description !== 'string'
+      ) {
+        fail(
+          `${propertyPosition} ${property.name} 的 description 必须是字符串（运行时绑定 String）`,
+        );
+      }
+    });
+  });
+}
+
+/**
+ * 渲染前自检：保证「即将写出的文本」在语法上一定合法。
+ *
+ * 与 `assertCatalogShape` 的分工：后者判「数据是否符合运行时契约」（逐层、含位置信息），本函数判
+ * 「数据能否被**无歧义地**序列化成 TS」（合并后、只看生成物语义）。两处都失败退 2——把生成器自身的
+ * 能力边界说清楚，而不是产出一份语法非法的文件再让下游 `typecheck` 去发现。
+ *
+ * ① 事件码 → TS 常量名（`TrackingEventCodes` 的对象键）必须是合法标识符且互不相同：
+ *    事件码在运行时只当字符串用，因此 `ui.page.view!` 这类码在运行时**合法**，但它会派生出带 `!` 的对象键，
+ *    生成物直接语法非法；`a.b-c` 与 `a.b.c` 又会派生出同名键（TS 报重复属性）。这两类只能在此拦下。
+ * ② `maxLength` 再断言一次正整数：`assertCatalogShape` 已保证，这里防的是「未来有人绕开校验直接调 render」，
+ *    以及把「裸插值一个非数字」这类回归挡在生成物之外。
+ *
+ * @param events 合并后的联合目录（按码升序）
+ */
+function assertGeneratable(events) {
+  const fail = (reason) => {
+    console.error(
+      `✖ 配置/数据问题（不是事件码漂移）：生成物自检失败——${reason}`,
+    );
+    process.exit(2);
+  };
+  const nameOwners = new Map();
+  for (const event of events) {
+    const name = constantName(event.code);
+    if (!/^[A-Z_$][\dA-Z_$]*$/.test(name)) {
+      fail(
+        `事件码 ${JSON.stringify(event.code)} 无法派生合法的 TS 常量名（得到 ${JSON.stringify(name)}）；` +
+          '事件码只能含字母、数字、下划线、点、连字符',
+      );
+    }
+    const owner = nameOwners.get(name);
+    if (owner !== undefined) {
+      fail(
+        `事件码 ${JSON.stringify(event.code)} 与 ${JSON.stringify(owner)} 派生出的 TS 常量名相同（${name}），` +
+          '会在生成物里产生重复对象键',
+      );
+    }
+    nameOwners.set(name, event.code);
+    for (const property of event.properties ?? []) {
+      if (
+        property.maxLength !== undefined &&
+        property.maxLength !== null &&
+        !(Number.isInteger(property.maxLength) && property.maxLength > 0)
+      ) {
+        fail(
+          `事件 ${event.code} 属性 ${property.name} 的 maxLength 必须是正整数（当前 ${JSON.stringify(property.maxLength)}）`,
+        );
       }
     }
   }
@@ -535,6 +730,8 @@ const projectCatalog =
     : await readCatalog(hostCatalogFile, 'project');
 
 const merge = mergeCatalogs(baseCatalog, projectCatalog);
+// 渲染前自检：把「数据非法/无法序列化」挡在生成物之外（详见 assertGeneratable 与文件头）
+assertGeneratable(merge.events);
 const content = render(merge, hostCatalogFile !== null);
 
 // 覆盖是本方案唯一有意偏离「禁静默降级」的取舍：必须让人看见，故一律 print（走 stderr，不污染 CI 的 stdout）
