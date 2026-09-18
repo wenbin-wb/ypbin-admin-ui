@@ -35,7 +35,8 @@ const [Form, formApi] = useVbenForm({
 
 interface ResetPasswordData {
   id: string;
-  realName?: string;
+  /** 显示名，可为 `null`（后端 `real_name` 允许 NULL），标题里已用 `?? ''` 兜底 */
+  realName?: null | string;
 }
 
 const [Modal, modalApi] = useVbenModal<ResetPasswordData>({

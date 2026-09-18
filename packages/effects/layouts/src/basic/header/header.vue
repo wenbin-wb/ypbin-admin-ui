@@ -36,9 +36,9 @@ interface Props {
    */
   theme?: string;
   /**
-   * 用户文本
+   * 用户文本，可为 `null`（后端 `realName` 可空，见 `BasicUserInfo.realName`）
    */
-  text?: string;
+  text?: null | string;
 }
 
 defineOptions({

@@ -155,7 +155,10 @@ function onDetail(row: SystemUserApi.SystemUser) {
 
 async function onDelete(row: SystemUserApi.SystemUser) {
   await deleteUser(row.id);
-  message.success($t('ui.actionMessage.deleteSuccess', [row.realName]));
+  // 展示名可能为 null（后端 real_name 允许 NULL），回退登录账号避免提示语缺名字
+  message.success(
+    $t('ui.actionMessage.deleteSuccess', [row.realName || row.username]),
+  );
   onRefresh();
 }
 
@@ -300,7 +303,9 @@ watch(inputSearchValue, (value) => {
                   auth: 'system:user:delete',
                   danger: true,
                   popConfirm: {
-                    title: $t('ui.actionMessage.deleteConfirm', [row.realName]),
+                    title: $t('ui.actionMessage.deleteConfirm', [
+                      row.realName || row.username,
+                    ]),
                     confirm: () => onDelete(row),
                   },
                 },

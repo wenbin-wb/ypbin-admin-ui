@@ -73,9 +73,10 @@ interface Props {
    */
   tagText?: string;
   /**
-   * 文本
+   * 文本，可为 `null`：它同时是 `<VbenAvatar :alt="text" />` 的回退文字来源，
+   * 归一责任在头像组件（后端 `realName` 可空，见 `BasicUserInfo.realName`）
    */
-  text?: string;
+  text?: null | string;
   /** 触发方式 */
   trigger?: 'both' | 'click' | 'hover';
   /** hover触发时，延迟响应的时间 */

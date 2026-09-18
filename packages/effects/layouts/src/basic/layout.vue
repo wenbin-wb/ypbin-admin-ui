@@ -51,7 +51,14 @@ const emit = defineEmits<{
 
 interface Props {
   avatar?: string;
-  text?: string;
+  /**
+   * 用户显示名。
+   *
+   * 允许 `null`：来源是后端可空字段（`BasicUserInfo.realName` 已按后端实际契约声明为可空）。
+   * `withDefaults` 只兜 `undefined`，显式传入的 `null` 会沿
+   * `LayoutHeader` → `UserDropdown` → `VbenAvatar` 透传，由最末端的头像组件归一。
+   */
+  text?: null | string;
 }
 
 const {
