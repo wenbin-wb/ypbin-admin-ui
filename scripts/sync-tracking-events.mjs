@@ -24,11 +24,13 @@
  *   0 = 生成物与 base + project 合并结果一致；
  *   1 = 真漂移（生成物与事实源合并结果不同）；
  *   2 = 检出/配置/数据问题，比较基准不可信，**不能**下「事件码已漂移」的结论（那会把排查方向带偏）：
- *       base 或 project 层事件目录缺失/读不到/不是合法 JSON、schemaVersion 不支持、宿主仓内出现多份
- *       project 层目录，或生成物声明含宿主事件却未找到宿主目录（`HOST_REPO_ROOT` 指向不存在的目录或
- *       不是目录即此列）。这类问题在比较之前就会失败——基准不完整时，漂移无从判定。
+ *       base 或 project 层事件目录缺失/读不到/不是合法 JSON/**结构不合法**（`events` 非数组、事件或属性
+ *       元素缺字符串 `code`/`name` 等）、schemaVersion 不支持、宿主仓内出现多份 project 层目录，或生成物
+ *       声明含宿主事件却未找到宿主目录（`HOST_REPO_ROOT` 指向不存在的目录或不是目录即此列）。
+ *       这类问题在比较之前就会失败——基准不完整时，漂移无从判定。
  *   契约边界：project 层目录只认「资源根下的 META-INF/ypbin/tracking-events.json」这一白名单位置
  *       （与运行时同口径，见 `findHostCatalog`）；宿主换到别的位置会被按「未找到」处理并退 2，属预期。
+ *   即：**除真漂移（1）外，本脚本不以任何其它方式退出 1**（未捕获异常会让 Node 固定退 1，故异常一律收口）。
  */
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -395,9 +397,65 @@ async function readIfExists(file) {
 }
 
 /**
- * 读取并解析一层事件目录。
+ * 校验事件目录的**结构**（只保证后续合并不会崩，不重复事实源所在仓的语义校验）。
  *
- * 事实源**读不到**或**不是合法 JSON**属配置/数据问题，与「事件码漂移」性质不同：
+ * 为什么必须做：本脚本对 project 层（宿主仓）**没有上游兜底**——admin 仓没有任何构建期校验该文件，
+ * 只要 JSON 结构被改坏（`events` 不是数组、元素为 null、`code` 不是字符串），后续 merge/render 就会抛异常，
+ * 而 Node 对未捕获异常固定退 1，等于把「数据问题」报成「事件码已漂移」——正是本文件退出码契约要消除的误导。
+ * 语义校验（事件码格式 / source / since / 属性类型）仍归事实源所在仓（starter 的
+ * `tools/export-tracking-events.mjs` 有 `validate()`），此处刻意不比运行时更严，避免宿主合法用法被误拦。
+ *
+ * @param catalog 已解析的目录对象
+ * @param layer   层名（base / project），仅用于报错措辞
+ */
+function assertCatalogShape(catalog, layer) {
+  const fail = (reason) => {
+    console.error(
+      `✖ 配置/数据问题（不是事件码漂移）：${layer} 层事件目录结构不合法——${reason}`,
+    );
+    process.exit(2);
+  };
+  if (
+    catalog === null ||
+    typeof catalog !== 'object' ||
+    Array.isArray(catalog)
+  ) {
+    fail('顶层必须是 JSON 对象');
+  }
+  if (catalog.schemaVersion !== 1) {
+    fail(`不支持的 schemaVersion：${catalog.schemaVersion}`);
+  }
+  if (!Array.isArray(catalog.events)) {
+    fail('events 必须是数组');
+  }
+  for (const event of catalog.events) {
+    if (
+      event === null ||
+      typeof event !== 'object' ||
+      typeof event.code !== 'string'
+    ) {
+      fail('每个事件必须是含字符串 code 的对象');
+    }
+    const properties = event.properties ?? [];
+    if (!Array.isArray(properties)) {
+      fail(`事件 ${event.code} 的 properties 必须是数组`);
+    }
+    for (const property of properties) {
+      if (
+        property === null ||
+        typeof property !== 'object' ||
+        typeof property.name !== 'string'
+      ) {
+        fail(`事件 ${event.code} 的每个属性必须是含字符串 name 的对象`);
+      }
+    }
+  }
+}
+
+/**
+ * 读取并解析一层事件目录，并做结构校验。
+ *
+ * 事实源**读不到**或**不是合法 JSON** 属配置/数据问题，与「事件码漂移」性质不同：
  * 未捕获的 `SyntaxError` 会让 Node 以退出码 1 结束，等于又把配置问题报成了漂移，故统一收口到 2。
  *
  * @param file  事件目录文件
@@ -414,8 +472,9 @@ async function readCatalog(file, layer) {
     console.error(`  ${error.message}`);
     process.exit(2);
   }
+  let parsed;
   try {
-    return JSON.parse(raw);
+    parsed = JSON.parse(raw);
   } catch (error) {
     console.error(
       `✖ 配置/数据问题（不是事件码漂移）：${layer} 层事件目录不是合法 JSON：${file}`,
@@ -423,6 +482,8 @@ async function readCatalog(file, layer) {
     console.error(`  ${error.message}`);
     process.exit(2);
   }
+  assertCatalogShape(parsed, layer);
+  return parsed;
 }
 
 if (!existsSync(sourceFile)) {
@@ -436,12 +497,6 @@ if (!existsSync(sourceFile)) {
 }
 
 const baseCatalog = await readCatalog(sourceFile, 'base');
-if (baseCatalog.schemaVersion !== 1) {
-  console.error(
-    `✖ 不支持的 base 层事件目录 schemaVersion：${baseCatalog.schemaVersion}`,
-  );
-  process.exit(2);
-}
 
 // project 层是可选的：找不到即「纯 base 宿主」（向后兼容），多份则直接报错（不按不可靠顺序择一）
 //
@@ -478,12 +533,6 @@ const projectCatalog =
   hostCatalogFile === null
     ? { events: [], schemaVersion: baseCatalog.schemaVersion }
     : await readCatalog(hostCatalogFile, 'project');
-if (projectCatalog.schemaVersion !== 1) {
-  console.error(
-    `✖ 不支持的 project 层事件目录 schemaVersion：${projectCatalog.schemaVersion}`,
-  );
-  process.exit(2);
-}
 
 const merge = mergeCatalogs(baseCatalog, projectCatalog);
 const content = render(merge, hostCatalogFile !== null);
@@ -505,7 +554,16 @@ console.error(
 );
 
 if (checkMode) {
-  const current = await readIfExists(targetFile);
+  // 读生成物同样可能失败（路径被占用成目录等）：这是环境问题而非漂移，收口到 2
+  let current;
+  try {
+    current = await readIfExists(targetFile);
+  } catch (error) {
+    console.error(
+      `✖ 配置/环境问题（不是事件码漂移）：读不到已提交的生成物 ${targetFile.slice(repoRoot.length + 1)}：${error.message}`,
+    );
+    process.exit(2);
+  }
   if (current !== content) {
     // 「未找到宿主目录」有两种性质完全不同的原因，必须分开下结论：
     //   ① 已提交的生成物**声明含宿主事件** ⇒ 本该有宿主目录却没找到，是检出/配置问题：
@@ -539,7 +597,14 @@ if (checkMode) {
     `✓ 前端事件码与 base + project 合并结果一致（${merge.events.length} 个事件）`,
   );
 } else {
-  await writeFile(targetFile, content, 'utf8');
+  try {
+    await writeFile(targetFile, content, 'utf8');
+  } catch (error) {
+    console.error(
+      `✖ 配置/环境问题（不是事件码漂移）：写入生成物失败 ${targetFile.slice(repoRoot.length + 1)}：${error.message}`,
+    );
+    process.exit(2);
+  }
   console.log(
     `✓ 已生成前端事件码：${targetFile.slice(repoRoot.length + 1)}（${merge.events.length} 个事件）`,
   );
