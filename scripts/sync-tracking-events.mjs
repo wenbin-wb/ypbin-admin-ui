@@ -24,11 +24,13 @@
  *   0 = 生成物与 base + project 合并结果一致；
  *   1 = 真漂移（生成物与事实源合并结果不同）；
  *   2 = 检出/配置/数据问题，比较基准不可信，**不能**下「事件码已漂移」的结论（那会把排查方向带偏）：
- *       base 或 project 层事件目录缺失/读不到/不是合法 JSON、schemaVersion 不支持，
- *       或生成物声明含宿主事件却未找到宿主目录（`HOST_REPO_ROOT` 指向不存在的目录即此列）。
- *       这类问题在比较之前就会失败——基准不完整时，漂移无从判定。
+ *       base 或 project 层事件目录缺失/读不到/不是合法 JSON、schemaVersion 不支持、宿主仓内出现多份
+ *       project 层目录，或生成物声明含宿主事件却未找到宿主目录（`HOST_REPO_ROOT` 指向不存在的目录或
+ *       不是目录即此列）。这类问题在比较之前就会失败——基准不完整时，漂移无从判定。
+ *   契约边界：project 层目录只认「资源根下的 META-INF/ypbin/tracking-events.json」这一白名单位置
+ *       （与运行时同口径，见 `findHostCatalog`）；宿主换到别的位置会被按「未找到」处理并退 2，属预期。
  */
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
@@ -448,16 +450,30 @@ if (baseCatalog.schemaVersion !== 1) {
 // 故当场失败并用独立退出码 2 表明性质，既不生成也不比对。
 // 注意必须让位于 `HOST_TRACKING_EVENTS`：那是「直接指定宿主目录文件」的更高优先级入口，
 // 与 HOST_REPO_ROOT 同时存在时不该因为后者失效而失败（否则会无端压掉一条既有用法）。
-if (hostRootExplicit && !hostFileExplicit && !existsSync(hostRoot)) {
+// 判据用「确实是目录」而非仅「存在」：指向一个普通文件同样属配置问题，且会让后续递归遍历抛 ENOTDIR。
+const hostRootIsDirectory =
+  existsSync(hostRoot) && statSync(hostRoot).isDirectory();
+if (hostRootExplicit && !hostFileExplicit && !hostRootIsDirectory) {
   console.error(
-    `✖ 配置/检出问题（不是事件码漂移）：HOST_REPO_ROOT 指向的宿主仓目录不存在：${hostRoot}`,
+    `✖ 配置/检出问题（不是事件码漂移）：HOST_REPO_ROOT ${
+      existsSync(hostRoot) ? '不是一个目录' : '指向的宿主仓目录不存在'
+    }：${hostRoot}`,
   );
   console.error(
     '  请核对宿主仓是否已检出、路径是否正确；若宿主确实只读 base，请去掉 HOST_REPO_ROOT。',
   );
   process.exit(2);
 }
-const hostCatalogFile = findHostCatalog();
+// findHostCatalog 内部还有两类失败（HOST_TRACKING_EVENTS 指的文件不存在、宿主仓内出现多份 project 层目录）：
+// 它们同样是配置/数据问题，但原先以未捕获异常冒泡——Node 对未捕获异常固定退 1，等于又落回「漂移码」，
+// 与上面刚建立的契约自相矛盾。故一并收口到 2。
+let hostCatalogFile;
+try {
+  hostCatalogFile = findHostCatalog();
+} catch (error) {
+  console.error(`✖ 配置/检出/数据问题（不是事件码漂移）：${error.message}`);
+  process.exit(2);
+}
 const projectCatalog =
   hostCatalogFile === null
     ? { events: [], schemaVersion: baseCatalog.schemaVersion }
