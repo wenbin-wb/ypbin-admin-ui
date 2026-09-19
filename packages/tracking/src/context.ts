@@ -48,10 +48,42 @@ let pageReferrer = '';
 /** 当前页面路径；由路由钩子写入，是 SDK 内唯一的“当前页面”事实源 */
 let currentPagePath = '';
 
-/** 生成一个短随机 ID（不引入额外依赖；碰撞概率对埋点维度足够低） */
+/** Web Crypto 不可用时的兜底自增计数（仅保证唯一性，不承担安全性） */
+let fallbackSequence = 0;
+
+/**
+ * 生成一段短随机串。
+ *
+ * **不使用 `Math.random()`**：本 SDK 的会话 ID / 事件 ID 会进埋点上报、参与归因与去重，
+ * `Math.random()` 既容易被碰撞也容易被预测（CodeQL `js/insecure-randomness` 亦对此报警）。
+ * 优先走 Web Crypto；只有在非安全上下文（`globalThis.crypto` 不可用）时才退化为
+ * 「时间 + 自增计数」——该兜底**只保证唯一性，不承担安全性**（这些 ID 不是安全令牌）。
+ *
+ * @param length 需要的字符数
+ * @returns 由 `[0-9a-z]` 组成的随机串
+ */
+export function randomSuffix(length: number): string {
+  const webCrypto = globalThis.crypto;
+  if (typeof webCrypto?.randomUUID === 'function') {
+    return webCrypto.randomUUID().replaceAll('-', '').slice(0, length);
+  }
+  if (typeof webCrypto?.getRandomValues === 'function') {
+    const bytes = new Uint8Array(Math.ceil(length / 2));
+    webCrypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0'))
+      .join('')
+      .slice(0, length);
+  }
+  fallbackSequence = (fallbackSequence + 1) % 0xFF_FF;
+  return `${Date.now().toString(36)}${fallbackSequence.toString(36)}`.slice(
+    0,
+    length,
+  );
+}
+
+/** 生成一个短随机 ID（不引入额外依赖；随机部分见 {@link randomSuffix}） */
 function randomId(prefix: string): string {
-  const random = Math.random().toString(36).slice(2, 10);
-  return `${prefix}-${Date.now().toString(36)}-${random}`;
+  return `${prefix}-${Date.now().toString(36)}-${randomSuffix(8)}`;
 }
 
 /** 读取会话级标识；`sessionStorage` 缺失（如隐私模式）时退化为内存值，不抛异常 */

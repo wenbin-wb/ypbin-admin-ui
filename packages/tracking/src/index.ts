@@ -1,3 +1,13 @@
+import type {
+  ApiCallInput,
+  TrackableApp,
+  TrackableRouter,
+  TrackEventBody,
+  TrackEventInput,
+  TrackingHandle,
+  TrackingOptions,
+} from './types';
+
 /**
  * 埋点 SDK 入口。
  *
@@ -29,24 +39,16 @@ import {
   currentPageUrl,
   currentSessionId,
   initContext,
+  randomSuffix,
   resolvePageUrl,
   takePageViewReferrer,
   truncate,
 } from './context';
-import { Reporter } from './reporter';
 import {
-  TrackingEventCodes,
   TRACKING_EVENT_PROPERTIES,
+  TrackingEventCodes,
 } from './events.generated';
-import type {
-  ApiCallInput,
-  TrackableApp,
-  TrackableRouter,
-  TrackEventBody,
-  TrackEventInput,
-  TrackingHandle,
-  TrackingOptions,
-} from './types';
+import { Reporter } from './reporter';
 
 /** 默认选项；`url` 与 `appId` 必须由调用方提供（刻意不给默认值，避免误上报） */
 export const DEFAULT_TRACKING_OPTIONS: TrackingOptions = {
@@ -115,7 +117,7 @@ function buildBody(input: TrackEventInput, appId: string): TrackEventBody {
     durationMs: input.durationMs,
     eventCode: input.eventCode,
     // 事件 ID 由客户端生成，是服务端的去重键
-    eventId: `${currentSessionId()}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    eventId: `${currentSessionId()}-${Date.now().toString(36)}-${randomSuffix(6)}`,
     eventTime: new Date().toISOString(),
     // 路径解析只有一个入口（context.ts 的 resolvePageUrl）：显式传入的地址按同一规则清洗，
     // 未传入时解析当前页面——hash 路由下真实路由在 location.hash 里，pathname 恒为 '/'
