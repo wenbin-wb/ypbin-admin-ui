@@ -85,8 +85,8 @@ catalogs:
       specifier: ^5.101.4
       version: 5.101.4
     '@tanstack/vue-store':
-      specifier: ^0.11.0
-      version: 0.11.0
+      specifier: ^0.11.1
+      version: 0.11.1
     '@tiptap/core':
       specifier: ^3.31.3
       version: 3.31.3
@@ -500,7 +500,7 @@ catalogs:
       version: 5.3.1
     vue-tippy:
       specifier: ^6.7.1
-      version: 6.7.1
+      version: 6.8.0
     vue-tsc:
       specifier: ^3.3.8
       version: 3.3.8
@@ -1341,7 +1341,7 @@ importers:
         version: 4.2.1
       '@tanstack/vue-store':
         specifier: 'catalog:'
-        version: 0.11.0(vue@3.5.42(typescript@6.0.3))
+        version: 0.11.1(vue@3.5.42(typescript@6.0.3))
       '@vue/shared':
         specifier: 'catalog:'
         version: 3.5.42
@@ -1708,7 +1708,7 @@ importers:
         version: 5.3.1(@vue/compiler-sfc@3.5.40)(esbuild@0.28.1)(pinia@4.0.2(@vue/devtools-api@8.1.5)(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rolldown@1.2.0)(rollup@4.62.2)(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(less@4.8.0(supports-color@10.2.2))(sass-embedded@1.104.0)(sass@1.104.0)(terser@5.49.0)(yaml@2.9.0))(vue@3.5.42(typescript@6.0.3))
       vue-tippy:
         specifier: 'catalog:'
-        version: 6.7.1(vue@3.5.42(typescript@6.0.3))
+        version: 6.8.0(vue@3.5.42(typescript@6.0.3))
     devDependencies:
       '@types/json-bigint':
         specifier: 'catalog:'
@@ -5241,6 +5241,9 @@ packages:
   '@tanstack/store@0.11.0':
     resolution: {integrity: sha512-WlzzCt3xi0G6pCAJu1U+2jiECwabETDpQDi3hfkFZvJii9AuZqEKbOiVarX1/bWhTNjU486yQtJCCasi/0q+Cw==}
 
+  '@tanstack/store@0.11.1':
+    resolution: {integrity: sha512-mzTOBhypOuDJAy/D8n2MfUZ1HFkXnmSETviRyhqEC8LUE7/IZQExOTxMANj3KjTofYTkFNpBY67qaVrT41YccA==}
+
   '@tanstack/virtual-core@3.17.6':
     resolution: {integrity: sha512-h0/Ebo18CkOrChlQIhNtQkM5ySUnh/GumQ/D1st3hG2HWUPEF+ILUc2k29UtivCi/9G7w7G3/f7Xyd5cCFbKBw==}
 
@@ -5260,6 +5263,15 @@ packages:
 
   '@tanstack/vue-store@0.11.0':
     resolution: {integrity: sha512-w1lE4D7oo6nIUhTQvL/RoTgcvoYJw+KvttWPNJd/Xu+MvNxMnjxFF/LgFp9vwmbNbiGhGCg3ZoPJptwjrfwNYw==}
+    peerDependencies:
+      '@vue/composition-api': ^1.2.1
+      vue: ^3.5.42
+    peerDependenciesMeta:
+      '@vue/composition-api':
+        optional: true
+
+  '@tanstack/vue-store@0.11.1':
+    resolution: {integrity: sha512-0YmYwbiCQKhzfFTLpHybjoAVUh3GkQVYGguvGTzk/0wx0oWuni60huvRs1RqqRLJH6nig3PTYuLuQQ+X5s05gA==}
     peerDependencies:
       '@vue/composition-api': ^1.2.1
       vue: ^3.5.42
@@ -10569,8 +10581,8 @@ packages:
     resolution: {integrity: sha512-BaXgOuIxz8n8pIq3e7Atg/7s+DpiYrxn4vdot3w9KbnBhcRQq6o3xemQdIfynqSeXeDrF32x+WvfzmOjPiY9lg==}
     engines: {node: '>= 0.4'}
 
-  typed-array-byte-offset@1.0.4:
-    resolution: {integrity: sha512-bTlAFB/FBYMcuX81gbL4OcpH5PmlFHqlCCpAl8AlEzMz5k53oNDvN8p1PNOWLEmI2x4orp3raOFB51tv9X+MFQ==}
+  typed-array-byte-offset@1.0.5:
+    resolution: {integrity: sha512-0FHJvLPqZ7KJzp17O13jfsAjsqazgrxBu2zEK95PmUz8lv2+GjRuxUInCr2Rk9Dms3ihN21zJ929ZO43yJ95QQ==}
     engines: {node: '>= 0.4'}
 
   typed-array-length@1.0.8:
@@ -11136,8 +11148,8 @@ packages:
       vite:
         optional: true
 
-  vue-tippy@6.7.1:
-    resolution: {integrity: sha512-gdHbBV5/Vc8gH87hQHLA7TN1K4BlLco3MAPrTb70ZYGXxx+55rAU4a4mt0fIoP+gB3etu1khUZ6c29Br1n0CiA==}
+  vue-tippy@6.8.0:
+    resolution: {integrity: sha512-NiWpwncli2vXpestHyvuFPDgQ51qLbBKpZQj7FeSOm1mFbPhzMeaRxWBQQEhl/FqGRXasfGvETgAUW4md6SAbA==}
     peerDependencies:
       vue: ^3.5.42
 
@@ -14389,6 +14401,8 @@ snapshots:
 
   '@tanstack/store@0.11.0': {}
 
+  '@tanstack/store@0.11.1': {}
+
   '@tanstack/virtual-core@3.17.6': {}
 
   '@tanstack/vue-form@1.33.2(vue@3.5.42(typescript@6.0.3))':
@@ -14410,6 +14424,12 @@ snapshots:
   '@tanstack/vue-store@0.11.0(vue@3.5.42(typescript@6.0.3))':
     dependencies:
       '@tanstack/store': 0.11.0
+      vue: 3.5.42(typescript@6.0.3)
+      vue-demi: 0.14.10(vue@3.5.42(typescript@6.0.3))
+
+  '@tanstack/vue-store@0.11.1(vue@3.5.42(typescript@6.0.3))':
+    dependencies:
+      '@tanstack/store': 0.11.1
       vue: 3.5.42(typescript@6.0.3)
       vue-demi: 0.14.10(vue@3.5.42(typescript@6.0.3))
 
@@ -16705,7 +16725,7 @@ snapshots:
       string.prototype.trimstart: 1.0.8
       typed-array-buffer: 1.0.3
       typed-array-byte-length: 1.0.3
-      typed-array-byte-offset: 1.0.4
+      typed-array-byte-offset: 1.0.5
       typed-array-length: 1.0.8
       unbox-primitive: 1.1.0
       which-typed-array: 1.1.22
@@ -20441,13 +20461,12 @@ snapshots:
       has-proto: 1.2.0
       is-typed-array: 1.1.15
 
-  typed-array-byte-offset@1.0.4:
+  typed-array-byte-offset@1.0.5:
     dependencies:
       available-typed-arrays: 1.0.7
       call-bind: 1.0.9
       for-each: 0.3.5
       gopd: 1.2.0
-      has-proto: 1.2.0
       is-typed-array: 1.1.15
       reflect.getprototypeof: 1.0.10
 
@@ -21162,7 +21181,7 @@ snapshots:
       - unloader
       - webpack
 
-  vue-tippy@6.7.1(vue@3.5.42(typescript@6.0.3)):
+  vue-tippy@6.8.0(vue@3.5.42(typescript@6.0.3)):
     dependencies:
       tippy.js: 6.3.7
       vue: 3.5.42(typescript@6.0.3)
