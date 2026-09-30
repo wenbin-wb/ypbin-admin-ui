@@ -2,6 +2,7 @@ import type { Component, DefineComponent } from 'vue';
 
 import type {
   AccessModeType,
+  ComponentRecordType,
   GenerateMenuAndRoutesOptions,
   RouteRecordRaw,
 } from '@vben/types';
@@ -28,6 +29,9 @@ async function generateAccessible(
 
   // 生成路由
   const accessibleRoutes = await generateRoutes(mode, options);
+
+  // 布局组件全树只能出现一次，先清掉所有「非顶级却挂着布局」的节点
+  removeNestedLayoutComponents(accessibleRoutes, options.layoutMap);
 
   const root = router.getRoutes().find((item) => item.path === '/');
 
@@ -70,6 +74,44 @@ async function generateAccessible(
   const accessibleMenus = generateMenus(accessibleRoutes, options.router);
 
   return { accessibleMenus, accessibleRoutes };
+}
+
+/**
+ * 移除嵌套的布局组件，避免内容区里再渲染一层 BasicLayout。
+ *
+ * 布局组件只能作为根路由出现一次：顶级目录的 component 会在下面的插入逻辑里被删掉，
+ * 但后端菜单的二级目录（type=catalog）同样填了 BasicLayout —— 当它被挂到新父目录
+ * （如 /admin）之下就不再是顶级，component 不会被删除，于是内容区里又画一层布局，
+ * 表现为内容整体右移一个侧边栏宽度、下移 header+tabbar 高度的 L 形空白。
+ *
+ * 只删「有子路由且 component 来自 layoutMap」的节点，带子路由的业务页面组件不受影响。
+ */
+function removeNestedLayoutComponents(
+  routes: RouteRecordRaw[],
+  layoutMap?: ComponentRecordType,
+) {
+  const layoutComponents = new Set<RouteRecordRaw['component']>(
+    Object.values(layoutMap ?? {}),
+  );
+
+  const walk = (nodes: RouteRecordRaw[]) => {
+    for (const node of nodes) {
+      const children = node.children;
+      if (
+        children &&
+        children.length > 0 &&
+        node.component &&
+        layoutComponents.has(node.component)
+      ) {
+        delete node.component;
+      }
+      if (children && children.length > 0) {
+        walk(children as RouteRecordRaw[]);
+      }
+    }
+  };
+
+  walk(routes);
 }
 
 /**

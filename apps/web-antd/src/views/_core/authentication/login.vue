@@ -99,7 +99,7 @@ function refreshCaptcha() {
     <template #title>
       <div class="mb-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div class="flex items-center justify-center gap-2.5">
-          <img src="/ypbin-logo.svg" alt="ypbin" class="h-9 w-9 shrink-0" />
+          <img src="/ypbin-logo.png" alt="ypbin" class="h-9 w-9 shrink-0" />
           <h2 class="text-2xl font-bold tracking-tight text-foreground">
             {{ $t('page.auth.title') }}
           </h2>

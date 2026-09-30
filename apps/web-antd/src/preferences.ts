@@ -35,8 +35,8 @@ export const overridesPreferences = defineOverridesPreferences({
     settingShow: true,
   },
   logo: {
-    source: '/ypbin-logo.svg',
-    sourceDark: '/ypbin-logo.svg',
+    source: '/ypbin-logo.png',
+    sourceDark: '/ypbin-logo.png',
   },
 });
 
