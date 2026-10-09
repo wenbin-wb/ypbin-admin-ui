@@ -159,7 +159,7 @@ catalog:
   oxfmt: ^0.60.0
   oxlint: ^1.75.0
   oxlint-tsgolint: ^0.25.0
-  pinia: ^4.0.2
+  pinia: ^4.0.3
   prosemirror-view: ^1.42.3
   pinia-plugin-persistedstate: ^4.7.1
   pkg-types: ^2.3.1
