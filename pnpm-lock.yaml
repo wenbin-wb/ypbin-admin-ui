@@ -43,8 +43,8 @@ catalogs:
       specifier: ^5.0.3
       version: 5.0.3
     '@intlify/core-base':
-      specifier: ^11.4.7
-      version: 11.4.7
+      specifier: ^11.4.13
+      version: 11.4.13
     '@intlify/unplugin-vue-i18n':
       specifier: ^11.2.4
       version: 11.2.4
@@ -1941,7 +1941,7 @@ importers:
     dependencies:
       '@intlify/core-base':
         specifier: 'catalog:'
-        version: 11.4.7
+        version: 11.4.13
       '@vben-core/composables':
         specifier: workspace:*
         version: link:../@core/composables
@@ -3789,24 +3789,12 @@ packages:
     resolution: {integrity: sha512-3qGv1/j0fl6ZSeehGaznE78A4i3hCaOeOyDh7jq7SV6ch/XGoy96xIrYuALTV3xhIqj2rktsIKcwlLZ3CbOhkA==}
     engines: {node: '>= 22'}
 
-  '@intlify/core-base@11.4.7':
-    resolution: {integrity: sha512-MSB/sBKwEWJTILvQIhg2rnIcwPpLayo3wGwvVA+dJTNeUBD9GoqQgAaSOLdI9iOPDHCm9YoVnLqpfzza98MpkQ==}
-    engines: {node: '>= 22'}
-
   '@intlify/devtools-types@11.4.13':
     resolution: {integrity: sha512-f38d2yvjNc1/c+BnTLsxTB0729clTtyy7kTxHu4FFlvI6FpmBOp7b9sLYtsKJpXSZ70kIEexvNwDSzLkIlYnlQ==}
     engines: {node: '>= 22'}
 
-  '@intlify/devtools-types@11.4.7':
-    resolution: {integrity: sha512-GSz+J+hqH+AEpAHIYya6fSufS30OaMnG39HiZX7DmGKi3+aaLvassCfsXENEc4Wr4m68q2YP0QdMdB3D9UeAXg==}
-    engines: {node: '>= 22'}
-
   '@intlify/message-compiler@11.4.13':
     resolution: {integrity: sha512-cjKsDeWUD/i3mj0QtC8hydLCFP5mgZtTU1xZZaN9/O3FG94EXc0rTbecYpifglp26rpoJoIjSlW137VejLKsZw==}
-    engines: {node: '>= 22'}
-
-  '@intlify/message-compiler@11.4.7':
-    resolution: {integrity: sha512-bHxmh7n94N4N1evADeb7XTkc3jTw6Ki5biMFZVSX6Jmk+iehy8/maeH2XUsBI27rtKIK+Hzc6QnVAKggUwylKw==}
     engines: {node: '>= 22'}
 
   '@intlify/shared@11.4.13':
@@ -13474,8 +13462,8 @@ snapshots:
 
   '@intlify/bundle-utils@11.2.4(vue-i18n@11.4.13(vue@3.5.43(typescript@6.0.3)))':
     dependencies:
-      '@intlify/message-compiler': 11.4.7
-      '@intlify/shared': 11.4.7
+      '@intlify/message-compiler': 11.4.13
+      '@intlify/shared': 11.4.13
       acorn: 8.17.0
       esbuild: 0.25.12
       escodegen: 2.1.0
@@ -13492,31 +13480,15 @@ snapshots:
       '@intlify/message-compiler': 11.4.13
       '@intlify/shared': 11.4.13
 
-  '@intlify/core-base@11.4.7':
-    dependencies:
-      '@intlify/devtools-types': 11.4.7
-      '@intlify/message-compiler': 11.4.7
-      '@intlify/shared': 11.4.7
-
   '@intlify/devtools-types@11.4.13':
     dependencies:
       '@intlify/core-base': 11.4.13
       '@intlify/shared': 11.4.13
 
-  '@intlify/devtools-types@11.4.7':
-    dependencies:
-      '@intlify/core-base': 11.4.7
-      '@intlify/shared': 11.4.7
-
   '@intlify/message-compiler@11.4.13':
     dependencies:
       '@intlify/shared': 11.4.13
       source-map-js: 1.2.2
-
-  '@intlify/message-compiler@11.4.7':
-    dependencies:
-      '@intlify/shared': 11.4.7
-      source-map-js: 1.2.1
 
   '@intlify/shared@11.4.13': {}
 
