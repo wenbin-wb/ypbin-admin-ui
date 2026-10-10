@@ -8,8 +8,13 @@ updates:
     open-pull-requests-limit: 10
     groups:
       # 开发工具链整体一组（含 typescript / vue-tsc / linter），保证同批升级、互相兼容
+      # 只收 minor/patch：主版本单独开 PR —— 一个不兼容的主版本不得拖红整组
+      # （实测先例：wenbin-wb/ypbin-site#29 的 typescript 7 让整组 verify 失败）
       dev-tooling:
         dependency-type: development
+        update-types:
+          - minor
+          - patch
       # 运行时生态必须整组同版本升级：tiptap 的命令类型靠各扩展包对 @tiptap/core 做模块增强，
       # 只升 starter-kit 会造成 core 与扩展版本错配、类型增强失效（曾因此让升级 PR 无法通过校验）
       tiptap:
@@ -21,6 +26,14 @@ updates:
           - "vue"
           - "@vue/*"
           - "vue-router"
+    ignore:
+      # typescript 主版本暂缓：vue-tsc（npm latest 3.3.12）以 typescript/lib/tsc 子路径加载编译器，
+      # 而 typescript 7.0.2 的 exports 已不含该子路径 ⇒ typecheck 必然报
+      # ERR_PACKAGE_PATH_NOT_EXPORTED（实测见 wenbin-wb/ypbin-site#29）。
+      # 上游 vue-tsc 支持 TS 7 后删除本条；解除条件与跟踪见 wenbin-wb/ypbin-site#30。
+      - dependency-name: "typescript"
+        update-types:
+          - version-update:semver-major
     labels:
       - dependencies
 
