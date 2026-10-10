@@ -147,7 +147,7 @@ catalog:
   is-ci: ^4.1.0
   json-bigint: ^1.0.0
   jsonwebtoken: ^9.0.3
-  knip: ^6.29.0
+  knip: ^6.40.0
   lefthook: ^2.1.17
   lodash.clonedeep: ^4.5.0
   marked: ^18.0.9
