@@ -63,7 +63,7 @@ catalog:
   '@nolebase/vitepress-plugin-git-changelog': ^2.18.2
   '@playwright/test': ^1.61.1
   '@pnpm/workspace.read-manifest': ^1000.3.1
-  '@stylistic/stylelint-plugin': ^5.2.1
+  '@stylistic/stylelint-plugin': ^5.3.1
   '@tailwindcss/typography': ^0.5.20
   '@tailwindcss/vite': ^4.3.3
   '@tanstack/store': ^0.11.0
