@@ -186,7 +186,17 @@ async function generateRoutes(
     }
     const firstChild = route.children[0];
 
-    if (!firstChild?.path || firstChild.path.startsWith('/')) {
+    if (!firstChild?.path) {
+      return route;
+    }
+
+    // 后端菜单的子路由常用绝对路径（如 /dashboard/analytics）；上游只处理相对
+    // 路径，绝对路径直接 return —— 无 component 的目录路由（如 /dashboard）既
+    // 没有 component 也没有 redirect，进来就是白屏。这里同样补 redirect
+    // （动态 `:id` 子路由除外，见下），点目录 path 自动落到第一个子菜单，
+    // 手动访问目录地址也不再白屏。
+    if (firstChild.path.startsWith('/')) {
+      route.redirect = firstChild.path;
       return route;
     }
 
