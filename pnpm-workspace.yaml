@@ -119,7 +119,7 @@ catalog:
   cspell: ^10.0.1
   cz-git: ^1.14.0
   czg: ^1.14.0
-  dayjs: ^1.11.21
+  dayjs: ^1.11.23
   defu: ^6.1.7
   dompurify: ^3.4.13
   dotenv: ^17.4.2
