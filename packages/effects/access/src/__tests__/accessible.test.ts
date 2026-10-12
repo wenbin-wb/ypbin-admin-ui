@@ -177,7 +177,9 @@ describe('generateAccessible - redirect normalization', () => {
     );
   });
 
-  it('首子路由为绝对路径(/foo)时不生成 redirect', async () => {
+  it('首子路由为绝对路径(/analytics)时生成 redirect 到该绝对路径', async () => {
+    // 后端菜单常用绝对路径子路由（如 /dashboard/analytics）；
+    // 不补 redirect 的话，无 component 的目录路由（如 /dashboard）渲染空白。
     const routes = [
       {
         name: 'Dashboard',
@@ -185,7 +187,7 @@ describe('generateAccessible - redirect normalization', () => {
         children: [
           {
             name: 'Analytics',
-            path: '/analytics',
+            path: '/dashboard/analytics',
             meta: { title: 'analytics' },
           },
         ],
@@ -194,7 +196,9 @@ describe('generateAccessible - redirect normalization', () => {
     ] as unknown as RouteRecordRaw[];
 
     const result = await generate(routes);
-    expect(findByName(result, 'Dashboard')?.redirect).toBeUndefined();
+    expect(findByName(result, 'Dashboard')?.redirect).toBe(
+      '/dashboard/analytics',
+    );
   });
 
   it('首子路由为空 path 时不生成 redirect', async () => {
