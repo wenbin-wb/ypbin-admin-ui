@@ -68,7 +68,7 @@ catalog:
   '@tailwindcss/vite': ^4.3.3
   '@tanstack/store': ^0.11.0
   '@tanstack/vue-form': ^1.33.2
-  '@tanstack/vue-query': ^5.101.4
+  '@tanstack/vue-query': ^5.104.1
   '@tanstack/vue-store': ^0.11.2
   '@tiptap/core': ^3.31.4
   '@tiptap/extension-document': ^3.31.4
