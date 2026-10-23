@@ -73,6 +73,26 @@ export function useSchema(): VbenFormSchema[] {
       label: $t('system.dept.status'),
     },
     {
+      // 所在空间：部门**可对应多个空间点**（如市场部在 A 栋 1F 与 B 栋 3F 都有办公点），故用多选。
+      // 绑定关系走独立接口（/space/{id}/relations），在表单提交后由页面统一处理，
+      // 不塞进 DeptSaveReq——否则「改个部门备注」也会要求空间绑定权限。
+      // 用已注册的 ApiTreeSelect 原语而非自定义组件：表单 schema 只认适配器注册表里的名字。
+      component: 'ApiTreeSelect',
+      componentProps: {
+        api: async () => {
+          const { getSpaceTree } = await import('#/api/system/space');
+          return (await getSpaceTree()) ?? [];
+        },
+        childrenField: 'children',
+        class: 'w-full',
+        labelField: 'name',
+        multiple: true,
+        valueField: 'id',
+      },
+      fieldName: 'spaceIds',
+      label: $t('system.space.deptSpace'),
+    },
+    {
       component: 'Textarea',
       fieldName: 'remark',
       label: $t('system.dept.remark'),

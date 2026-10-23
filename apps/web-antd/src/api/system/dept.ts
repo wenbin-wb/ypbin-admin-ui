@@ -42,8 +42,14 @@ async function getDeptList() {
  * 创建部门
  * @param data 部门数据
  */
+/**
+ * 创建部门。
+ *
+ * 后端返回**新部门 ID**（不是 void）——前端新建后要立即绑定「所在空间」，
+ * 拿不到 ID 就只能静默丢弃用户选的空间。
+ */
 async function createDept(data: SystemDeptApi.DeptSaveReq) {
-  return requestClient.post('/system/dept', data);
+  return requestClient.post<string>('/system/dept', data);
 }
 
 /**

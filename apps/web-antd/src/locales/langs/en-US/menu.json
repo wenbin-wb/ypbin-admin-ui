@@ -13,7 +13,8 @@
     "user": "User Management",
     "role": "Role Management",
     "menu": "Menu Management",
-    "dept": "Department Management"
+    "dept": "Department Management",
+    "space": "Space Management"
   },
   "org": {
     "title": "Organization"
