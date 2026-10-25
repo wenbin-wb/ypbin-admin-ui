@@ -98,3 +98,24 @@ export function collectSubtreeIds(
   walk(nodes, false);
   return ids;
 }
+
+/**
+ * 懒加载节点 → vxe 表格行。
+ *
+ * **关键：`children` 必须是 `undefined`（不是 `[]`）**。
+ * vxe 的 lazy 树用「`children` 为 undefined」表示「尚未加载」，用户展开时才调 `loadMethod`；
+ * 若给空数组，vxe 会认为「已加载且没有子节点」⇒ 永远不再请求 ⇒ 树展不开。
+ *
+ * <p>抽成纯函数是为了能单测这条规则：它写错了不会报错、不会红任何既有用例，
+ * 只表现为「树点了不展开」——而那个现象很容易被误判成后端接口问题。</p>
+ *
+ * @param node 后端返回的懒加载节点
+ * @returns 可直接交给 vxe 的行对象
+ */
+export function toLazyRow<T extends { children?: T[]; hasChildren: boolean }>(
+  node: T,
+): T {
+  // 有子节点 ⇒ 显式置 undefined（触发 vxe 的「未加载」判定）；
+  // 无子节点 ⇒ 保持原样（vxe 视为叶子，不显示展开箭头）
+  return node.hasChildren ? { ...node, children: undefined } : { ...node };
+}

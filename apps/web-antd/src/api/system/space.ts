@@ -81,6 +81,28 @@ export namespace SystemSpaceApi {
     [key: string]: any;
   }
 
+  /**
+   * 懒加载树节点（`/space/tree/lazy` 的返回）。
+   *
+   * **刻意比 `SpaceResp` 少很多字段**：树上只需要渲染节点 + 判断有无展开箭头，
+   * 不带地址/经纬度/扩展 JSON 等（万级节点时那些字段会让响应体翻几倍）。
+   */
+  export interface SpaceTreeNode {
+    id: string;
+    pid: string;
+    name: string;
+    code?: null | string;
+    spaceType: string;
+    /** 空间类型展示文本（后端 @DictText 输出） */
+    spaceTypeText?: null | string;
+    sort?: number;
+    status: number;
+    /** 是否有直接子空间（决定树是否显示展开箭头） */
+    hasChildren: boolean;
+    /** vxe 懒加载树的 children（首层为 undefined，展开后由 loadMethod 填入） */
+    children?: SpaceTreeNode[];
+  }
+
   export interface SpaceQuery {
     keyword?: string;
     spaceType?: string;
@@ -256,5 +278,24 @@ export async function getRelationsByTargets(
   return requestClient.get<Record<string, SystemSpaceApi.SpaceRelationResp[]>>(
     '/system/space/relations/by-targets',
     { params: { targetIds, targetType } },
+  );
+}
+
+/**
+ * 懒加载树 currentNode：只查某一层（或按关键词跨层搜索）。
+ *
+ * **与 `getSpaceTree`（全量树）的分工**：全量树适合空间数量小的租户（一次渲染完整层级）；
+ * 万级空间用本接口按需展开，避免 MB 级响应与前端递归渲染卡顿。
+ *
+ * @param parentId 父空间 ID（不传=查根层）
+ * @param keyword 关键词（非空时跨层级搜索，忽略 parentId）
+ */
+export async function getSpaceLazyTree(params?: {
+  keyword?: string;
+  parentId?: string;
+}) {
+  return requestClient.get<SystemSpaceApi.SpaceTreeNode[]>(
+    '/system/space/tree/lazy',
+    { params },
   );
 }

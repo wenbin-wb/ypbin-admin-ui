@@ -8,9 +8,14 @@ import { Plus } from '@vben/icons';
 import { Button, message } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
-import { deleteSpace, getSpaceTree } from '#/api/system/space';
+import {
+  deleteSpace,
+  getSpaceDetail,
+  getSpaceLazyTree,
+} from '#/api/system/space';
 import { $t } from '#/locales';
 
+import { toLazyRow } from '../_shared/space-tree';
 import { useColumns } from './data';
 import Form from './modules/form.vue';
 import RelationDrawer from './modules/relation-drawer.vue';
@@ -26,16 +31,23 @@ const [RelationDrawerComp, relationDrawerApi] = useVbenDrawer({
 });
 
 /**
- * 编辑空间
+ * 编辑空间。
+ *
+ * **必须按 ID 拉一次完整详情**：懒加载树节点只带渲染树所需的精简字段
+ * （没有地址/经纬度/面积/容量/负责人/扩展 JSON 等）。若直接把节点当表单数据，
+ * 那些字段在抽屉里会是空的，用户一保存就把库里已有的值**清空**（`updateStrategy=ALWAYS`）。
+ * 这是一个「看起来能编辑、实际会丢数据」的陷阱，必须在打开前补齐。
  */
-function onEdit(row: SystemSpaceApi.SpaceResp) {
-  FormDrawerApi.setData(row).open();
+async function onEdit(row: SystemSpaceApi.SpaceTreeNode) {
+  const detail = await getSpaceDetail(row.id);
+  FormDrawerApi.setData(detail).open();
 }
 
 /**
  * 添加下级空间
  */
-function onAppend(row: SystemSpaceApi.SpaceResp) {
+function onAppend(row: SystemSpaceApi.SpaceTreeNode) {
+  // 新建下级只需 pid，不需要拉详情
   FormDrawerApi.setData({ pid: row.id }).open();
 }
 
@@ -49,7 +61,7 @@ function onCreate() {
 /**
  * 管理该空间上挂的业务对象
  */
-function onRelation(row: SystemSpaceApi.SpaceResp) {
+function onRelation(row: SystemSpaceApi.SpaceTreeNode) {
   relationDrawerApi.setData({ spaceId: row.id, spacePath: row.name }).open();
 }
 
@@ -60,7 +72,7 @@ function onRelation(row: SystemSpaceApi.SpaceResp) {
  * 这里必须把 **后端文案** 展示出来（而不是笼统「删除失败」），
  * 否则用户不知道是该先删子空间还是先解绑。
  */
-function onDelete(row: SystemSpaceApi.SpaceResp) {
+function onDelete(row: SystemSpaceApi.SpaceTreeNode) {
   const hideLoading = message.loading({
     content: $t('ui.actionMessage.deleting', [row.name]),
     duration: 0,
@@ -90,7 +102,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
     proxyConfig: {
       ajax: {
-        query: async () => await getSpaceTree(),
+        query: async () => {
+          // 懒加载：首屏只查**根层**，子层由 treeConfig.loadMethod 在展开时按需加载。
+          // 全量树在万级空间下响应会到 MB 级、且前端递归渲染卡顿；
+          // 懒加载每层一次请求（每层几十条），交互与请求量都可控。
+          const roots = await getSpaceLazyTree();
+          return (roots ?? []).map((node) => toLazyRow(node));
+        },
       },
     },
     toolbarConfig: {
@@ -103,6 +121,16 @@ const [Grid, gridApi] = useVbenVxeGrid({
       parentField: 'pid',
       rowField: 'id',
       transform: false,
+      // 懒加载：`loadMethod` 在用户展开某节点时调用，返回该节点的**直接子节点**。
+      // vxe 4.20 的契约：loadMethod({ $table, row }) => 子节点数组。
+      lazy: true,
+      // hasChild 字段告诉 vxe「这个节点要不要显示展开箭头」——没有它只能渲染成叶子，
+      // 用户点开才知道有下一层（箭头闪烁/缺失）。
+      hasChild: 'hasChildren',
+      loadMethod: async ({ row }: { row: SystemSpaceApi.SpaceTreeNode }) => {
+        const children = await getSpaceLazyTree({ parentId: row.id });
+        return (children ?? []).map((node) => toLazyRow(node));
+      },
     },
   } as VxeTableGridOptions,
 });

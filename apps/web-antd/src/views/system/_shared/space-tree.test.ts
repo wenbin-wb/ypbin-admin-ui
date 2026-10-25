@@ -2,7 +2,7 @@ import type { SystemSpaceApi } from '#/api/system/space';
 
 import { describe, expect, it } from 'vitest';
 
-import { collectSubtreeIds, toSpaceTree } from './space-tree';
+import { collectSubtreeIds, toLazyRow, toSpaceTree } from './space-tree';
 
 /**
  * 断言值非空并收窄类型（替代 `!` 非空断言）。
@@ -193,5 +193,48 @@ describe('collectSubtreeIds', () => {
 
   it('空输入返回空数组', () => {
     expect(collectSubtreeIds(undefined, '1')).toEqual([]);
+  });
+});
+
+describe('toLazyRow（懒加载树的行转换）', () => {
+  it('★ 有子节点 ⇒ children 置为 undefined（vxe 据此判定「未加载」才会调 loadMethod）', () => {
+    const node = {
+      children: [] as any[],
+      hasChildren: true,
+      id: '1',
+      name: 'A栋',
+    };
+    const row = toLazyRow(node);
+    // 关键断言：必须是 undefined，不能是 []。
+    // 给 [] ⇒ vxe 认为「已加载且无子节点」⇒ 永远不再请求 ⇒ 树展不开（点了没反应）。
+    expect(row.children).toBeUndefined();
+    expect(Object.hasOwn(row, 'children')).toBe(true);
+  });
+
+  it('无子节点 ⇒ 不注入 children（vxe 视为叶子，不显示展开箭头）', () => {
+    const node = { hasChildren: false, id: '2', name: '101室' } as any;
+    const row = toLazyRow(node);
+    expect(row.children).toBeUndefined();
+    expect(Object.hasOwn(row, 'children')).toBe(false);
+  });
+
+  it('不修改入参（返回新对象）', () => {
+    const node = { children: [] as any[], hasChildren: true, id: '1' };
+    const row = toLazyRow(node);
+    expect(row).not.toBe(node);
+    expect(node.children).toEqual([]);
+  });
+
+  it('保留原有字段（id/name/spaceTypeText 等不能丢）', () => {
+    const node = {
+      hasChildren: true,
+      id: '9',
+      name: '机房',
+      spaceTypeText: '机房',
+    } as any;
+    const row = toLazyRow(node);
+    expect(row.id).toBe('9');
+    expect(row.name).toBe('机房');
+    expect(row.spaceTypeText).toBe('机房');
   });
 });

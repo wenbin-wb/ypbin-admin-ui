@@ -195,10 +195,14 @@ export function useSchema(): VbenFormSchema[] {
 }
 
 /**
- * 空间树形表格列。
+ * 空间树形表格列（**懒加载精简版**）。
  *
- * 用 `treeNode: true` 挂在「名称」列上（与部门页同一套 vxe 树形配置），
- * 层级由后端 `pid` 决定，前端不自行推断。
+ * <p>只保留树渲染必需 + 能从懒加载节点直接得到的字段：懒加载节点刻意不带
+ * 地址/经纬度/面积/容量/负责人/扩展 JSON 等（见 `SpaceTreeNodeResp` 的类注释），
+ * 万级空间下那些字段会让每层响应翻几倍。</p>
+ *
+ * <p>完整字段在**编辑抽屉**里看：`onEdit` 会先按 ID 拉一次 `getSpaceDetail` 补齐
+ * （否则抽屉里那些字段是空的，一保存就把库里已有的值清空）。</p>
  */
 export function useColumns(): VxeTableGridColumns<SystemSpaceApi.SpaceResp> {
   return [
@@ -222,32 +226,6 @@ export function useColumns(): VxeTableGridColumns<SystemSpaceApi.SpaceResp> {
       width: 140,
     },
     {
-      field: 'floorNo',
-      title: $t('system.space.floorNo'),
-      width: 90,
-    },
-    {
-      field: 'roomNo',
-      title: $t('system.space.roomNo'),
-      width: 100,
-    },
-    {
-      field: 'manager',
-      title: $t('system.space.manager'),
-      width: 110,
-    },
-    {
-      field: 'phone',
-      title: $t('system.space.phone'),
-      width: 130,
-    },
-    {
-      // 关联对象数由后端一次分组查询给出（不是前端逐行算）
-      field: 'relationCount',
-      title: $t('system.space.relationCount'),
-      width: 110,
-    },
-    {
       field: 'status',
       cellRender: { name: 'CellTag' },
       title: $t('system.space.status'),
@@ -257,11 +235,6 @@ export function useColumns(): VxeTableGridColumns<SystemSpaceApi.SpaceResp> {
       field: 'sort',
       title: $t('system.space.sort'),
       width: 80,
-    },
-    {
-      field: 'remark',
-      minWidth: 140,
-      title: $t('system.space.remark'),
     },
     {
       align: 'center',
