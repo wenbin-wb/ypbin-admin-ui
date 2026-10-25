@@ -236,3 +236,25 @@ export async function getRelationsBySpace(
     { params },
   );
 }
+
+/**
+ * 批量反查：一次查多个业务对象各自的空间（列表页「所在空间」列用）。
+ *
+ * **列表页必须用这个而不是逐条调 `getRelationsByTarget`**：后者是 N 次 HTTP（N+1）。
+ *
+ * @param targetType 关联对象类型
+ * @param targetIds 关联对象 ID 列表
+ * @returns 对象 ID → 空间关联列表（无关联的对象不出现在结果里）
+ */
+export async function getRelationsByTargets(
+  targetType: string,
+  targetIds: string[],
+) {
+  if (targetIds.length === 0) {
+    return {} as Record<string, SystemSpaceApi.SpaceRelationResp[]>;
+  }
+  return requestClient.get<Record<string, SystemSpaceApi.SpaceRelationResp[]>>(
+    '/system/space/relations/by-targets',
+    { params: { targetIds, targetType } },
+  );
+}

@@ -562,6 +562,8 @@
     "relationRemoved": "Space relation removed",
     "relationRemoveFailed": "Failed to remove space relation",
     "confirmRemoveTitle": "Remove Space Relation",
-    "confirmRemoveContent": "Remove this object from \"{0}\"?"
+    "confirmRemoveContent": "Remove this object from \"{0}\"?",
+    "postSpace": "Work Locations",
+    "postSpaceColumn": "Work Locations"
   }
 }

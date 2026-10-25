@@ -562,6 +562,8 @@
     "relationRemoved": "已移除空间关联",
     "relationRemoveFailed": "移除空间关联失败",
     "confirmRemoveTitle": "移除空间关联",
-    "confirmRemoveContent": "确定把该对象从「{0}」移除吗？"
+    "confirmRemoveContent": "确定把该对象从「{0}」移除吗？",
+    "postSpace": "工作地点",
+    "postSpaceColumn": "工作地点"
   }
 }

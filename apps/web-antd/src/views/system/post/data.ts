@@ -7,6 +7,12 @@ export function useColumns(): VxeTableGridColumns {
   return [
     { field: 'name', title: $t('system.post.postName'), minWidth: 120 },
     { field: 'code', title: $t('system.post.code'), minWidth: 120 },
+    {
+      // 工作地点：数据由列表查询时的一次批量反查填充（不是后端字段）
+      field: 'spaceText',
+      title: $t('system.space.postSpaceColumn'),
+      minWidth: 180,
+    },
     { field: 'sort', title: $t('system.post.sort'), width: 80 },
     {
       field: 'status',

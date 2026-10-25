@@ -9,6 +9,7 @@ import { Button, message } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import { deletePost, getPostList } from '#/api/system/post';
+import { getRelationsByTargets } from '#/api/system/space';
 import { $t } from '#/locales';
 
 import { useColumns, useGridFormSchema } from './data';
@@ -32,7 +33,25 @@ const [Grid, gridApi] = useVbenVxeGrid({
     proxyConfig: {
       ajax: {
         query: async () => {
-          return await getPostList();
+          const rows = await getPostList();
+          // 列表页「工作地点」列：**一次批量反查**，不逐行调（那是 N 次 HTTP）。
+          // 反查失败不阻断列表：该列退化为空并给出可见提示，而不是整页报错（岗位数据本身有效）。
+          try {
+            const ids = (rows ?? []).map((row) => row.id);
+            const grouped = await getRelationsByTargets('post', ids);
+            for (const row of rows ?? []) {
+              const list = grouped[row.id] ?? [];
+              // 主空间优先展示，其余用「+N」表示，避免列被多条路径撑爆
+              const primary =
+                list.find((item) => item.isPrimary === 1) ?? list[0];
+              row.spaceText = primary
+                ? `${primary.spacePath || primary.spaceName}${list.length > 1 ? ` +${list.length - 1}` : ''}`
+                : '';
+            }
+          } catch {
+            message.warning($t('system.space.relationLoadFailed'));
+          }
+          return rows;
         },
       },
     },
