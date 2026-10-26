@@ -16,6 +16,8 @@ import {
   getSpaceLazyTree,
 } from '#/api/system/space';
 import { $t } from '#/locales';
+import { extractErrorMessage } from '#/utils/error';
+import { downloadBlobSafe } from '#/utils/file';
 
 import { toLazyRow } from '../_shared/space-tree';
 import { useColumns } from './data';
@@ -134,7 +136,11 @@ const [Grid, gridApi] = useVbenVxeGrid({
       hasChild: 'hasChildren',
       loadMethod: async ({ row }: { row: SystemSpaceApi.SpaceTreeNode }) => {
         const children = await getSpaceLazyTree({ parentId: row.id });
-        return (children ?? []).map((node) => toLazyRow(node));
+        const rows = (children ?? []).map((node) => toLazyRow(node));
+        // 展开出来的子层同样要填「对象数」——否则只有首屏那几行有数字，
+        // 用户展开后看到一片空白，会以为子层统计坏了。
+        await fillRelationCounts(rows);
+        return rows;
       },
     },
   } as VxeTableGridOptions,
@@ -186,21 +192,21 @@ const [ImportModalComp, importModalApi] = useVbenModal({
 /**
  * 导出全部空间为 CSV。
  *
- * 用 Blob + 临时链接下载而不是直接 `window.open`：后者在 token 走请求头鉴权时
- * 会丢掉身份（新窗口不带 header）⇒ 401。
+ * 用既有 `downloadBlobSafe` 而不是手写 createObjectURL + a.click：
+ * 它额外处理了「HTTP 200 但响应体其实是业务失败 JSON」——直接把错误体存成 .csv，
+ * 用户会得到一个打不开的文件却不知道原因。该方法被仓内 9 处下载复用。
  */
 async function onExport() {
   try {
     const blob = await exportSpaces();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `空间管理-${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    // 必须释放：不释放会让 Blob 常驻内存
-    URL.revokeObjectURL(url);
-  } catch (error: any) {
-    message.error(error?.message ?? $t('system.space.exportFailed'));
+    await downloadBlobSafe(
+      blob,
+      `空间管理-${new Date().toISOString().slice(0, 10)}.csv`,
+      $t('system.space.exportFailed'),
+    );
+  } catch (error: unknown) {
+    // 用既有 extractErrorMessage：它已处理 string / Error / 裸对象 / response.data.message 四种形态
+    message.error(extractErrorMessage(error, $t('system.space.exportFailed')));
   }
 }
 

@@ -376,9 +376,10 @@ export async function importSpaces(
  * @returns Blob（调用方自行触发下载）
  */
 export async function exportSpaces() {
-  return requestClient.get<Blob>('/system/space/export', {
-    responseType: 'blob',
-  });
+  // 走 requestClient.download（内部 responseReturn:'body'）而非 get + responseType:'blob'：
+  // 后者沿用实例默认 responseReturn:'data'，defaultResponseInterceptor 会把 Blob 当业务响应
+  // 读它的 code 字段（Blob 无 code）而**误判为失败** —— 这是本仓既有口径（见 api/system/user.ts 注释）。
+  return requestClient.download<Blob>('/system/space/export');
 }
 
 /**
@@ -387,7 +388,6 @@ export async function exportSpaces() {
  * @returns Blob
  */
 export async function downloadSpaceImportTemplate() {
-  return requestClient.get<Blob>('/system/space/import-template', {
-    responseType: 'blob',
-  });
+  // 同 exportSpaces：必须走 download，不能用 get + responseType:'blob'
+  return requestClient.download<Blob>('/system/space/import-template');
 }

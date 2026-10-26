@@ -232,6 +232,15 @@ export function useColumns(): VxeTableGridColumns<SystemSpaceApi.SpaceResp> {
       width: 100,
     },
     {
+      // 对象数量：数据由列表查询时的一次批量统计填充（含后代子树）。
+      // 只显示总数（各类型明细在「管理关联」抽屉里看）——列宽有限，
+      // 逐类型铺开会让一行被数字撑满而挤掉更重要的名称/编码。
+      field: 'relationCounts',
+      slots: { default: 'relationCount' },
+      title: $t('system.space.relationCount'),
+      width: 110,
+    },
+    {
       field: 'sort',
       title: $t('system.space.sort'),
       width: 80,

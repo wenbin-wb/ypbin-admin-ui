@@ -29,6 +29,8 @@ import {
 
 import { downloadSpaceImportTemplate, importSpaces } from '#/api/system/space';
 import { $t } from '#/locales';
+import { extractErrorMessage } from '#/utils/error';
+import { downloadBlobSafe } from '#/utils/file';
 
 const emit = defineEmits(['success']);
 
@@ -49,29 +51,21 @@ const allSucceeded = computed(() => {
   return !!current && current.failed === 0;
 });
 
-/**
- * 触发浏览器下载 Blob。
- *
- * @param blob  文件内容
- * @param name  文件名
- */
-function triggerDownload(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  link.click();
-  // 必须显式释放：不释放会让 Blob 一直占内存（大文件尤其明显）
-  URL.revokeObjectURL(url);
-}
-
 /** 下载导入模板 */
 async function onDownloadTemplate() {
   try {
     const blob = await downloadSpaceImportTemplate();
-    triggerDownload(blob, 'space-import-template.csv');
-  } catch (error: any) {
-    message.error(error?.message ?? $t('system.space.templateDownloadFailed'));
+    // 用既有 downloadBlobSafe：它会识别「HTTP 200 但 body 是业务失败 JSON」，
+    // 避免把错误体存成 .csv（用户拿到打不开的文件却不知道原因）
+    await downloadBlobSafe(
+      blob,
+      'space-import-template.csv',
+      $t('system.space.templateDownloadFailed'),
+    );
+  } catch (error: unknown) {
+    message.error(
+      extractErrorMessage(error, $t('system.space.templateDownloadFailed')),
+    );
   }
 }
 
@@ -112,7 +106,7 @@ async function onImport() {
       emit('success');
     }
   } catch (error: any) {
-    message.error(error?.message ?? $t('system.space.importFailed'));
+    message.error(extractErrorMessage(error, $t('system.space.importFailed')));
   } finally {
     submitting.value = false;
   }
