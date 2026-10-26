@@ -564,6 +564,8 @@
     "confirmRemoveTitle": "Remove Space Relation",
     "confirmRemoveContent": "Remove this object from \"{0}\"?",
     "postSpace": "Work Locations",
-    "postSpaceColumn": "Work Locations"
+    "postSpaceColumn": "Work Locations",
+    "relationCountFailed": "Failed to load object counts (space data is unaffected)",
+    "noRelationShort": "None"
   }
 }

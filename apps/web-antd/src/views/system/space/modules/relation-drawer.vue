@@ -30,6 +30,8 @@ import {
 } from '#/api/system/space';
 import { $t } from '#/locales';
 
+import { getTargetNameResolver } from '../../_shared/target-name-resolver';
+
 const emit = defineEmits(['success']);
 
 interface DrawerData {
@@ -50,6 +52,8 @@ const submitting = ref(false);
 const loading = ref(false);
 const relations = ref<any[]>([]);
 const loadError = ref('');
+/** 对象 ID → 显示名（按需异步填充；取不到名时回退显示 ID） */
+const targetNames = ref<Record<string, string>>({});
 
 const canSubmit = computed(
   () => !!spaceId.value && !!bindType.value && parseIds().length > 0,
@@ -95,11 +99,58 @@ async function loadRelations() {
     relations.value = await getRelationsBySpace(spaceId.value, {
       targetType: filterType.value,
     });
+    await resolveNames(relations.value);
   } catch (error: any) {
     loadError.value = error?.message ?? $t('system.space.relationLoadFailed');
   } finally {
     loading.value = false;
   }
+}
+
+/**
+ * 批量解析已绑定对象的显示名。
+ *
+ * **按类型分组各调一次**（不是逐条）：一个空间可能挂几十个对象，逐条解析就是 N 次 HTTP。
+ * 解析失败只记空结果（列表仍可显示 ID 并解绑）——不能因为取名失败让整个关联列表打不开，
+ * 那会让用户失去「解绑」这个唯一补救入口。
+ *
+ * @param list 关联列表（原地不改，结果写入 targetNames）
+ */
+async function resolveNames(list: any[]) {
+  if (list.length === 0) {
+    return;
+  }
+  // 按 type 分组去重
+  const byType = new Map<string, Set<string>>();
+  for (const item of list) {
+    const type = String(item.targetType ?? '');
+    if (!type) {
+      continue;
+    }
+    // 不用 Map.get()!：非空断言被 lint 禁止，且这里判空成本为零
+    let idSet = byType.get(type);
+    if (!idSet) {
+      idSet = new Set();
+      byType.set(type, idSet);
+    }
+    idSet.add(String(item.targetId));
+  }
+  const merged: Record<string, string> = {};
+  for (const [type, idSet] of byType) {
+    // 查注册表：业务域在自己仓的启动阶段注册（admin-ui 无 iot 注册表项 ⇒ 自动退化显示 ID）
+    const resolver = getTargetNameResolver(type);
+    if (!resolver) {
+      continue;
+    }
+    try {
+      const names = await resolver(type, [...idSet]);
+      Object.assign(merged, names ?? {});
+    } catch {
+      // 单个类型取名失败不影响其它类型，也不阻断列表渲染
+      // （列表仍显示 ID 并可解绑——那是用户唯一的补救入口）
+    }
+  }
+  targetNames.value = merged;
 }
 
 async function onBind() {
@@ -229,7 +280,18 @@ defineExpose({ drawerApi });
             >
               <div class="flex min-w-0 items-center gap-2">
                 <Tag color="blue">{{ item.targetType }}</Tag>
-                <span class="truncate">ID: {{ item.targetId }}</span>
+                <!--
+                  有名称时名称 + 小字 ID，无名称时只显示 ID。
+                  **为什么两种都保留 ID**：同名的设备在真实环境里存在（如两台「温湿度」），
+                  只显示名称会让用户无法区分要点哪一条解绑。
+                -->
+                <template v-if="targetNames[item.targetId]">
+                  <span class="truncate">{{ targetNames[item.targetId] }}</span>
+                  <span class="text-muted-foreground shrink-0 text-xs">
+                    {{ item.targetId }}
+                  </span>
+                </template>
+                <span v-else class="truncate">ID: {{ item.targetId }}</span>
                 <Tag v-if="item.isPrimary === 1" color="orange">
                   {{ $t('system.space.primary') }}
                 </Tag>

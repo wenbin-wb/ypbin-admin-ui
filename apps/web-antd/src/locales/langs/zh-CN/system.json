@@ -564,6 +564,8 @@
     "confirmRemoveTitle": "移除空间关联",
     "confirmRemoveContent": "确定把该对象从「{0}」移除吗？",
     "postSpace": "工作地点",
-    "postSpaceColumn": "工作地点"
+    "postSpaceColumn": "工作地点",
+    "relationCountFailed": "对象数量统计加载失败（不影响空间数据本身）",
+    "noRelationShort": "无"
   }
 }

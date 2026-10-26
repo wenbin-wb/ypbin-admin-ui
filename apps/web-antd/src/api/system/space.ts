@@ -101,6 +101,12 @@ export namespace SystemSpaceApi {
     hasChildren: boolean;
     /** vxe 懒加载树的 children（首层为 undefined，展开后由 loadMethod 填入） */
     children?: SpaceTreeNode[];
+    /**
+     * 该空间（含后代）上的对象数量（**前端派生，后端不返回**）。
+     *
+     * 由列表查询时的一次批量统计填充，形如 `{device: 12, dept: 2}`。
+     */
+    relationCounts?: Record<string, number>;
   }
 
   export interface SpaceQuery {
@@ -297,5 +303,23 @@ export async function getSpaceLazyTree(params?: {
   return requestClient.get<SystemSpaceApi.SpaceTreeNode[]>(
     '/system/space/tree/lazy',
     { params },
+  );
+}
+
+/**
+ * 按空间（含全部后代）统计各类型业务对象数量（空间列表「设备数」等列用）。
+ *
+ * **为什么要含后代**：设备挂在末级房间，用户看「A栋」那行时期望的数字包含其下所有设备。
+ *
+ * @param spaceIds 根空间 ID 列表（一页表格的行 ID）
+ * @returns 空间 ID → (对象类型 → 数量)
+ */
+export async function countSpaceRelationsBySpaceTrees(spaceIds: string[]) {
+  if (spaceIds.length === 0) {
+    return {} as Record<string, Record<string, number>>;
+  }
+  return requestClient.post<Record<string, Record<string, number>>>(
+    '/system/space/relation-counts',
+    spaceIds,
   );
 }

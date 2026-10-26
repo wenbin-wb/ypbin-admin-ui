@@ -9,6 +9,7 @@ import { Button, message } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
+  countSpaceRelationsBySpaceTrees,
   deleteSpace,
   getSpaceDetail,
   getSpaceLazyTree,
@@ -107,7 +108,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
           // 全量树在万级空间下响应会到 MB 级、且前端递归渲染卡顿；
           // 懒加载每层一次请求（每层几十条），交互与请求量都可控。
           const roots = await getSpaceLazyTree();
-          return (roots ?? []).map((node) => toLazyRow(node));
+          const rows = (roots ?? []).map((node) => toLazyRow(node));
+          await fillRelationCounts(rows);
+          return rows;
         },
       },
     },
@@ -135,6 +138,45 @@ const [Grid, gridApi] = useVbenVxeGrid({
   } as VxeTableGridOptions,
 });
 
+/**
+ * 填充每行的对象数量统计（含后代）。
+ *
+ * **一次批量统计，不逐行调**：一页几十个空间，逐行调就是 N 次请求。
+ * 统计失败只让该列为空并提示，**不阻断列表**——空间数据本身有效，
+ * 因统计接口抖动让整页打不开是把「附属信息」放大成「主数据」。
+ *
+ * @param rows 当前页的行
+ */
+async function fillRelationCounts(rows: SystemSpaceApi.SpaceTreeNode[]) {
+  if (rows.length === 0) {
+    return;
+  }
+  try {
+    const counts = await countSpaceRelationsBySpaceTrees(
+      rows.map((row) => row.id),
+    );
+    for (const row of rows) {
+      row.relationCounts = counts[row.id] ?? {};
+    }
+  } catch {
+    // 静默留空 + 页内提示一次（不逐行报错刷屏）
+    message.warning($t('system.space.relationCountFailed'));
+  }
+}
+
+/**
+ * 汇总某行的对象总数。
+ *
+ * @param counts 类型 → 数量（可能为空）
+ * @returns 总数
+ */
+function totalRelationCount(counts?: Record<string, number>): number {
+  if (!counts) {
+    return 0;
+  }
+  return Object.values(counts).reduce((sum, value) => sum + (value ?? 0), 0);
+}
+
 function refreshGrid() {
   gridApi.query();
 }
@@ -157,6 +199,19 @@ function refreshGrid() {
 
       <template #spaceType="{ row }">
         {{ row.spaceTypeText || row.spaceType }}
+      </template>
+
+      <template #relationCount="{ row }">
+        <!--
+          总数为 0 时显示占位符而不是 0：0 会被读成「统计失败」，
+          而「这个空间上没有挂任何对象」才是事实。
+        -->
+        <span v-if="totalRelationCount(row.relationCounts) > 0">
+          {{ totalRelationCount(row.relationCounts) }}
+        </span>
+        <span v-else class="text-muted-foreground">
+          {{ $t('system.space.noRelationShort') }}
+        </span>
       </template>
 
       <template #action="{ row }">
