@@ -2,7 +2,7 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { SystemSpaceApi } from '#/api/system/space';
 
-import { Page, useVbenDrawer } from '@vben/common-ui';
+import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
 import { Button, message } from 'ant-design-vue';
@@ -11,6 +11,7 @@ import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
   countSpaceRelationsBySpaceTrees,
   deleteSpace,
+  exportSpaces,
   getSpaceDetail,
   getSpaceLazyTree,
 } from '#/api/system/space';
@@ -19,6 +20,7 @@ import { $t } from '#/locales';
 import { toLazyRow } from '../_shared/space-tree';
 import { useColumns } from './data';
 import Form from './modules/form.vue';
+import ImportModal from './modules/import-modal.vue';
 import RelationDrawer from './modules/relation-drawer.vue';
 
 const [FormDrawer, FormDrawerApi] = useVbenDrawer({
@@ -177,6 +179,31 @@ function totalRelationCount(counts?: Record<string, number>): number {
   return Object.values(counts).reduce((sum, value) => sum + (value ?? 0), 0);
 }
 
+const [ImportModalComp, importModalApi] = useVbenModal({
+  connectedComponent: ImportModal,
+});
+
+/**
+ * 导出全部空间为 CSV。
+ *
+ * 用 Blob + 临时链接下载而不是直接 `window.open`：后者在 token 走请求头鉴权时
+ * 会丢掉身份（新窗口不带 header）⇒ 401。
+ */
+async function onExport() {
+  try {
+    const blob = await exportSpaces();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `空间管理-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    // 必须释放：不释放会让 Blob 常驻内存
+    URL.revokeObjectURL(url);
+  } catch (error: any) {
+    message.error(error?.message ?? $t('system.space.exportFailed'));
+  }
+}
+
 function refreshGrid() {
   gridApi.query();
 }
@@ -184,9 +211,19 @@ function refreshGrid() {
 <template>
   <Page auto-content-height>
     <FormDrawer @success="refreshGrid" />
+    <ImportModalComp @success="refreshGrid" />
     <RelationDrawerComp @success="refreshGrid" />
     <Grid :table-title="$t('system.space.title')">
       <template #toolbar-tools>
+        <Button v-access:code="['system:space:list']" @click="onExport">
+          {{ $t('system.space.export') }}
+        </Button>
+        <Button
+          v-access:code="['system:space:add']"
+          @click="importModalApi.open()"
+        >
+          {{ $t('system.space.import') }}
+        </Button>
         <Button
           v-access:code="['system:space:add']"
           type="primary"

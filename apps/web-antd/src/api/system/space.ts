@@ -323,3 +323,71 @@ export async function countSpaceRelationsBySpaceTrees(spaceIds: string[]) {
     spaceIds,
   );
 }
+
+/**
+ * 导入结果（逐行错误明细）。
+ */
+export interface SpaceImportResult {
+  /** 新增行数 */
+  inserted: number;
+  /** 更新行数（仅 upsert 模式） */
+  updated: number;
+  /** 失败行数（**全量计数**，不受明细截断影响） */
+  failed: number;
+  /** 错误明细（最多 100 条）；无错误时为空数组 */
+  errors: {
+    /** 该行编码（可空） */
+    code?: null | string;
+    /** CSV 物理行号（表头为第 1 行），与用户在 Excel 里看到的行号一致 */
+    lineNo: number;
+    /** 失败原因 */
+    message: string;
+  }[];
+  /** 明细是否被截断（为 true 时还需提示用户「仅显示前 N 条」） */
+  errorTruncated: boolean;
+}
+
+/**
+ * 导入空间 CSV。
+ *
+ * **逐行报错、不整体回滚**：一行出错不影响其它行——导入几百行时因一行格式错就全废，
+ * 等于让用户改一处再试一次、反复循环。
+ *
+ * @param file CSV 文件
+ * @param mode `insert`（默认，已存在编码报错）/ `upsert`（按编码覆盖，危险操作需显式指定）
+ * @returns 导入结果
+ */
+export async function importSpaces(
+  file: File,
+  mode: 'insert' | 'upsert' = 'insert',
+) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return requestClient.post<SpaceImportResult>(
+    '/system/space/import',
+    formData,
+    { params: { mode } },
+  );
+}
+
+/**
+ * 导出全部空间为 CSV（含父空间编码，可直接再导入）。
+ *
+ * @returns Blob（调用方自行触发下载）
+ */
+export async function exportSpaces() {
+  return requestClient.get<Blob>('/system/space/export', {
+    responseType: 'blob',
+  });
+}
+
+/**
+ * 下载导入模板。
+ *
+ * @returns Blob
+ */
+export async function downloadSpaceImportTemplate() {
+  return requestClient.get<Blob>('/system/space/import-template', {
+    responseType: 'blob',
+  });
+}
