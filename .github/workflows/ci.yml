@@ -29,8 +29,43 @@ jobs:
       - name: 安装依赖
         run: pnpm install --frozen-lockfile
 
+      # 🔴 Lint —— 此前本仓 CI **完全没有 lint**（与 fork `ypbin-iot-ui` 相反：那边有四项、
+      # 这边一项都没有）。结果就是 stylelint/oxfmt 的问题长期没人看见。
+      # 参数与 lefthook 的 pre-commit 保持同一套：`--type-aware --threads=4`。
+      - name: Lint（oxlint，类型感知）
+        run: pnpm exec oxlint -c oxlint.config.ts --type-aware --threads=4 apps/web-antd/src
+
+      # stylelint：全量覆盖 apps/web-antd/src。
+      # ⚠️ 已知误报：`at-rule-prelude-no-invalid` 会把 Tailwind `@apply` 的 utility 序列
+      # 当成选择器列表解析（实测 `.a { @apply ml-5; }` 也报错）。该规则来自
+      # `@vben/stylelint-config`，修法是在其中加 `ignoreAtRules: ['apply', 'tailwind']`；
+      # 在规则修好前，唯一命中点（role/modules/form.vue）用行内 stylelint-disable 豁免。
+      - name: Stylelint（web-antd 全量）
+        run: pnpm exec stylelint "apps/web-antd/src/**/*.{vue,css}" --config stylelint.config.mjs
+
+      # 格式门禁：oxfmt 是仓内既定工具（`pnpm format` 已用它），但此前从未进 CI，
+      # 于是有 9 个文件长期漂移。跑一次约 3 秒，成本极低。
+      - name: 格式检查（oxfmt）
+        run: pnpm exec oxfmt --check apps/web-antd/src
+
       - name: Typecheck（web-antd）
         run: pnpm -F @vben/web-antd run typecheck
+
+      # 组件级/纯函数用例。此前本仓 CI **不跑任何 vitest**（根 `pnpm test:unit` 在
+      # TZ=UTC 主机上有既存的时区断言失败，与业务无关），导致 `space-tree.test.ts` 等
+      # 已写好的用例从不执行。这里按目录显式接入，避开那条既存失败。
+      - name: 单元测试（views/system / utils / store）
+        run: pnpm exec vitest run --dom apps/web-antd/src/views/system apps/web-antd/src/utils apps/web-antd/src/store
+
+      # 🔴 i18n **文案编译**门禁：键存在 ≠ 值能编译。
+      # vue-i18n 在**渲染期**编译消息，一个未转义的字面 `{` 会让 `$t()` 抛
+      # `SyntaxError: Message compilation error` ⇒ 渲染函数异常 ⇒ **整块页面空白**，
+      # 而 typecheck / 构建 / 键存在性校验**全绿**（键确实存在，只是编译不过）。
+      # 本仓实测命中 1 条：`system.space.extJsonPlaceholder` 的 `{"fireZone":"A"}`（zh + en 各一处），
+      # 修法是用 vue-i18n 的字面量插值语法 `{'{'}` / `{'}'}`。
+      # 同一门禁在 fork `ypbin-iot-ui` 已有（2026-09-27 事故后加的），此处为回流。
+      - name: i18n 文案编译校验（全库，zh-CN + en-US）
+        run: node scripts/check-i18n-message-compile.mjs
 
       - name: 单元测试（埋点 SDK）
         # 该 SDK 有真实逻辑（批量、队列、URL 截断、令牌携带）且已有单测，

@@ -161,7 +161,8 @@ defineExpose({ openWizard });
                 <span
                   v-if="m.isDefault === 1"
                   class="rounded bg-primary/10 px-1 text-[10px] text-primary"
-                  >{{ $t('page.ai.wizard.defaultTag') }}</span>
+                  >{{ $t('page.ai.wizard.defaultTag') }}</span
+                >
               </span>
             </div>
             <p v-else class="text-sm text-destructive">
@@ -184,7 +185,8 @@ defineExpose({ openWizard });
                 <span
                   v-if="m.isDefault === 1"
                   class="rounded bg-primary/10 px-1 text-[10px] text-primary"
-                  >{{ $t('page.ai.wizard.defaultTag') }}</span>
+                  >{{ $t('page.ai.wizard.defaultTag') }}</span
+                >
               </span>
             </div>
             <p v-else class="text-sm text-destructive">

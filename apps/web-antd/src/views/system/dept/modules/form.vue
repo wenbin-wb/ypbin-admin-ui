@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { SystemDeptApi } from '#/api/system/dept';
 
 import { computed, nextTick, ref } from 'vue';
@@ -13,6 +13,10 @@ import { getRelationsByTarget, syncTargetSpaces } from '#/api/system/space';
 import { $t } from '#/locales';
 
 import { useSchema } from '../data';
+import {
+  isSpaceSetChanged,
+  spaceIdsFromRelations,
+} from '../../_shared/space-sync';
 
 const emit = defineEmits(['success']);
 type DeptFormData = null | Partial<SystemDeptApi.SystemDept>;
@@ -24,8 +28,12 @@ const formData = ref<Partial<SystemDeptApi.SystemDept>>();
  * **为什么必须这样做**：sync 端点要求 `system:space:bind` 权限。存量租户角色没有该权限，
  * 若每次保存部门都无条件调 sync，就会出现「部门已保存成功 → sync 403 → 抽屉停在打开态」，
  * 用户以为没保存。只在用户真的改了空间集合时才调，未改则完全不触碰该权限。
+ *
+ * **`null` 表示「回显失败、原值未知」**（不是空数组）：关联提交是整体覆盖语义，
+ * 拿空数组参与比较会把「没读到」当成「本来就没有」，进而覆盖掉库里已有的绑定。
+ * 判定口径统一收在 `_shared/space-sync.ts`（部门与岗位共用，带回归用例）。
  */
-const originalSpaceIds = ref<string[]>([]);
+const originalSpaceIds = ref<null | string[]>([]);
 const getTitle = computed(() => {
   return formData.value?.id
     ? $t('ui.actionTitle.edit', [$t('system.dept.name')])
@@ -86,10 +94,14 @@ const [Drawer, drawerApi] = useVbenDrawer<DeptFormData>({
         }
         // 只在空间集合**发生变更**时调 sync：未变更时不触碰 `system:space:bind` 权限，
         // 否则没有该权限的存量角色连「改个备注」都会在保存后报 403（部门已存、关联失败）。
-        const changed =
-          isCreate ||
-          spaceIds.length !== originalSpaceIds.value.length ||
-          spaceIds.some((id) => !originalSpaceIds.value.includes(id));
+        //
+        // 新建时原值必然是空数组（新部门此前没有任何关联），故用 `[]` 而不是 `null`；
+        // 编辑时 `originalSpaceIds` 可能是 `null`（回显失败）⇒ isSpaceSetChanged 一律返回
+        // false，宁可这一次不更新关联，也不能在不知道原值的情况下覆盖它。
+        const changed = isSpaceSetChanged(
+          isCreate ? [] : originalSpaceIds.value,
+          spaceIds,
+        );
         if (deptId && changed) {
           try {
             // 一次性同步（单事务算差集 + 批量增删），不是 N 次 bind/unbind
@@ -123,6 +135,9 @@ const [Drawer, drawerApi] = useVbenDrawer<DeptFormData>({
     if (isOpen) {
       const data = drawerApi.getData();
       formData.value = data ?? undefined;
+      // 每次打开都重置「原集合」：抽屉是复用的（destroyOnClose: false 场景），
+      // 残留上一个部门的集合会让本次判定直接错。
+      originalSpaceIds.value = [];
       formApi.reset();
       await nextTick();
       if (data) {
@@ -138,12 +153,14 @@ const [Drawer, drawerApi] = useVbenDrawer<DeptFormData>({
               targetId: data.id,
               targetType: 'dept',
             });
-            const ids = (relations ?? []).map((item) => item.spaceId);
+            const ids = spaceIdsFromRelations(relations);
             originalSpaceIds.value = ids;
             formApi.setValues({ spaceIds: ids });
           } catch {
-            // 回显失败不阻断编辑：用户仍可改其它字段，但空间选择为空会让「保存」清掉关联，
-            // 故给出提示而不是静默。这里用 message 而非抛错，避免整个抽屉打不开。
+            // 回显失败不阻断编辑：用户仍可改其它字段。
+            // **但必须把原值标成「未知」（null）**：若留成 []，保存时「没读到」会被当成
+            // 「本来就没有」，从而把库里已有的关联整体覆盖掉（见 _shared/space-sync.ts）。
+            originalSpaceIds.value = null;
             message.warning($t('system.space.relationLoadFailed'));
           }
         }

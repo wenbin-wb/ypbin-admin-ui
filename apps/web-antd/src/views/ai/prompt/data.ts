@@ -21,7 +21,10 @@ export function useFormSchema(): VbenFormSchema[] {
           { label: $t('page.ai.prompt.categoryCoding'), value: 'coding' },
           { label: $t('page.ai.prompt.categoryWriting'), value: 'writing' },
           { label: $t('page.ai.prompt.categoryAnalysis'), value: 'analysis' },
-          { label: $t('page.ai.prompt.categoryTranslation'), value: 'translation' },
+          {
+            label: $t('page.ai.prompt.categoryTranslation'),
+            value: 'translation',
+          },
           { label: $t('page.ai.prompt.categoryQa'), value: 'qa' },
           { label: $t('page.ai.prompt.categoryOther'), value: 'other' },
         ],
@@ -61,7 +64,10 @@ export function useGridFormSchema(): VbenFormSchema[] {
           { label: $t('page.ai.prompt.categoryCoding'), value: 'coding' },
           { label: $t('page.ai.prompt.categoryWriting'), value: 'writing' },
           { label: $t('page.ai.prompt.categoryAnalysis'), value: 'analysis' },
-          { label: $t('page.ai.prompt.categoryTranslation'), value: 'translation' },
+          {
+            label: $t('page.ai.prompt.categoryTranslation'),
+            value: 'translation',
+          },
           { label: $t('page.ai.prompt.categoryQa'), value: 'qa' },
           { label: $t('page.ai.prompt.categoryOther'), value: 'other' },
         ],

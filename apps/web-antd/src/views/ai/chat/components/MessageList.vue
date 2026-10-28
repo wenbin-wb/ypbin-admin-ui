@@ -160,7 +160,8 @@ function handleMarkdownClick(e: MouseEvent) {
               class="ym-ai__msg-actions"
             >
               <span class="ym-ai__generating">
-                <span class="ym-ai__dot"></span><span class="ym-ai__dot"></span><span class="ym-ai__dot"></span>
+                <span class="ym-ai__dot"></span><span class="ym-ai__dot"></span
+                ><span class="ym-ai__dot"></span>
                 {{ $t('page.ai.chat.generating') }}
               </span>
             </div>
