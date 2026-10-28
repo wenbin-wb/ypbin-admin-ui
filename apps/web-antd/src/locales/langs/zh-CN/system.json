@@ -522,7 +522,7 @@
     "status": "状态",
     "remark": "备注",
     "extJson": "扩展属性",
-    "extJsonPlaceholder": "JSON 格式，如 {\"fireZone\":\"A\"}",
+    "extJsonPlaceholder": "JSON 格式，如 {'{'}\"fireZone\":\"A\"{'}'}",
     "extJsonHelp": "业务自定义字段，合法 JSON，最大 16KB",
     "addChild": "添加下级",
     "manageRelation": "关联对象",

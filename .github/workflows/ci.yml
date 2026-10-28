@@ -57,6 +57,16 @@ jobs:
       - name: 单元测试（views/system / utils / store）
         run: pnpm exec vitest run --dom apps/web-antd/src/views/system apps/web-antd/src/utils apps/web-antd/src/store
 
+      # 🔴 i18n **文案编译**门禁：键存在 ≠ 值能编译。
+      # vue-i18n 在**渲染期**编译消息，一个未转义的字面 `{` 会让 `$t()` 抛
+      # `SyntaxError: Message compilation error` ⇒ 渲染函数异常 ⇒ **整块页面空白**，
+      # 而 typecheck / 构建 / 键存在性校验**全绿**（键确实存在，只是编译不过）。
+      # 本仓实测命中 1 条：`system.space.extJsonPlaceholder` 的 `{"fireZone":"A"}`（zh + en 各一处），
+      # 修法是用 vue-i18n 的字面量插值语法 `{'{'}` / `{'}'}`。
+      # 同一门禁在 fork `ypbin-iot-ui` 已有（2026-09-27 事故后加的），此处为回流。
+      - name: i18n 文案编译校验（全库，zh-CN + en-US）
+        run: node scripts/check-i18n-message-compile.mjs
+
       - name: 单元测试（埋点 SDK）
         # 该 SDK 有真实逻辑（批量、队列、URL 截断、令牌携带）且已有单测，
         # 但包内原本没有任何 scripts，`pnpm -F @vben/tracking test` 是空转（无输出却成功）；
