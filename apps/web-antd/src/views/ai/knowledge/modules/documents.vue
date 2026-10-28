@@ -231,7 +231,8 @@ defineExpose({ modalApi });
                 <span
                   v-if="row.sourceType && row.sourceType !== 'UPLOAD'"
                   class="shrink-0 rounded bg-blue-100 px-1 py-px text-[10px] font-medium leading-4 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-                  >{{ row.sourceType }}</span>
+                  >{{ row.sourceType }}</span
+                >
                 <span class="truncate">{{ row.filename }}</span>
               </div>
             </Tooltip>
@@ -362,7 +363,8 @@ defineExpose({ modalApi });
                 v-for="t in recallStats.tokens"
                 :key="t"
                 class="mr-1 inline-block rounded bg-primary/10 px-1 py-0.5 text-[10px] font-normal text-primary"
-                >{{ t }}</b>
+                >{{ t }}</b
+              >
             </template>
             <template v-else>0</template>
           </span>
@@ -381,12 +383,16 @@ defineExpose({ modalApi });
               >
                 <span
                   class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary"
-                  >#{{ idx + 1 }}</span>
+                  >#{{ idx + 1 }}</span
+                >
                 <span
                   class="max-w-52 truncate font-medium text-foreground/80"
-                  >{{ doc.docName || doc.source || 'unknown' }}</span>
+                  >{{ doc.docName || doc.source || 'unknown' }}</span
+                >
                 <span class="ml-auto flex shrink-0 items-center gap-2">
-                  <span class="text-[10px]">{{ doc.charCount ?? 0 }} chars</span>
+                  <span class="text-[10px]"
+                    >{{ doc.charCount ?? 0 }} chars</span
+                  >
                   <span class="flex items-center gap-1.5">
                     <span
                       class="h-1.5 w-12 overflow-hidden rounded-full bg-muted"
@@ -400,7 +406,8 @@ defineExpose({ modalApi });
                     <span
                       class="w-7 text-right text-xs font-semibold"
                       :class="scoreTextColor(doc.score)"
-                      >{{ doc.score ?? 0 }}</span>
+                      >{{ doc.score ?? 0 }}</span
+                    >
                   </span>
                 </span>
               </div>
@@ -418,7 +425,8 @@ defineExpose({ modalApi });
                   v-for="kw in doc.hitKeywords"
                   :key="kw"
                   class="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
-                  >{{ kw }}</span>
+                  >{{ kw }}</span
+                >
               </div>
             </div>
           </div>
@@ -505,7 +513,8 @@ defineExpose({ modalApi });
           >
             <span
               class="inline-flex size-5 shrink-0 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary"
-              >#{{ chunk.chunkIndex + 1 }}</span>
+              >#{{ chunk.chunkIndex + 1 }}</span
+            >
             <span class="ml-auto shrink-0 text-[10px]">
               {{ chunk.charCount ?? 0 }} chars
             </span>

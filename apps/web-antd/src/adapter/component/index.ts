@@ -6,8 +6,6 @@
  * 类型见 `typing.ts`；本文件只保留默认占位符包装与初始化逻辑。
  */
 
- 
-
 import type { Component } from 'vue';
 
 import type { Recordable } from '@vben/types';
