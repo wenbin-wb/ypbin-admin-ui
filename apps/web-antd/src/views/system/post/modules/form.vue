@@ -12,6 +12,11 @@ import { createPost, updatePost } from '#/api/system/post';
 import { getRelationsByTarget, syncTargetSpaces } from '#/api/system/space';
 import { $t } from '#/locales';
 
+import {
+  isSpaceSetChanged,
+  spaceIdsFromRelations,
+} from '../../_shared/space-sync';
+
 const emit = defineEmits(['success']);
 
 const [Form, formApi] = useVbenForm({
@@ -81,8 +86,11 @@ let updateId = '';
  *
  * **为什么必须记录**：sync 端点要求 `system:space:bind` 权限。存量租户角色没有该权限，
  * 若每次保存都无条件调 sync，就会出现「岗位已保存成功 → sync 403 → 抽屉停在打开态」。
+ *
+ * **`null` 表示「回显失败、原值未知」**：关联提交是整体覆盖语义，拿空数组参与比较
+ * 会把「没读到」当成「本来就没有」。判定口径与部门共用 `_shared/space-sync.ts`。
  */
-let originalSpaceIds: string[] = [];
+let originalSpaceIds: null | string[] = [];
 
 const [Drawer, drawerApi] = useVbenDrawer<null | SystemPostApi.PostResp>({
   onCancel() {
@@ -121,10 +129,12 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemPostApi.PostResp>({
       // 只在空间集合**变更**时才调 sync：未变更时不触碰 `system:space:bind` 权限，
       // 否则没有该权限的存量角色连改岗位名称都会在保存后报 403（岗位已存、关联失败）
       const spaceIds = values.spaceIds ?? [];
-      const changed =
-        !isUpdate ||
-        spaceIds.length !== originalSpaceIds.length ||
-        spaceIds.some((id) => !originalSpaceIds.includes(id));
+      // 新建时原值必然是空数组；编辑时可能是 `null`（回显失败）⇒ isSpaceSetChanged
+      // 一律返回 false：宁可这一次不更新工作地点，也不能在不知道原值的情况下覆盖它。
+      const changed = isSpaceSetChanged(
+        isUpdate ? originalSpaceIds : [],
+        spaceIds,
+      );
       if (postId && changed) {
         try {
           // 一次性同步（单事务算差集 + 批量增删），不是 N 次 bind/unbind
@@ -172,11 +182,14 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemPostApi.PostResp>({
               targetId: data.id,
               targetType: 'post',
             });
-            const ids = (relations ?? []).map((item) => item.spaceId);
+            const ids = spaceIdsFromRelations(relations);
             originalSpaceIds = ids;
             formApi.setValues({ spaceIds: ids });
           } catch {
-            // 回显失败不阻断编辑，但必须提示：否则用户保存时会把关联清空却不知道
+            // 回显失败不阻断编辑，但必须提示：否则用户保存时会把关联清空却不知道。
+            // 同时把原值标成「未知」（null），避免「没读到」被当成「本来就没有」
+            // 进而覆盖库里的关联（见 _shared/space-sync.ts）。
+            originalSpaceIds = null;
             message.warning($t('system.space.relationLoadFailed'));
           }
         }

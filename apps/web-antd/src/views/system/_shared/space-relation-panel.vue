@@ -33,6 +33,7 @@ import {
   unbindSpaceRelations,
 } from '#/api/system/space';
 import { $t } from '#/locales';
+import { extractErrorMessage } from '#/utils/error';
 
 import SpaceSelect from './space-select.vue';
 
@@ -93,9 +94,12 @@ async function load() {
       targetId: props.targetId,
       targetType: props.targetType,
     });
-  } catch (error: any) {
+  } catch (error) {
     // 原样暴露后端原因（服务不可用 / 类型非法），不静默成空列表
-    loadError.value = error?.message ?? $t('system.space.relationLoadFailed');
+    loadError.value = extractErrorMessage(
+      error,
+      $t('system.space.relationLoadFailed'),
+    );
   } finally {
     loading.value = false;
   }
@@ -123,9 +127,9 @@ async function submitAdd() {
     message.success($t('system.space.relationSaved'));
     addOpen.value = false;
     await load();
-  } catch (error: any) {
-    // 后端会给具体原因（如「空间类型不合法」「父空间不存在」），原样展示
-    message.error(error?.message ?? $t('system.space.relationSaveFailed'));
+  } catch {
+    // 绑定失败的具体原因（空间类型不合法/父空间不存在）由全局响应拦截器原样展示，
+    // 这里不再重复 `message.error`（重复会让同一条失败叠两条 toast）
   } finally {
     submitting.value = false;
   }
@@ -143,10 +147,8 @@ function confirmRemove(relation: SystemSpaceApi.SpaceRelationResp) {
         ]);
         message.success($t('system.space.relationRemoved'));
         await load();
-      } catch (error: any) {
-        message.error(
-          error?.message ?? $t('system.space.relationRemoveFailed'),
-        );
+      } catch {
+        // 失败文案由全局响应拦截器展示
       }
     },
     title: $t('system.space.confirmRemoveTitle'),
@@ -162,7 +164,7 @@ defineExpose({ reload: load });
 <template>
   <div class="w-full">
     <Spin :spinning="loading">
-      <div v-if="loadError" class="mb-2 text-sm text-red-500">
+      <div v-if="loadError" class="mb-2 text-sm text-destructive-text">
         {{ loadError }}
       </div>
 
@@ -188,7 +190,7 @@ defineExpose({ reload: load });
                 {{ item.spaceTypeText }}
               </Tag>
             </div>
-            <span v-if="item.remark" class="text-xs text-gray-500">
+            <span v-if="item.remark" class="text-xs text-muted-foreground">
               {{ item.remark }}
             </span>
           </div>
@@ -231,14 +233,14 @@ defineExpose({ reload: load });
         <div class="flex items-center gap-2">
           <Switch v-model:checked="pendingPrimary" />
           <span class="text-sm">{{ $t('system.space.setPrimary') }}</span>
-          <span class="text-xs text-gray-500">
+          <span class="text-xs text-muted-foreground">
             {{ $t('system.space.setPrimaryHint') }}
           </span>
         </div>
         <div class="flex items-center gap-2">
           <Switch v-model:checked="pendingClearOthers" />
           <span class="text-sm">{{ $t('system.space.clearOthers') }}</span>
-          <span class="text-xs text-gray-500">
+          <span class="text-xs text-muted-foreground">
             {{ $t('system.space.clearOthersHint') }}
           </span>
         </div>
