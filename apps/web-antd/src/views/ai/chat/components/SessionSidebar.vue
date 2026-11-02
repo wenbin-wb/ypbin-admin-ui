@@ -127,7 +127,9 @@ const sessionGroups = computed((): SessionGroup[] => {
     <div class="ym-ai__sidebar-top">
       <div class="ym-ai__logo">
         <IconifyIcon icon="lucide:sparkles" class="ym-ai__logo-icon size-5" />
-        <span v-show="collapsed === false" class="ym-ai__logo-text">Ypbin AI</span>
+        <span v-show="collapsed === false" class="ym-ai__logo-text"
+          >Ypbin AI</span
+        >
       </div>
       <Button
         size="small"
@@ -251,7 +253,8 @@ const sessionGroups = computed((): SessionGroup[] => {
                 <span
                   v-show="collapsed === false"
                   class="ym-ai__session-title"
-                  >{{ session.title }}</span>
+                  >{{ session.title }}</span
+                >
               </div>
 
               <!-- 操作按钮（hover 时显示） -->

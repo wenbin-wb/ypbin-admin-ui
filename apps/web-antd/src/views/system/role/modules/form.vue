@@ -148,6 +148,9 @@ defineExpose({ drawerApi });
   </Drawer>
 </template>
 <style lang="css" scoped>
+/* stylelint-disable at-rule-prelude-no-invalid -- `@apply` 的实参是 Tailwind utility 序列，
+   不是选择器列表；`@vben/stylelint-config` 该规则未豁免 `apply`（实测任意 `@apply x` 都误报）。
+   规则修好后删除本行。 */
 :deep(.ant-tree-title) {
   .tree-actions {
     @apply ml-5 hidden;

@@ -522,7 +522,7 @@
     "status": "Status",
     "remark": "Remark",
     "extJson": "Extension",
-    "extJsonPlaceholder": "JSON, e.g. {\"fireZone\":\"A\"}",
+    "extJsonPlaceholder": "JSON, e.g. {'{'}\"fireZone\": \"A\"{'}'}",
     "extJsonHelp": "Custom business fields, valid JSON, max 16KB",
     "addChild": "Add Child",
     "manageRelation": "Relations",

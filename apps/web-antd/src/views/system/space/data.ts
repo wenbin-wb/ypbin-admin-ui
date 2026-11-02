@@ -31,7 +31,9 @@ export function useSchema(): VbenFormSchema[] {
             return tree;
           }
           const exclude = new Set(collectSubtreeIds(tree, values.id));
-          const prune = (nodes: any[]): any[] =>
+          const prune = (
+            nodes: SystemSpaceApi.SpaceResp[],
+          ): SystemSpaceApi.SpaceResp[] =>
             nodes
               .filter((node) => !exclude.has(node.id))
               .map((node) => ({

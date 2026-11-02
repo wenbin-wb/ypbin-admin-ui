@@ -105,8 +105,9 @@ async function onImport() {
       // 部分失败也要刷新列表：成功的那些行已经进库了
       emit('success');
     }
-  } catch (error: any) {
-    message.error(extractErrorMessage(error, $t('system.space.importFailed')));
+  } catch {
+    // 失败文案（含逐行错误会抛出的整体校验失败）由全局响应拦截器展示，
+    // 这里重复 `message.error` 会叠出两条相同 toast。
   } finally {
     submitting.value = false;
   }
@@ -142,7 +143,7 @@ defineExpose({ modalApi });
         <div class="mb-1 text-sm font-medium">
           {{ $t('system.space.importStep1') }}
         </div>
-        <div class="mb-2 text-xs text-gray-500">
+        <div class="mb-2 text-xs text-muted-foreground">
           {{ $t('system.space.importTemplateHelp') }}
         </div>
         <Button @click="onDownloadTemplate">
@@ -156,7 +157,7 @@ defineExpose({ modalApi });
           {{ $t('system.space.importStep2') }}
         </div>
         <div class="mb-2">
-          <div class="mb-1 text-xs text-gray-500">
+          <div class="mb-1 text-xs text-muted-foreground">
             {{ $t('system.space.importMode') }}
           </div>
           <Radio.Group v-model:value="mode">
@@ -167,7 +168,7 @@ defineExpose({ modalApi });
               {{ $t('system.space.importModeUpsert') }}
             </Radio>
           </Radio.Group>
-          <div v-if="mode === 'upsert'" class="mt-1 text-xs text-orange-500">
+          <div v-if="mode === 'upsert'" class="mt-1 text-xs text-warning-text">
             {{ $t('system.space.importModeUpsertWarning') }}
           </div>
         </div>
@@ -179,7 +180,7 @@ defineExpose({ modalApi });
         >
           <Button>{{ $t('system.space.selectCsvFile') }}</Button>
         </Upload>
-        <div v-if="selectedFile" class="mt-2 text-xs text-gray-500">
+        <div v-if="selectedFile" class="mt-2 text-xs text-muted-foreground">
           {{ $t('system.space.selectedFile') }}{{ selectedFile.name }}
         </div>
       </div>
@@ -226,7 +227,7 @@ defineExpose({ modalApi });
           -->
           <div
             v-if="result!.errorTruncated"
-            class="mt-2 text-xs text-orange-500"
+            class="mt-2 text-xs text-warning-text"
           >
             {{
               $t('system.space.importErrorTruncated', [result!.errors.length])

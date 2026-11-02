@@ -25,6 +25,8 @@
  * <SpaceSelect v-model="form.pid" :exclude-ids="collectSubtreeIds(tree, form.id)" />
  * ```
  */
+import type { SpaceTreeNode } from './space-tree';
+
 import { computed, onMounted, ref, watch } from 'vue';
 
 import { TreeSelect } from 'ant-design-vue';
@@ -67,15 +69,15 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  change: [value: null | string | string[], option: any];
+  change: [value: null | string | string[], option: unknown];
   'update:modelValue': [value: null | string | string[]];
 }>();
 
-const treeData = ref<any[]>([]);
+const treeData = ref<SpaceTreeNode[]>([]);
 const loading = ref(false);
 const loadError = ref('');
 
-const normalizedValue = computed<any>(() => {
+const normalizedValue = computed<null | string | string[] | undefined>(() => {
   if (props.multiple) {
     if (Array.isArray(props.modelValue)) {
       return props.modelValue;
@@ -108,7 +110,7 @@ async function loadTree() {
   }
 }
 
-function onUpdate(value: any) {
+function onUpdate(value: null | string | string[] | undefined) {
   const normalized = props.multiple ? (value ?? []) : (value ?? null);
   emit('update:modelValue', normalized);
   emit('change', normalized, value);
@@ -147,7 +149,7 @@ defineExpose({ reload: loadTree });
       @update:value="onUpdate"
     />
     <!-- 加载失败必须显式提示：空下拉会让用户以为「系统里没有空间」 -->
-    <div v-if="loadError" class="mt-1 text-xs text-red-500">
+    <div v-if="loadError" class="mt-1 text-xs text-destructive-text">
       {{ loadError }}
     </div>
   </div>

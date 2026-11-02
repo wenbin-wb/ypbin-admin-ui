@@ -298,7 +298,8 @@ function onProjectClick(item: WorkbenchProjectItem) {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }"
-              >{{ stats.userCount }}</span>
+              >{{ stats.userCount }}</span
+            >
           </div>
           <div class="flex flex-col items-end">
             <span class="text-xs text-muted-foreground">{{
@@ -311,7 +312,8 @@ function onProjectClick(item: WorkbenchProjectItem) {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }"
-              >{{ stats.onlineCount }}</span>
+              >{{ stats.onlineCount }}</span
+            >
           </div>
           <div class="flex flex-col items-end">
             <span class="text-xs text-muted-foreground">{{
@@ -324,7 +326,8 @@ function onProjectClick(item: WorkbenchProjectItem) {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }"
-              >{{ stats.logCount }}</span>
+              >{{ stats.logCount }}</span
+            >
           </div>
         </div>
       </template>

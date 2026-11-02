@@ -22,7 +22,7 @@ export function extractErrorMessage(error: unknown, fallback: string): string {
       return error.message;
     }
   } else if (error && typeof error === 'object') {
-    const record = error as { data?: { message?: unknown }; message?: unknown; };
+    const record = error as { data?: { message?: unknown }; message?: unknown };
     if (typeof record.message === 'string' && record.message) {
       return record.message;
     }

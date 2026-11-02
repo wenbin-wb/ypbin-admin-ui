@@ -25,6 +25,12 @@ import Form from './modules/form.vue';
 import ImportModal from './modules/import-modal.vue';
 import RelationDrawer from './modules/relation-drawer.vue';
 
+/** 「对象数量统计失败」提示的固定 key：同 key 的提示会互相替换而不是叠加 */
+const RELATION_COUNT_WARN_KEY = 'space-relation-count-failed';
+
+/** 本次列表加载是否已提示过统计失败（避免每次展开节点都再弹一次） */
+let countFailureWarned = false;
+
 const [FormDrawer, FormDrawerApi] = useVbenDrawer({
   connectedComponent: Form,
   destroyOnClose: false,
@@ -73,9 +79,11 @@ function onRelation(row: SystemSpaceApi.SpaceTreeNode) {
 /**
  * 删除空间
  *
- * 后端会在「有子空间」或「仍挂着业务对象」时拒绝，并把原因原样返回——
- * 这里必须把 **后端文案** 展示出来（而不是笼统「删除失败」），
- * 否则用户不知道是该先删子空间还是先解绑。
+ * 后端会在「有子空间」或「仍挂着业务对象」时拒绝，并把原因原样返回。
+ * **失败文案由全局响应拦截器展示**（`api/request.ts` 的
+ * `errorMessageResponseInterceptor`，它弹的就是后端原文）——这里不能再
+ * `message.error` 一次，否则同一条失败会叠两条相同 toast（本仓 `app/list.vue`
+ * 的写法即为此口径）。本函数只负责收掉 loading。
  */
 function onDelete(row: SystemSpaceApi.SpaceTreeNode) {
   const hideLoading = message.loading({
@@ -91,9 +99,9 @@ function onDelete(row: SystemSpaceApi.SpaceTreeNode) {
       });
       refreshGrid();
     })
-    .catch((error: any) => {
+    .catch(() => {
+      // 只收 loading：错误提示已由全局拦截器发出（见函数注释）
       hideLoading();
-      message.error(error?.message ?? $t('ui.actionMessage.operationFailed'));
     });
 }
 
@@ -150,8 +158,17 @@ const [Grid, gridApi] = useVbenVxeGrid({
  * 填充每行的对象数量统计（含后代）。
  *
  * **一次批量统计，不逐行调**：一页几十个空间，逐行调就是 N 次请求。
- * 统计失败只让该列为空并提示，**不阻断列表**——空间数据本身有效，
+ * 统计失败只让该列为空，**不阻断列表**——空间数据本身有效，
  * 因统计接口抖动让整页打不开是把「附属信息」放大成「主数据」。
+ *
+ * <p>失败提示**每个页面生命周期只弹一次**：本函数在首屏查询与每次树展开时都会调用，
+ * 统计接口不可用时展开 5 个节点就会叠 5 条相同 toast。这里用固定的 `message` key 让
+ * 后到的提示覆盖前一条（antd 的 key 机制），并把「已提示过」记在模块级标志上——
+ * 刷新列表（`refreshGrid`）会重置它，因为那是一次新的用户动作。</p>
+ *
+ * <p>提示文案只说明「统计不可用」；至于**为什么**失败，全局响应拦截器
+ * （`api/request.ts` 的 `errorMessageResponseInterceptor`）已经弹过后端原文，
+ * 这里不再重复。</p>
  *
  * @param rows 当前页的行
  */
@@ -159,6 +176,9 @@ async function fillRelationCounts(rows: SystemSpaceApi.SpaceTreeNode[]) {
   if (rows.length === 0) {
     return;
   }
+  // 已提示过就不再打扰用户：**仍然尝试**请求（接口恢复后自动拿到数字并复位标志），
+  // 只是失败时保持静默。
+  const silent = countFailureWarned;
   try {
     const counts = await countSpaceRelationsBySpaceTrees(
       rows.map((row) => row.id),
@@ -166,9 +186,19 @@ async function fillRelationCounts(rows: SystemSpaceApi.SpaceTreeNode[]) {
     for (const row of rows) {
       row.relationCounts = counts[row.id] ?? {};
     }
-  } catch {
-    // 静默留空 + 页内提示一次（不逐行报错刷屏）
-    message.warning($t('system.space.relationCountFailed'));
+    countFailureWarned = false;
+  } catch (error) {
+    // 留空该列（行数据本身有效）；同一轮列表加载只提示一次
+    if (!silent) {
+      message.warning({
+        content: $t('system.space.relationCountFailed'),
+        // 固定 key：后到的同 key 提示会替换前一条，而不是再叠一条
+        key: RELATION_COUNT_WARN_KEY,
+      });
+      countFailureWarned = true;
+      // 控制台留原始错误便于排障（不是业务提示，不展示给用户）
+      console.warn('[space] 对象数量统计失败', error);
+    }
   }
 }
 
@@ -211,6 +241,8 @@ async function onExport() {
 }
 
 function refreshGrid() {
+  // 用户主动刷新 ⇒ 视为一次新的加载，允许再提示一次统计失败
+  countFailureWarned = false;
   gridApi.query();
 }
 </script>

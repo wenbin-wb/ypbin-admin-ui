@@ -8,6 +8,8 @@
  *
  * 两侧共用同一后端契约（`/space/{id}/relations` 与 `/space/relations/by-target`）。
  */
+import type { SystemSpaceApi } from '#/api/system/space';
+
 import { computed, ref } from 'vue';
 
 import { useVbenDrawer } from '@vben/common-ui';
@@ -17,6 +19,7 @@ import {
   Empty,
   Input,
   message,
+  Modal,
   Select,
   Spin,
   Tag,
@@ -29,6 +32,7 @@ import {
   unbindSpaceRelations,
 } from '#/api/system/space';
 import { $t } from '#/locales';
+import { extractErrorMessage } from '#/utils/error';
 
 import { getTargetNameResolver } from '../../_shared/target-name-resolver';
 
@@ -50,7 +54,7 @@ const filterType = ref<string | undefined>(undefined);
 const typeOptions = ref<{ label: string; value: string }[]>([]);
 const submitting = ref(false);
 const loading = ref(false);
-const relations = ref<any[]>([]);
+const relations = ref<SystemSpaceApi.SpaceRelationResp[]>([]);
 const loadError = ref('');
 /** 对象 ID → 显示名（按需异步填充；取不到名时回退显示 ID） */
 const targetNames = ref<Record<string, string>>({});
@@ -100,8 +104,11 @@ async function loadRelations() {
       targetType: filterType.value,
     });
     await resolveNames(relations.value);
-  } catch (error: any) {
-    loadError.value = error?.message ?? $t('system.space.relationLoadFailed');
+  } catch (error) {
+    loadError.value = extractErrorMessage(
+      error,
+      $t('system.space.relationLoadFailed'),
+    );
   } finally {
     loading.value = false;
   }
@@ -116,7 +123,7 @@ async function loadRelations() {
  *
  * @param list 关联列表（原地不改，结果写入 targetNames）
  */
-async function resolveNames(list: any[]) {
+async function resolveNames(list: SystemSpaceApi.SpaceRelationResp[]) {
   if (list.length === 0) {
     return;
   }
@@ -172,23 +179,44 @@ async function onBind() {
     targetIdsInput.value = '';
     emit('success');
     await loadRelations();
-  } catch (error: any) {
-    // 原样展示后端原因（类型非法/空间不存在/主空间冲突），不要笼统「绑定失败」
-    message.error(error?.message ?? $t('system.space.bindFailed'));
+  } catch {
+    // 绑定失败的**具体原因**（类型非法/空间不存在/主空间冲突）由全局响应拦截器
+    // 原样展示，这里不再重复提示（重复会让同一条失败叠两条 toast）。
   } finally {
     submitting.value = false;
   }
 }
 
-async function onUnbind(item: any) {
-  try {
-    await unbindSpaceRelations(spaceId.value, item.targetType, [item.targetId]);
-    message.success($t('system.space.unbindSuccess'));
-    emit('success');
-    await loadRelations();
-  } catch (error: any) {
-    message.error(error?.message ?? $t('system.space.unbindFailed'));
-  }
+/**
+ * 解绑一个对象。
+ *
+ * **必须二次确认**：与 `_shared/space-relation-panel.vue` 的同名操作保持同一危险等级——
+ * 同一个后端接口、同为不可撤销的破坏性操作，不能因为打开的是不同抽屉就一个要确认、
+ * 另一个点一下即执行。
+ *
+ * @param item 待解绑的关联记录
+ */
+function onUnbind(item: SystemSpaceApi.SpaceRelationResp) {
+  Modal.confirm({
+    content: $t('system.space.confirmRemoveContent', [
+      targetNames.value[item.targetId] ?? item.targetId,
+    ]),
+    okButtonProps: { danger: true },
+    onOk: async () => {
+      try {
+        await unbindSpaceRelations(spaceId.value, item.targetType, [
+          item.targetId,
+        ]);
+        message.success($t('system.space.unbindSuccess'));
+        emit('success');
+        await loadRelations();
+      } catch (error) {
+        // 解绑失败文案由全局响应拦截器展示（不重复提示）
+        console.warn('[space] 解绑空间关联失败', error);
+      }
+    },
+    title: $t('system.space.confirmRemoveTitle'),
+  });
 }
 
 const [Drawer, drawerApi] = useVbenDrawer<DrawerData>({
@@ -232,7 +260,7 @@ defineExpose({ drawerApi });
             :placeholder="$t('system.space.targetIdsPlaceholder')"
             :rows="2"
           />
-          <div class="mt-1 text-xs text-gray-500">
+          <div class="mt-1 text-xs text-muted-foreground">
             {{ $t('system.space.targetIdsHelp') }}
           </div>
         </div>
@@ -263,7 +291,7 @@ defineExpose({ drawerApi });
           />
         </div>
 
-        <div v-if="loadError" class="mb-2 text-sm text-red-500">
+        <div v-if="loadError" class="mb-2 text-sm text-destructive-text">
           {{ loadError }}
         </div>
 
