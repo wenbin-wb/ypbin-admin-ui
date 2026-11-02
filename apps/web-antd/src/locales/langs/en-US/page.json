@@ -9,7 +9,10 @@
     "socialCallback": "Social Callback",
     "title": "Ypbin Admin",
     "techStack": "Spring Boot · Vue 3 · Sa-Token",
-    "demoTip": "Demo environment data resets daily"
+    "demoTip": "Demo environment data resets daily",
+    "changePassword": "Change Initial Password",
+    "changePasswordHint": "You are using an initial password. Please change it before continuing.",
+    "changePasswordSuccess": "Password changed. Please sign in with the new password."
   },
   "ai": {
     "title": "AI Assistant",

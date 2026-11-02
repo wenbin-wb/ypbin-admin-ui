@@ -28,7 +28,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
           }),
       },
     },
-    rowConfig: { keyField: 'token' },
+    rowConfig: { keyField: 'tokenHash' },
     toolbarConfig: {
       custom: true,
       export: false,
@@ -45,7 +45,7 @@ function onRefresh() {
 }
 
 function onForceLogout(row: SystemOnlineUserApi.OnlineUserResp) {
-  deleteOnlineUser(row.token)
+  deleteOnlineUser(row.tokenHash)
     .then(() => {
       message.success($t('common.success'));
       onRefresh();

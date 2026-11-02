@@ -5,7 +5,7 @@ import type { SystemSpaceApi } from '#/api/system/space';
 import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
-import { Button, message } from 'ant-design-vue';
+import { Button, message, Tag } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
@@ -272,8 +272,26 @@ function refreshGrid() {
         </Button>
       </template>
 
-      <template #spaceType="{ row }">
-        {{ row.spaceTypeText || row.spaceType }}
+      <template #name="{ row }">
+        <div class="group flex min-w-0 items-center gap-2">
+          <span class="truncate">{{ row.name }}</span>
+          <Tag v-if="row.spaceTypeText" color="default" class="shrink-0">
+            {{ row.spaceTypeText }}
+          </Tag>
+          <!--
+            「添加下级」从 action 列挪到名称列的 hover 图标：它只在「给这个节点加子空间」
+            的语境下有意义，放在操作列会与编辑/关联/删除并列，既拥挤又难认。
+          -->
+          <Button
+            v-access:code="['system:space:add']"
+            class="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+            size="small"
+            type="text"
+            @click.stop="onAppend(row)"
+          >
+            <Plus class="size-3.5" />
+          </Button>
+        </div>
       </template>
 
       <template #relationCount="{ row }">
@@ -297,12 +315,6 @@ function refreshGrid() {
               icon: 'lucide:edit',
               auth: 'system:space:edit',
               onClick: () => onEdit(row),
-            },
-            {
-              text: $t('system.space.addChild'),
-              icon: 'lucide:plus',
-              auth: 'system:space:add',
-              onClick: () => onAppend(row),
             },
             {
               text: $t('system.space.manageRelation'),

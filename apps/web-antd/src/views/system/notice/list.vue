@@ -10,6 +10,7 @@ import { Button, message } from 'ant-design-vue';
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
   deleteNotice,
+  getNoticeDetail,
   getNoticeList,
   publishNotice,
   revokeNotice,
@@ -34,8 +35,16 @@ const [Grid, gridApi] = useVbenVxeGrid({
     columns: useColumns(),
     height: 'auto',
     keepSource: true,
-    pagerConfig: { enabled: false },
-    proxyConfig: { ajax: { query: async () => await getNoticeList() } },
+    proxyConfig: {
+      ajax: {
+        query: async ({ page }, formValues) =>
+          await getNoticeList({
+            page: page.currentPage,
+            pageSize: page.pageSize,
+            ...formValues,
+          }),
+      },
+    },
     rowConfig: { keyField: 'id' },
     toolbarConfig: {
       custom: true,
@@ -51,14 +60,23 @@ function onRefresh() {
   gridApi.query();
 }
 
-function onEdit(row: SystemNoticeApi.NoticeResp) {
-  formModalApi.setData(row).open();
+async function onEdit(row: SystemNoticeApi.NoticeResp) {
+  try {
+    // 列表不返回正文：直接用列表行打开编辑并保存会把 content 清空
+    formModalApi.setData(await getNoticeDetail(row.id)).open();
+  } catch {
+    // 失败文案由全局响应拦截器展示
+  }
 }
 function onCreate() {
   formModalApi.setData(null).open();
 }
-function onPreview(row: SystemNoticeApi.NoticeResp) {
-  previewModalApi.setData(row).open();
+async function onPreview(row: SystemNoticeApi.NoticeResp) {
+  try {
+    previewModalApi.setData(await getNoticeDetail(row.id)).open();
+  } catch {
+    // 失败文案由全局响应拦截器展示
+  }
 }
 function onDelete(row: SystemNoticeApi.NoticeResp) {
   deleteNotice(row.id)

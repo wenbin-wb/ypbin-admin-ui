@@ -68,6 +68,17 @@ const coreRoutes: RouteRecordRaw[] = [
         },
       },
       {
+        // 强制改密页：登录响应 mustChangePassword=true 时路由守卫只放行这一页
+        name: 'ChangePassword',
+        path: 'change-password',
+        component: () =>
+          import('#/views/_core/authentication/change-password.vue'),
+        meta: {
+          hideInMenu: true,
+          title: $t('page.auth.changePassword'),
+        },
+      },
+      {
         name: 'CodeLogin',
         path: 'code-login',
         component: () => import('#/views/_core/authentication/code-login.vue'),

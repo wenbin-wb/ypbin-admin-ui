@@ -6,8 +6,13 @@ export namespace AiApi {
   export interface ChatReq {
     sessionId?: string;
     roleId?: string;
+    /**
+     * 模型由租户默认配置决定：后端只接受默认模型 ID，传其它值会被明确拒绝；
+     * 既然无法切换，前端不再发送该字段（避免「选了不生效」）。
+     */
     modelId?: string;
     content: string;
+    /** 预留：多模态未接入，后端收到非空会拒绝，前端不发送 */
     images?: string[];
     knowledgeBaseId?: string;
   }

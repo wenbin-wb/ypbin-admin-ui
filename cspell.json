@@ -77,6 +77,16 @@
     "vitest",
     "vnode",
     "vueuse",
+    "gitee",
+    "rerank",
+    "tianai",
+    "TTFB",
+    "ypbin",
+    "Unwrappable",
+    "cloopen",
+    "emay",
+    "ollama",
+    "yunpian",
     "yxxx"
   ],
   "ignorePaths": [

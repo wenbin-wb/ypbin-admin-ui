@@ -12,6 +12,11 @@ import { defineStore } from 'pinia';
 
 import { getAccessCodesApi, getUserInfoApi, loginApi, logoutApi } from '#/api';
 import { $t } from '#/locales';
+import {
+  CHANGE_PASSWORD_PATH,
+  clearMustChangePassword,
+  markMustChangePassword,
+} from '#/utils/pwd-change';
 
 export const useAuthStore = defineStore('auth', () => {
   const accessStore = useAccessStore();
@@ -32,11 +37,19 @@ export const useAuthStore = defineStore('auth', () => {
     let userInfo: null | UserInfo = null;
     try {
       loginLoading.value = true;
-      const { accessToken } = await loginApi(params);
+      const { accessToken, mustChangePassword } = await loginApi(params);
 
       // 如果成功获取到 accessToken
       if (accessToken) {
-        userInfo = await completeLogin(accessToken, onSuccess);
+        if (mustChangePassword) {
+          // 改密前拉用户信息/权限码会被网关拦截：只写令牌并直达改密页
+          accessStore.setAccessToken(accessToken);
+          markMustChangePassword();
+          await router.push(CHANGE_PASSWORD_PATH);
+        } else {
+          clearMustChangePassword();
+          userInfo = await completeLogin(accessToken, onSuccess);
+        }
       }
     } finally {
       loginLoading.value = false;
@@ -48,12 +61,21 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * 第三方登录：拿到 accessToken 后与账号密码登录走同一收尾流程
+   * 第三方登录：拿到 accessToken 后与账号密码登录走同一收尾流程；
+   * 初始口令账号同样先跳到改密页。
    */
   async function socialLogin(
     accessToken: string,
+    mustChangePassword?: boolean,
     onSuccess?: () => Promise<void> | void,
   ) {
+    if (mustChangePassword) {
+      accessStore.setAccessToken(accessToken);
+      markMustChangePassword();
+      await router.push(CHANGE_PASSWORD_PATH);
+      return null;
+    }
+    clearMustChangePassword();
     return completeLogin(accessToken, onSuccess);
   }
 
@@ -116,6 +138,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
       resetAllStores();
       accessStore.setLoginExpired(false);
+      clearMustChangePassword();
 
       // 回登录页带上当前路由地址
       await router.replace({

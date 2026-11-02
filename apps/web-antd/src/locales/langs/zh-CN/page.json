@@ -410,7 +410,10 @@
     "socialCallback": "第三方登录回调",
     "title": "ypbin 管理平台",
     "techStack": "Spring Boot · Vue 3 · Sa-Token",
-    "demoTip": "演示环境数据每日重置"
+    "demoTip": "演示环境数据每日重置",
+    "changePassword": "修改初始密码",
+    "changePasswordHint": "当前为初始密码，请先修改后再继续使用",
+    "changePasswordSuccess": "密码已修改，请使用新密码重新登录"
   },
   "dashboard": {
     "title": "概览",

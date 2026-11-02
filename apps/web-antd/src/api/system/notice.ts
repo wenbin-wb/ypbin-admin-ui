@@ -1,6 +1,15 @@
+import type { SystemCommonApi } from './common';
+
 import { requestClient } from '#/api/request';
 
 export namespace SystemNoticeApi {
+  /** 公告分页查询（后端 NoticeQuery） */
+  export interface NoticeQuery extends SystemCommonApi.PageQuery {
+    title?: string;
+    noticeType?: number;
+    publishStatus?: number;
+  }
+
   export interface NoticeSaveReq {
     content: string;
     cover?: string;
@@ -20,7 +29,8 @@ export namespace SystemNoticeApi {
   export interface NoticeResp {
     id: string;
     title: string;
-    content: string;
+    /** 列表接口不返回正文（体积大），编辑/预览前需调用 getNoticeDetail 补全 */
+    content?: string;
     cover?: string;
     noticeType: number;
     noticeScope?: number;
@@ -40,8 +50,20 @@ export namespace SystemNoticeApi {
   }
 }
 
-export function getNoticeList() {
-  return requestClient.get<SystemNoticeApi.NoticeResp[]>('/system/notice/list');
+export function getNoticeList(params: SystemNoticeApi.NoticeQuery) {
+  return requestClient.get<
+    SystemCommonApi.PageResult<SystemNoticeApi.NoticeResp>
+  >('/system/notice/list', { params });
+}
+
+/**
+ * 公告详情（含正文）。
+ *
+ * 列表接口刻意不返回 content（富文本体积大），编辑/预览必须走这里补齐——
+ * 否则用列表行直接提交会把正文清空。
+ */
+export function getNoticeDetail(id: string) {
+  return requestClient.get<SystemNoticeApi.NoticeResp>(`/system/notice/${id}`);
 }
 
 export function createNotice(data: SystemNoticeApi.NoticeSaveReq) {

@@ -37,6 +37,12 @@ export namespace AuthApi {
   /** 登录接口返回值 */
   export interface LoginResult {
     accessToken: string;
+    /**
+     * 是否必须先修改密码（初始口令 / 管理员重置口令）。
+     *
+     * 为 true 时网关只放行改密、登出与身份查询，前端应立即进入改密页。
+     */
+    mustChangePassword?: boolean;
   }
 
   /** 后端行为验证码数据（tianai ImageCaptchaVO） */
