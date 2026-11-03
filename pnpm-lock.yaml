@@ -199,8 +199,8 @@ catalogs:
       specifier: ^2.1.0
       version: 2.1.0
     cac:
-      specifier: ^7.0.0
-      version: 7.0.0
+      specifier: ^7.1.0
+      version: 7.1.0
     chalk:
       specifier: ^5.6.2
       version: 5.6.2
@@ -2108,7 +2108,7 @@ importers:
         version: link:../../internal/node-utils
       cac:
         specifier: 'catalog:'
-        version: 7.0.0
+        version: 7.1.0
 
   scripts/vsh:
     dependencies:
@@ -2117,7 +2117,7 @@ importers:
         version: link:../../internal/node-utils
       cac:
         specifier: 'catalog:'
-        version: 7.0.0
+        version: 7.1.0
       circular-dependency-scanner:
         specifier: 'catalog:'
         version: 3.0.1
@@ -6834,6 +6834,10 @@ packages:
 
   cac@7.0.0:
     resolution: {integrity: sha512-tixWYgm5ZoOD+3g6UTea91eow5z6AAHaho3g0V9CNSNb45gM8SmflpAc+GRd1InC4AqN/07Unrgp56Y94N9hJQ==}
+    engines: {node: '>=20.19.0'}
+
+  cac@7.1.0:
+    resolution: {integrity: sha512-LMDU/U2yA4IPIY8KT0NsNPWEYZvAMkbgyspxJ6btJaYV+WMDOHAZCmB0lsTObiHaRS1V/ztKAl7+TSkTqXyeoA==}
     engines: {node: '>=20.19.0'}
 
   cacheable@2.5.0:
@@ -13287,7 +13291,7 @@ snapshots:
   '@emnapi/core@1.11.2':
     dependencies:
       '@emnapi/wasi-threads': 1.2.2
-      tslib: 2.8.1
+      tslib: 2.9.1
     optional: true
 
   '@emnapi/runtime@1.11.1':
@@ -13297,12 +13301,12 @@ snapshots:
 
   '@emnapi/runtime@1.11.2':
     dependencies:
-      tslib: 2.8.1
+      tslib: 2.9.1
     optional: true
 
   '@emnapi/wasi-threads@1.2.2':
     dependencies:
-      tslib: 2.8.1
+      tslib: 2.9.1
     optional: true
 
   '@emotion/hash@0.8.0': {}
@@ -15114,7 +15118,7 @@ snapshots:
 
   '@tybys/wasm-util@0.10.3':
     dependencies:
-      tslib: 2.8.1
+      tslib: 2.9.1
     optional: true
 
   '@types/archiver@8.0.0':
@@ -16502,6 +16506,8 @@ snapshots:
       magicast: 0.5.3
 
   cac@7.0.0: {}
+
+  cac@7.1.0: {}
 
   cacheable@2.5.0:
     dependencies:
