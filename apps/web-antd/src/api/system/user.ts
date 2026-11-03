@@ -32,7 +32,8 @@ export namespace SystemUserApi {
     realName: string;
     remark?: string;
     roleIds?: string[];
-    status: 0 | 1;
+    /** 仅新增时有效；编辑走列表的启用/停用接口（后端 updateUser 不更新 status） */
+    status?: 0 | 1;
     username: string;
   }
 

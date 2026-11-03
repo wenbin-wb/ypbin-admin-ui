@@ -140,6 +140,12 @@ export function useGridFormSchema(): VbenFormSchema[] {
           { label: $t('common.disabled'), value: 0 },
         ],
       },
+      // 后端 updateUser 刻意不更新 status（防止编辑资料时静默改状态）；
+      // 编辑态隐藏该字段，状态统一走列表的启用/停用开关
+      dependencies: {
+        show: (values) => !values.id,
+        triggerFields: ['id'],
+      },
       fieldName: 'status',
       label: $t('system.user.status'),
     },
