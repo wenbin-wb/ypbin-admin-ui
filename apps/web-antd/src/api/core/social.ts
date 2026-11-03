@@ -27,9 +27,8 @@ export async function socialLoginApi(
   source: string,
   params: SocialCallbackParams,
 ) {
-  return requestClient.post<{ accessToken: string }>(
-    `/auth/social/callback/${source}`,
-    {},
-    { params },
-  );
+  return requestClient.post<{
+    accessToken: string;
+    mustChangePassword?: boolean;
+  }>(`/auth/social/callback/${source}`, {}, { params });
 }

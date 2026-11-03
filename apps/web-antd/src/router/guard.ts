@@ -7,6 +7,11 @@ import { startProgress, stopProgress } from '@vben/utils';
 
 import { accessRoutes, coreRouteNames } from '#/router/routes';
 import { useAuthStore } from '#/store';
+import {
+  CHANGE_PASSWORD_PATH,
+  clearMustChangePassword,
+  isMustChangePassword,
+} from '#/utils/pwd-change';
 
 import { generateAccess } from './access';
 
@@ -49,6 +54,16 @@ function setupAccessGuard(router: Router) {
     const accessStore = useAccessStore();
     const userStore = useUserStore();
     const authStore = useAuthStore();
+
+    // 强制改密：令牌有效时除改密页外一律带回改密页；
+    // 令牌已失效（过期/登出）则清标记，走正常登录流程。
+    if (isMustChangePassword()) {
+      if (!accessStore.accessToken) {
+        clearMustChangePassword();
+      } else if (to.path !== CHANGE_PASSWORD_PATH) {
+        return { path: CHANGE_PASSWORD_PATH, replace: true };
+      }
+    }
 
     // 基本路由，这些路由不需要进入权限拦截
     if (coreRouteNames.includes(to.name as string)) {

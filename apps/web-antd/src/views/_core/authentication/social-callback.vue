@@ -31,13 +31,13 @@ async function handleCallback() {
   }
   sessionStorage.removeItem(SOCIAL_SOURCE_KEY);
   try {
-    const { accessToken } = await socialLoginApi(source, {
+    const { accessToken, mustChangePassword } = await socialLoginApi(source, {
       auth_code,
       code,
       state,
     });
     if (accessToken) {
-      await authStore.socialLogin(accessToken);
+      await authStore.socialLogin(accessToken, mustChangePassword);
     } else {
       message.error($t('authentication.socialLoginFailed'));
       await router.replace(LOGIN_PATH);

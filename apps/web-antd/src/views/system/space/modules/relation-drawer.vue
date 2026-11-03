@@ -14,16 +14,7 @@ import { computed, ref } from 'vue';
 
 import { useVbenDrawer } from '@vben/common-ui';
 
-import {
-  Button,
-  Empty,
-  Input,
-  message,
-  Modal,
-  Select,
-  Spin,
-  Tag,
-} from 'ant-design-vue';
+import { Button, Input, message, Modal, Select, Tag } from 'ant-design-vue';
 
 import { getDictOptions } from '#/api/system/dictItem';
 import {
@@ -34,6 +25,7 @@ import {
 import { $t } from '#/locales';
 import { extractErrorMessage } from '#/utils/error';
 
+import SpaceRelationList from '../../_shared/space-relation-list.vue';
 import { getTargetNameResolver } from '../../_shared/target-name-resolver';
 
 const emit = defineEmits(['success']);
@@ -291,45 +283,30 @@ defineExpose({ drawerApi });
           />
         </div>
 
-        <div v-if="loadError" class="mb-2 text-sm text-destructive-text">
-          {{ loadError }}
-        </div>
-
-        <Spin :spinning="loading">
-          <Empty
-            v-if="relations.length === 0 && !loading"
-            :description="$t('system.space.noRelation')"
-          />
-          <div v-else class="flex flex-col gap-2">
-            <div
-              v-for="item in relations"
-              :key="item.id"
-              class="flex items-center justify-between rounded border border-solid px-3 py-2"
-            >
-              <div class="flex min-w-0 items-center gap-2">
-                <Tag color="blue">{{ item.targetType }}</Tag>
-                <!--
-                  有名称时名称 + 小字 ID，无名称时只显示 ID。
-                  **为什么两种都保留 ID**：同名的设备在真实环境里存在（如两台「温湿度」），
-                  只显示名称会让用户无法区分要点哪一条解绑。
-                -->
-                <template v-if="targetNames[item.targetId]">
-                  <span class="truncate">{{ targetNames[item.targetId] }}</span>
-                  <span class="text-muted-foreground shrink-0 text-xs">
-                    {{ item.targetId }}
-                  </span>
-                </template>
-                <span v-else class="truncate">ID: {{ item.targetId }}</span>
-                <Tag v-if="item.isPrimary === 1" color="orange">
-                  {{ $t('system.space.primary') }}
-                </Tag>
-              </div>
-              <Button danger size="small" type="link" @click="onUnbind(item)">
-                {{ $t('system.space.unbind') }}
-              </Button>
-            </div>
-          </div>
-        </Spin>
+        <SpaceRelationList
+          :error="loadError"
+          :items="relations"
+          :loading="loading"
+          primary-color="orange"
+          :unbind-text="$t('system.space.unbind')"
+          @unbind="onUnbind"
+        >
+          <template #title="{ item }">
+            <Tag color="blue">{{ item.targetType }}</Tag>
+            <!--
+              有名称时名称 + 小字 ID，无名称时只显示 ID。
+              **为什么两种都保留 ID**：同名的设备在真实环境里存在（如两台「温湿度」），
+              只显示名称会让用户无法区分要点哪一条解绑。
+            -->
+            <template v-if="targetNames[item.targetId]">
+              <span class="truncate">{{ targetNames[item.targetId] }}</span>
+              <span class="text-muted-foreground shrink-0 text-xs">
+                {{ item.targetId }}
+              </span>
+            </template>
+            <span v-else class="truncate">ID: {{ item.targetId }}</span>
+          </template>
+        </SpaceRelationList>
       </div>
     </div>
   </Drawer>

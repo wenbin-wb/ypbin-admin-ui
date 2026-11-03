@@ -13,7 +13,7 @@ const EMPTY_TEXT = '-';
 
 export function useColumns(): VxeTableGridColumns {
   return [
-    { field: 'token', title: $t('system.onlineUser.token'), minWidth: 200 },
+    { field: 'tokenHash', title: $t('system.onlineUser.token'), minWidth: 200 },
     {
       field: 'realName',
       title: $t('system.user.realName'),

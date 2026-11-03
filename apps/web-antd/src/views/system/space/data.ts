@@ -10,14 +10,52 @@ import { $t } from '#/locales';
 
 import { collectSubtreeIds } from '../_shared/space-tree';
 
+/** 需要地址/经纬度的空间类型（园区、楼栋） */
+const GEO_TYPES = new Set(['park', 'building']);
+
+/** 需要楼层号的空间类型（楼层以下的实体空间） */
+const FLOOR_NO_TYPES = new Set([
+  'floor',
+  'room',
+  'office',
+  'dormitory',
+  'warehouse',
+]);
+
+/** 需要房间号的空间类型 */
+const ROOM_NO_TYPES = new Set(['room', 'office', 'dormitory', 'warehouse']);
+
+/** 需要面积的空间类型（园区层统计粒度不同，不在此列） */
+const AREA_TYPES = new Set([
+  'building',
+  'floor',
+  'room',
+  'office',
+  'dormitory',
+  'warehouse',
+]);
+
+/** 需要容量（容纳人数）的空间类型 */
+const CAPACITY_TYPES = new Set(['office', 'dormitory', 'warehouse']);
+
 /**
  * 空间管理表单 schema。
  *
- * 分三段排列（基本信息 / 位置属性 / 责任与状态），因为空间类型不同要填的字段不同：
- * 园区/楼栋填地址经纬度，房间填楼层号/房间号，办公室填容量。全平铺会让用户面对一堆无关字段。
+ * 分三段排列（基本信息 / 位置属性 / 责任与备注），并按空间类型条件显示：
+ * 园区/楼栋填地址经纬度，楼层及以下填楼层号/房间号，办公室/宿舍/仓库填容量。
+ * 全平铺会让用户在一堆无关字段里找自己该填的那一个。
  */
 export function useSchema(): VbenFormSchema[] {
   return [
+    {
+      component: 'Divider',
+      fieldName: 'divider_basic',
+      formItemClass: 'col-span-2 md:col-span-2 pb-0',
+      hideLabel: true,
+      renderComponentContent() {
+        return { default: () => $t('system.space.groupBasic') };
+      },
+    },
     {
       component: 'ApiTreeSelect',
       componentProps: {
@@ -96,8 +134,21 @@ export function useSchema(): VbenFormSchema[] {
       label: $t('system.space.sort'),
     },
     {
+      component: 'Divider',
+      fieldName: 'divider_location',
+      formItemClass: 'col-span-2 md:col-span-2 pb-0',
+      hideLabel: true,
+      renderComponentContent() {
+        return { default: () => $t('system.space.groupLocation') };
+      },
+    },
+    {
       component: 'Input',
       componentProps: { maxlength: 255 },
+      dependencies: {
+        show: (values) => GEO_TYPES.has(values.spaceType),
+        triggerFields: ['spaceType'],
+      },
       fieldName: 'address',
       label: $t('system.space.address'),
     },
@@ -112,6 +163,10 @@ export function useSchema(): VbenFormSchema[] {
         placeholder: '如 116.397',
         precision: 6,
       },
+      dependencies: {
+        show: (values) => GEO_TYPES.has(values.spaceType),
+        triggerFields: ['spaceType'],
+      },
       fieldName: 'longitude',
       label: $t('system.space.longitude'),
     },
@@ -124,32 +179,61 @@ export function useSchema(): VbenFormSchema[] {
         placeholder: '如 39.908',
         precision: 6,
       },
+      dependencies: {
+        show: (values) => GEO_TYPES.has(values.spaceType),
+        triggerFields: ['spaceType'],
+      },
       fieldName: 'latitude',
       label: $t('system.space.latitude'),
     },
     {
       component: 'Input',
       componentProps: { maxlength: 16 },
+      dependencies: {
+        show: (values) => FLOOR_NO_TYPES.has(values.spaceType),
+        triggerFields: ['spaceType'],
+      },
       fieldName: 'floorNo',
       label: $t('system.space.floorNo'),
     },
     {
       component: 'Input',
       componentProps: { maxlength: 32 },
+      dependencies: {
+        show: (values) => ROOM_NO_TYPES.has(values.spaceType),
+        triggerFields: ['spaceType'],
+      },
       fieldName: 'roomNo',
       label: $t('system.space.roomNo'),
     },
     {
       component: 'InputNumber',
       componentProps: { class: 'w-full', min: 0, precision: 2 },
+      dependencies: {
+        show: (values) => AREA_TYPES.has(values.spaceType),
+        triggerFields: ['spaceType'],
+      },
       fieldName: 'area',
       label: $t('system.space.area'),
     },
     {
       component: 'InputNumber',
       componentProps: { class: 'w-full', min: 0 },
+      dependencies: {
+        show: (values) => CAPACITY_TYPES.has(values.spaceType),
+        triggerFields: ['spaceType'],
+      },
       fieldName: 'capacity',
       label: $t('system.space.capacity'),
+    },
+    {
+      component: 'Divider',
+      fieldName: 'divider_responsibility',
+      formItemClass: 'col-span-2 md:col-span-2 pb-0',
+      hideLabel: true,
+      renderComponentContent() {
+        return { default: () => $t('system.space.groupResponsibility') };
+      },
     },
     {
       component: 'Input',
@@ -213,14 +297,9 @@ export function useColumns(): VxeTableGridColumns<SystemSpaceApi.SpaceResp> {
       field: 'name',
       fixed: 'left',
       minWidth: 240,
+      slots: { default: 'name' },
       title: $t('system.space.name'),
       treeNode: true,
-    },
-    {
-      field: 'spaceTypeText',
-      slots: { default: 'spaceType' },
-      title: $t('system.space.spaceType'),
-      width: 120,
     },
     {
       field: 'code',
@@ -243,17 +322,12 @@ export function useColumns(): VxeTableGridColumns<SystemSpaceApi.SpaceResp> {
       width: 110,
     },
     {
-      field: 'sort',
-      title: $t('system.space.sort'),
-      width: 80,
-    },
-    {
       align: 'center',
       field: 'action',
       fixed: 'right',
       slots: { default: 'action' },
       title: $t('common.action'),
-      width: 220,
+      width: 170,
     },
   ];
 }

@@ -14,32 +14,25 @@ defineOptions({ name: 'ChatInputBar' });
 const props = withDefaults(
   defineProps<{
     activeKbId?: string;
-    activeModelId?: string;
     activeRoleName?: string;
     inputText?: string;
     isStreaming?: boolean;
     knowledgeBases?: AiApi.KnowledgeBase[];
-    models?: AiApi.ModelConfig[];
     roleDrawerOpen?: boolean;
   }>(),
   {
     activeKbId: '',
-    activeModelId: '',
     activeRoleName: '',
     inputText: '',
     isStreaming: false,
     knowledgeBases: () => [],
-    models: () => [],
     roleDrawerOpen: false,
   },
 );
 
 const emit = defineEmits<{
   (e: 'send' | 'stop' | 'toggleRole'): void;
-  (
-    e: 'update:inputText' | 'update:kbId' | 'update:modelId',
-    value: string,
-  ): void;
+  (e: 'update:inputText' | 'update:kbId', value: string): void;
 }>();
 
 function handleKeydown(e: KeyboardEvent) {
@@ -101,20 +94,11 @@ function handleKeydown(e: KeyboardEvent) {
               />
             </div>
           </Tooltip>
-          <!-- 模型 -->
-          <Select
-            v-if="models.length > 0"
-            :model-value="activeModelId"
-            :options="
-              models
-                .filter((m) => m.modelType === 'CHAT' || !m.modelType)
-                .map((m) => ({ label: m.modelName, value: m.id }))
-            "
-            size="small"
-            class="ym-ai__model-select"
-            :bordered="false"
-            @update:model-value="emit('update:modelId', $event)"
-          />
+          <!--
+            模型选择器已移除：后端/starter 只按租户默认对话模型构建 ChatClient，
+            按会话切换模型会被明确拒绝（见 AiChatSendReq.rejectUnsupportedOptions）。
+            在 starter 支持前，这里不提供「选了却不生效」的入口。
+          -->
         </div>
         <!-- 右侧：发送/停止 -->
         <div class="ym-ai__tools-right">

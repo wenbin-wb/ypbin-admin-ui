@@ -17,15 +17,7 @@ import type { SystemSpaceApi } from '#/api/system/space';
 
 import { computed, onMounted, ref, watch } from 'vue';
 
-import {
-  Button,
-  Empty,
-  message,
-  Modal,
-  Spin,
-  Switch,
-  Tag,
-} from 'ant-design-vue';
+import { Button, message, Modal, Switch, Tag } from 'ant-design-vue';
 
 import {
   bindSpaceRelations,
@@ -35,6 +27,7 @@ import {
 import { $t } from '#/locales';
 import { extractErrorMessage } from '#/utils/error';
 
+import SpaceRelationList from './space-relation-list.vue';
 import SpaceSelect from './space-select.vue';
 
 interface Props {
@@ -163,60 +156,35 @@ defineExpose({ reload: load });
 
 <template>
   <div class="w-full">
-    <Spin :spinning="loading">
-      <div v-if="loadError" class="mb-2 text-sm text-destructive-text">
-        {{ loadError }}
-      </div>
+    <SpaceRelationList
+      :error="loadError"
+      :items="relations"
+      :loading="loading"
+      :readonly="readonly"
+      @unbind="confirmRemove"
+    >
+      <template #tags="{ item }">
+        <Tag v-if="item.spaceTypeText" color="default">
+          {{ item.spaceTypeText }}
+        </Tag>
+      </template>
+      <template #subtitle="{ item }">
+        <span v-if="item.remark" class="text-xs text-muted-foreground">
+          {{ item.remark }}
+        </span>
+      </template>
+    </SpaceRelationList>
 
-      <Empty
-        v-if="relations.length === 0 && !loading"
-        :description="$t('system.space.noRelation')"
-      />
-      <div v-else class="flex flex-col gap-2">
-        <div
-          v-for="item in relations"
-          :key="item.id"
-          class="flex items-center justify-between rounded border border-solid px-3 py-2"
-        >
-          <div class="flex min-w-0 flex-col">
-            <div class="flex items-center gap-2">
-              <span class="truncate font-medium">
-                {{ item.spacePath || item.spaceName }}
-              </span>
-              <Tag v-if="item.isPrimary === 1" color="blue">
-                {{ $t('system.space.primary') }}
-              </Tag>
-              <Tag v-if="item.spaceTypeText" color="default">
-                {{ item.spaceTypeText }}
-              </Tag>
-            </div>
-            <span v-if="item.remark" class="text-xs text-muted-foreground">
-              {{ item.remark }}
-            </span>
-          </div>
-          <Button
-            v-if="!readonly"
-            danger
-            size="small"
-            type="link"
-            @click="confirmRemove(item)"
-          >
-            {{ $t('common.delete') }}
-          </Button>
-        </div>
-      </div>
-
-      <Button
-        v-if="!readonly"
-        :disabled="!targetId"
-        class="mt-3"
-        type="dashed"
-        block
-        @click="openAdd"
-      >
-        {{ $t('system.space.addRelation') }}
-      </Button>
-    </Spin>
+    <Button
+      v-if="!readonly"
+      :disabled="!targetId"
+      class="mt-3"
+      type="dashed"
+      block
+      @click="openAdd"
+    >
+      {{ $t('system.space.addRelation') }}
+    </Button>
 
     <Modal
       v-model:open="addOpen"

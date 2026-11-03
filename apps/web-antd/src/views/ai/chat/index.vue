@@ -68,21 +68,18 @@ const {
 // ===== 资源域（角色/模型/知识库） =====
 const {
   activeKbId,
-  activeModelId,
   activeRole,
   featuredRoles,
   knowledgeBases,
   loadKnowledgeBases,
-  loadModels,
   loadRoles,
-  models,
   roleCategory,
   roleDrawerOpen,
   roleSearch,
   roles,
   selectRole,
   toggleFavorite,
-} = useChatResources({ activeModelId: ref('') });
+} = useChatResources();
 
 function createNewSession(roleId?: string) {
   if (roleId) {
@@ -106,9 +103,9 @@ async function handleSend() {
   let sessionId = activeSessionId.value;
   if (!sessionId) {
     try {
+      // 不传 modelId：后端只用租户默认对话模型（传非默认值会被拒绝）
       sessionId = await createSession({
         roleId: activeRole.value?.id || undefined,
-        modelId: activeModelId.value || undefined,
       });
       await loadSessions();
       activeSessionId.value = sessionId;
@@ -235,7 +232,7 @@ const quickQuestions = [
 
 // ===== 生命周期 =====
 onMounted(async () => {
-  await Promise.all([loadSessions(), loadRoles(), loadModels()]);
+  await Promise.all([loadSessions(), loadRoles()]);
   await loadKnowledgeBases();
   if (sessions.value.length > 0) {
     await selectSession(sessions.value[0]?.id ?? '');
@@ -406,19 +403,16 @@ onUnmounted(() => {
         <!-- ===== 输入区 ===== -->
         <InputBar
           :active-kb-id="activeKbId"
-          :active-model-id="activeModelId"
           :active-role-name="activeRole?.name ?? ''"
           :input-text="inputText"
           :is-streaming="isStreaming"
           :knowledge-bases="knowledgeBases"
-          :models="models"
           :role-drawer-open="roleDrawerOpen"
           @send="handleSend"
           @stop="handleStop"
           @toggle-role="roleDrawerOpen = !roleDrawerOpen"
           @update:input-text="inputText = $event"
           @update:kb-id="activeKbId = $event"
-          @update:model-id="activeModelId = $event"
         />
       </div>
 

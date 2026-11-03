@@ -48,6 +48,18 @@ jobs:
       - name: 格式检查（oxfmt）
         run: pnpm exec oxfmt --check apps/web-antd/src
 
+      # 🔴 拼写门禁：`check:cspell` 此前长期红（71 处 / 32 文件）却从未进 CI，
+      # 只有本地跑过的人知道。词表已补 ypbin/tianai/rerank/gitee/TTFB，这里接入阻断。
+      - name: 拼写检查（cspell）
+        run: pnpm run check:cspell
+
+      # 信息性结构检查：check:circular / check:dep 当前只打印告警、退出码恒为 0
+      # （上游 vsh 行为），因此这里不设阻断；输出仍留在 CI 日志里便于追踪。
+      - name: 循环依赖 / 未使用依赖（信息性）
+        run: |
+          pnpm run check:circular
+          pnpm run check:dep
+
       - name: Typecheck（web-antd）
         run: pnpm -F @vben/web-antd run typecheck
 

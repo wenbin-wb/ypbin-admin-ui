@@ -13,7 +13,7 @@ export namespace SystemOnlineUserApi {
     nickname: string;
     realName: string;
     tenantId: string;
-    token: string;
+    tokenHash: string;
     clientId: string;
     deviceType: string;
     ip: string;
@@ -35,6 +35,6 @@ export function getOnlineUserList(params: SystemOnlineUserApi.OnlineUserQuery) {
   >('/system/online-user/list', { params });
 }
 
-export function deleteOnlineUser(token: string) {
-  return requestClient.delete(`/system/online-user/${token}`);
+export function deleteOnlineUser(tokenHash: string) {
+  return requestClient.delete(`/system/online-user/${tokenHash}`);
 }
