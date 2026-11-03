@@ -47,7 +47,8 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemUserApi.SystemUser>({
       postIds: values.postIds,
       realName: values.realName,
       remark: values.remark,
-      status: values.status,
+      // 编辑态不提交 status：后端 updateUser 不接受该字段，状态走列表开关
+      status: id.value ? undefined : values.status,
       username: values.username,
     };
     drawerApi.lock();
