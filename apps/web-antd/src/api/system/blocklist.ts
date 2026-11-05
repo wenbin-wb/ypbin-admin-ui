@@ -32,7 +32,14 @@ export namespace SystemBlocklistApi {
 
   export interface AutoBanResp {
     clientIp: string;
+    /** 对应 starter AutoBanEntry.expireAt */
     expireTime: string;
+    reason?: string;
+  }
+
+  export interface BlocklistBanReq {
+    banSeconds: number;
+    clientIp: string;
     reason?: string;
   }
 }
@@ -62,6 +69,10 @@ export function getAutoBans() {
   return requestClient.get<SystemBlocklistApi.AutoBanResp[]>(
     '/system/security/blocklist/auto-ban',
   );
+}
+
+export function banBlocklistIp(data: SystemBlocklistApi.BlocklistBanReq) {
+  return requestClient.post('/system/security/blocklist/ban', data);
 }
 
 export function unbanAuto(clientIp: string) {

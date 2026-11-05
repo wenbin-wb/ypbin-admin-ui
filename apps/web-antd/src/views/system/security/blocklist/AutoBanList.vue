@@ -2,11 +2,21 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { SystemBlocklistApi } from '#/api/system/blocklist';
 
-import { message } from 'ant-design-vue';
+import { useVbenModal } from '@vben/common-ui';
+import { Plus } from '@vben/icons';
+
+import { Button, message } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import { getAutoBans, unbanAuto } from '#/api/system/blocklist';
 import { $t } from '#/locales';
+
+import BanForm from './modules/ban-form.vue';
+
+const [BanModal, banModalApi] = useVbenModal({
+  connectedComponent: BanForm,
+  destroyOnClose: false,
+});
 
 const [Grid, gridApi] = useVbenVxeGrid({
   gridOptions: {
@@ -56,6 +66,10 @@ function onRefresh() {
   gridApi.query();
 }
 
+function onBan() {
+  banModalApi.open();
+}
+
 function onUnban(row: SystemBlocklistApi.AutoBanResp) {
   unbanAuto(row.clientIp)
     .then(() => {
@@ -67,7 +81,19 @@ function onUnban(row: SystemBlocklistApi.AutoBanResp) {
 </script>
 <template>
   <div class="h-full">
+    <BanModal @success="onRefresh" />
     <Grid :table-title="$t('system.blocklist.autoBanList')">
+      <template #toolbar-tools>
+        <Button
+          v-access:code="['system:blocklist:ban']"
+          type="primary"
+          @click="onBan"
+        >
+          <Plus class="size-5" />
+          {{ $t('system.blocklist.ban') }}
+        </Button>
+      </template>
+
       <template #action="{ row }">
         <VbenTableAction
           :actions="[

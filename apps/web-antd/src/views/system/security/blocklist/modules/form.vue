@@ -3,7 +3,7 @@ import type { SystemBlocklistApi } from '#/api/system/blocklist';
 
 import { nextTick } from 'vue';
 
-import { useVbenDrawer } from '@vben/common-ui';
+import { useVbenDrawer, z } from '@vben/common-ui';
 
 import { message } from 'ant-design-vue';
 
@@ -12,6 +12,26 @@ import { createBlocklist, updateBlocklist } from '#/api/system/blocklist';
 import { $t } from '#/locales';
 
 import { matchTypeOptions } from '../data';
+import { isValidMatchValue } from '../validators';
+
+const MATCH_VALUE_ERROR_KEY: Record<SystemBlocklistApi.MatchType, string> = {
+  CIDR: 'system.blocklist.invalidCidr',
+  IP: 'system.blocklist.invalidIp',
+  PATH: 'system.blocklist.invalidPath',
+  USER_AGENT: 'system.blocklist.invalidUserAgent',
+};
+
+function matchValueRules(values: Record<string, any>) {
+  const type = values.matchType as SystemBlocklistApi.MatchType | undefined;
+  const message = type
+    ? $t(MATCH_VALUE_ERROR_KEY[type])
+    : $t('system.blocklist.matchValue');
+  return z
+    .string()
+    .trim()
+    .min(1, $t('system.blocklist.matchValue'))
+    .refine((value) => !!type && isValidMatchValue(type, value), message);
+}
 
 const emit = defineEmits(['success']);
 
@@ -33,9 +53,12 @@ const [Form, formApi] = useVbenForm({
         maxlength: 255,
         placeholder: $t('system.blocklist.matchValuePlaceholder'),
       },
+      dependencies: {
+        rules: matchValueRules,
+        triggerFields: ['matchType'],
+      },
       fieldName: 'matchValue',
       label: $t('system.blocklist.matchValue'),
-      rules: 'required',
     },
     {
       component: 'Input',
