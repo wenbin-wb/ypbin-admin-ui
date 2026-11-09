@@ -2,8 +2,10 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { SystemSpaceApi } from '#/api/system/space';
 
+import { ref } from 'vue';
+
 import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
-import { Plus } from '@vben/icons';
+import { createIconifyIcon, Download, Plus } from '@vben/icons';
 
 import { Button, message, Tag } from 'ant-design-vue';
 
@@ -30,6 +32,8 @@ const RELATION_COUNT_WARN_KEY = 'space-relation-count-failed';
 
 /** 本次列表加载是否已提示过统计失败（避免每次展开节点都再弹一次） */
 let countFailureWarned = false;
+
+const UploadIcon = createIconifyIcon('lucide:upload');
 
 const [FormDrawer, FormDrawerApi] = useVbenDrawer({
   connectedComponent: Form,
@@ -212,7 +216,11 @@ function totalRelationCount(counts?: Record<string, number>): number {
   if (!counts) {
     return 0;
   }
-  return Object.values(counts).reduce((sum, value) => sum + (value ?? 0), 0);
+  // 防御性 Number()：即使上游漏做归一（如后端 Long 序列化为字符串），也不能把 "2"+"1" 拼成 "21"
+  return Object.values(counts).reduce((sum, value) => {
+    const count = Number(value);
+    return sum + (Number.isFinite(count) ? count : 0);
+  }, 0);
 }
 
 const [ImportModalComp, importModalApi] = useVbenModal({
@@ -226,7 +234,10 @@ const [ImportModalComp, importModalApi] = useVbenModal({
  * 它额外处理了「HTTP 200 但响应体其实是业务失败 JSON」——直接把错误体存成 .csv，
  * 用户会得到一个打不开的文件却不知道原因。该方法被仓内 9 处下载复用。
  */
+const exportLoading = ref(false);
+
 async function onExport() {
+  exportLoading.value = true;
   try {
     const blob = await exportSpaces();
     await downloadBlobSafe(
@@ -237,6 +248,8 @@ async function onExport() {
   } catch (error: unknown) {
     // 用既有 extractErrorMessage：它已处理 string / Error / 裸对象 / response.data.message 四种形态
     message.error(extractErrorMessage(error, $t('system.space.exportFailed')));
+  } finally {
+    exportLoading.value = false;
   }
 }
 
@@ -253,22 +266,31 @@ function refreshGrid() {
     <RelationDrawerComp @success="refreshGrid" />
     <Grid :table-title="$t('system.space.title')">
       <template #toolbar-tools>
-        <Button v-access:code="['system:space:list']" @click="onExport">
-          {{ $t('system.space.export') }}
-        </Button>
-        <Button
-          v-access:code="['system:space:add']"
-          @click="importModalApi.open()"
-        >
-          {{ $t('system.space.import') }}
-        </Button>
+        <!-- 与用户管理页一致：主操作在前，其次导入、导出；导入/导出带图标与 loading -->
         <Button
           v-access:code="['system:space:add']"
           type="primary"
           @click="onCreate"
         >
           <Plus class="size-5" />
-          {{ $t('ui.actionTitle.create', [$t('system.space.name')]) }}
+          {{ $t('ui.actionTitle.create', [$t('system.space.entityName')]) }}
+        </Button>
+        <Button
+          v-access:code="['system:space:add']"
+          class="ml-2"
+          @click="importModalApi.open()"
+        >
+          <UploadIcon class="mr-1 size-4" />
+          {{ $t('system.space.import') }}
+        </Button>
+        <Button
+          v-access:code="['system:space:list']"
+          class="ml-2"
+          :loading="exportLoading"
+          @click="onExport"
+        >
+          <Download class="mr-1 size-4" />
+          {{ $t('system.space.export') }}
         </Button>
       </template>
 

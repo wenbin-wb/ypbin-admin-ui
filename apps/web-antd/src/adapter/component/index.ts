@@ -69,12 +69,23 @@ const withDefaultPlaceholder = (
           },
         ),
       );
-      return () =>
-        h(
+      return () => {
+        // 表单渲染器对 ant 组件统一绑定 value / onUpdate:value（见 setupVbenForm 的
+        // baseModelPropName），而 ApiComponent 的 defineModel 仍是 modelValue。
+        // 不把 ApiComponent 的 update:modelValue 桥接回 update:value，用户在
+        // ApiSelect/ApiTreeSelect 里选择后表单值不会更新：界面看似选中，保存时丢失。
+        // 这里只补事件桥接，不改变组件自身的 model 约定（直接 v-model 用法不受影响）。
+        const mergedAttrs: Recordable<any> = { ...attrs };
+        const parentOnUpdateValue = mergedAttrs['onUpdate:value'];
+        if (typeof parentOnUpdateValue === 'function') {
+          mergedAttrs['onUpdate:modelValue'] = parentOnUpdateValue;
+        }
+        return h(
           component,
-          { ...componentProps, placeholder, ...props, ...attrs, ref: innerRef },
+          { ...componentProps, placeholder, ...props, ...mergedAttrs, ref: innerRef },
           slots,
         );
+      };
     },
   });
 };

@@ -50,7 +50,7 @@ export function useSchema(): VbenFormSchema[] {
     {
       component: 'Divider',
       fieldName: 'divider_basic',
-      formItemClass: 'col-span-2 md:col-span-2 pb-0',
+      formItemClass: 'col-span-full pb-0',
       hideLabel: true,
       renderComponentContent() {
         return { default: () => $t('system.space.groupBasic') };
@@ -136,7 +136,7 @@ export function useSchema(): VbenFormSchema[] {
     {
       component: 'Divider',
       fieldName: 'divider_location',
-      formItemClass: 'col-span-2 md:col-span-2 pb-0',
+      formItemClass: 'col-span-full pb-0',
       hideLabel: true,
       renderComponentContent() {
         return { default: () => $t('system.space.groupLocation') };
@@ -229,7 +229,7 @@ export function useSchema(): VbenFormSchema[] {
     {
       component: 'Divider',
       fieldName: 'divider_responsibility',
-      formItemClass: 'col-span-2 md:col-span-2 pb-0',
+      formItemClass: 'col-span-full pb-0',
       hideLabel: true,
       renderComponentContent() {
         return { default: () => $t('system.space.groupResponsibility') };
@@ -327,7 +327,9 @@ export function useColumns(): VxeTableGridColumns<SystemSpaceApi.SpaceResp> {
       fixed: 'right',
       slots: { default: 'action' },
       title: $t('common.action'),
-      width: 170,
+      // 三个操作（编辑/关联对象/删除）与「关联对象」四字文案，170 会被截断；
+      // 与部门列表（200）对齐并留出余量。
+      width: 220,
     },
   ];
 }
