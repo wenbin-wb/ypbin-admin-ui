@@ -136,7 +136,6 @@ internal/            # 构建工具链（vite-config、eslint-config 等）
 ## 📚 文档说明
 
 - 产品文档：[ypbin.cn/guide/admin-ui](https://ypbin.cn/guide/admin-ui/)
-- 仓库内 `docs/` 为 Vben Admin 上游组件文档（随模板保留），不是本产品的业务文档；业务文档以上面的产品文档为准。
 
 ## 🤝 贡献
 

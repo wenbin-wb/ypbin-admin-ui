@@ -217,10 +217,14 @@ function totalRelationCount(counts?: Record<string, number>): number {
     return 0;
   }
   // 防御性 Number()：即使上游漏做归一（如后端 Long 序列化为字符串），也不能把 "2"+"1" 拼成 "21"
-  return Object.values(counts).reduce((sum, value) => {
+  let total = 0;
+  for (const value of Object.values(counts)) {
     const count = Number(value);
-    return sum + (Number.isFinite(count) ? count : 0);
-  }, 0);
+    if (Number.isFinite(count)) {
+      total += count;
+    }
+  }
+  return total;
 }
 
 const [ImportModalComp, importModalApi] = useVbenModal({

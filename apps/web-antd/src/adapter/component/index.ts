@@ -82,7 +82,13 @@ const withDefaultPlaceholder = (
         }
         return h(
           component,
-          { ...componentProps, placeholder, ...props, ...mergedAttrs, ref: innerRef },
+          {
+            ...componentProps,
+            placeholder,
+            ...props,
+            ...mergedAttrs,
+            ref: innerRef,
+          },
           slots,
         );
       };

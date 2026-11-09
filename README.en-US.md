@@ -88,7 +88,6 @@ internal/            # build tooling (vite-config, eslint-config, ...)
 ## Documentation
 
 - Product documentation: [ypbin.cn/guide/admin-ui](https://ypbin.cn/guide/admin-ui/)
-- The `docs/` directory contains the upstream Vben Admin component documentation kept with the template; it is not the product documentation.
 
 ## License
 
