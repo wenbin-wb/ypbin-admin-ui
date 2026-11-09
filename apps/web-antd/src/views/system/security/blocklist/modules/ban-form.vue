@@ -31,7 +31,7 @@ const [Form, formApi] = useVbenForm({
       fieldName: 'clientIp',
       label: $t('system.blocklist.banIp'),
       rules: z
-        .string()
+        .string({ error: $t('system.blocklist.banIp') })
         .trim()
         .min(1, $t('system.blocklist.banIp'))
         .refine((value) => isValidIp(value), $t('system.blocklist.invalidIp')),
