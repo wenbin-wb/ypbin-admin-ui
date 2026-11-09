@@ -29,7 +29,7 @@ function matchValueRules(values: Record<string, any>) {
     ? $t(MATCH_VALUE_ERROR_KEY[type])
     : $t('system.blocklist.matchValue');
   return z
-    .string()
+    .string({ error: message })
     .trim()
     .min(1, $t('system.blocklist.matchValue'))
     .refine((value) => !!type && isValidMatchValue(type, value), message);
