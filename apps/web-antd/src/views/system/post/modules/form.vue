@@ -56,19 +56,9 @@ const [Form, formApi] = useVbenForm({
       // 同时在 A 栋机房与 B 栋机房），故用多选。
       // 绑定走独立接口（/space/relations/sync），不塞进 PostSaveReq——
       // 否则「改个岗位名称」也会要求空间绑定权限。
-      component: 'ApiTreeSelect',
-      componentProps: {
-        allowClear: true,
-        api: async () => {
-          const { getSpaceTree } = await import('#/api/system/space');
-          return (await getSpaceTree()) ?? [];
-        },
-        childrenField: 'children',
-        class: 'w-full',
-        labelField: 'name',
-        multiple: true,
-        valueField: 'id',
-      },
+      // 统一使用共享的 SpaceSelect，避免各页面各写一份空间树加载/选择逻辑。
+      component: 'SpaceSelect',
+      componentProps: { class: 'w-full', multiple: true },
       fieldName: 'spaceIds',
       label: $t('system.space.postSpace'),
     },

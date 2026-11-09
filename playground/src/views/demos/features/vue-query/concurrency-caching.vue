@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { Recordable } from '@vben/types';
 
-import { useQuery } from '@tanstack/vue-query';
+import { useQuery, useQueryClient } from '@tanstack/vue-query';
 
 import { useVbenForm } from '#/adapter/form';
 import { getMenuList } from '#/api';
@@ -9,9 +9,9 @@ import { getMenuList } from '#/api';
 const queryKey = ['demo', 'api', 'options'];
 const count = 4;
 
-const { dataUpdatedAt, promise: fetchDataFn } = useQuery({
-  // 在组件渲染期间预取数据
-  experimental_prefetchInRender: true,
+const queryClient = useQueryClient();
+
+const { dataUpdatedAt } = useQuery({
   // 获取接口数据的函数
   queryFn: getMenuList,
   queryKey,
@@ -22,7 +22,10 @@ const { dataUpdatedAt, promise: fetchDataFn } = useQuery({
 });
 
 async function fetchOptions() {
-  return await fetchDataFn.value;
+  // 多个 ApiSelect 共用同一 queryKey 的缓存：首次进入时请求一次，其余直接命中缓存。
+  // 用 ensureQueryData 代替已从当前 @tanstack/vue-query 类型中移除的
+  // experimental_prefetchInRender/promise（类型检查会直接报「未知属性」）。
+  return await queryClient.ensureQueryData({ queryFn: getMenuList, queryKey });
 }
 
 const schema = [];

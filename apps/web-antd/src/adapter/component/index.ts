@@ -155,6 +155,10 @@ async function initComponentAdapter() {
       popupMatchSelectWidth: false,
     }),
     Space,
+    // 共享空间选择器：与 TianaiCaptcha 一样按需加载视图组件，避免适配器静态依赖业务页面
+    SpaceSelect: defineAsyncComponent(
+      () => import('#/views/system/_shared/space-select.vue'),
+    ),
     Switch,
     Textarea: withDefaultPlaceholder(Textarea, 'input'),
     TimePicker,

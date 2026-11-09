@@ -263,13 +263,19 @@ export function useSchema(): VbenFormSchema[] {
     },
     {
       component: 'Textarea',
-      componentProps: { maxlength: 500, rows: 3, showCount: true },
+      componentProps: {
+        class: 'w-full',
+        maxlength: 500,
+        rows: 3,
+        showCount: true,
+      },
       fieldName: 'remark',
       label: $t('system.space.remark'),
     },
     {
       component: 'Textarea',
       componentProps: {
+        class: 'w-full',
         placeholder: $t('system.space.extJsonPlaceholder'),
         rows: 3,
       },
@@ -328,8 +334,8 @@ export function useColumns(): VxeTableGridColumns<SystemSpaceApi.SpaceResp> {
       slots: { default: 'action' },
       title: $t('common.action'),
       // 三个操作（编辑/关联对象/删除）与「关联对象」四字文案，170 会被截断；
-      // 与部门列表（200）对齐并留出余量。
-      width: 220,
+      // 与部门列表（200）对齐并留出余量（240 避免最右侧删除按钮贴边）。
+      width: 240,
     },
   ];
 }
