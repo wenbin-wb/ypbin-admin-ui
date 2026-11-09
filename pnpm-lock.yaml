@@ -528,7 +528,7 @@ overrides:
   '@ctrl/tinycolor': ^4.2.0
   clsx: ^2.1.1
   pinia: ^4.0.3
-  prosemirror-view: ^1.42.3
+  prosemirror-view: ^1.42.9
   vue: ^3.5.44
 
 importers:
@@ -9836,8 +9836,8 @@ packages:
   prosemirror-transform@1.12.4:
     resolution: {integrity: sha512-2/WuPum3pn+O/Vi2vzpi8210ICUe2kIPXdLYjQ09Pv5DtT5bcKWMJhAKPBwvpPjpp5iOYUVwVEr0gOM1BY1Mgw==}
 
-  prosemirror-view@1.42.3:
-    resolution: {integrity: sha512-oTN7EtH+CpwxU9NrwEYWd0UZ4JUx7l048l5A2Xppm4p/60isZYLnth9QVQmC3VRIvdrIWCxwZSd+Uz791G31/w==}
+  prosemirror-view@1.42.9:
+    resolution: {integrity: sha512-bKbfzeKZOu2H2JQU2TaJmYu6EBcor3VnGIR4jR31cbEt1ztUnfUB6bKGV1+fJzOJdrVWR+tRU0208zM3oQx4wA==}
 
   proto-list@1.2.4:
     resolution: {integrity: sha512-vtK/94akxsTMhe0/cbfpR+syPuszcuwhqVjJq26CuNDgFGj682oRBXOP5MJpv2r7JtE8MsiepGIqvvOTBwn2vA==}
@@ -10279,6 +10279,10 @@ packages:
 
   semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
+    hasBin: true
+
+  semver@6.3.2:
+    resolution: {integrity: sha512-GYrCADwpu6yV5OAvchkQ27Z5wwMxWAEMg5NNWjyHh/5DboFFqbdbvYNIvZouQpxXyeMPoTOh0vdPYKlf0ZswdQ==}
     hasBin: true
 
   semver@7.8.5:
@@ -11975,7 +11979,7 @@ snapshots:
       debug: 4.4.3(supports-color@10.2.2)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
-      semver: 6.3.1
+      semver: 6.3.2
     transitivePeerDependencies:
       - supports-color
 
@@ -11997,7 +12001,7 @@ snapshots:
       '@babel/helper-validator-option': 7.29.7
       browserslist: 4.28.7
       lru-cache: 5.1.1
-      semver: 6.3.1
+      semver: 6.3.2
 
   '@babel/helper-create-class-features-plugin@7.29.7(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)':
     dependencies:
@@ -12017,7 +12021,7 @@ snapshots:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/helper-annotate-as-pure': 7.29.7
       regexpu-core: 6.5.2
-      semver: 6.3.1
+      semver: 6.3.2
 
   '@babel/helper-define-polyfill-provider@0.6.8(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)':
     dependencies:
@@ -12636,7 +12640,7 @@ snapshots:
       babel-plugin-polyfill-corejs3: 0.14.2(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)
       babel-plugin-polyfill-regenerator: 0.6.8(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)
       core-js-compat: 3.49.0
-      semver: 6.3.1
+      semver: 6.3.2
     transitivePeerDependencies:
       - supports-color
 
@@ -15054,7 +15058,7 @@ snapshots:
       prosemirror-state: 1.4.4
       prosemirror-tables: 1.8.5
       prosemirror-transform: 1.12.4
-      prosemirror-view: 1.42.3
+      prosemirror-view: 1.42.9
 
   '@tiptap/starter-kit@3.32.1':
     dependencies:
@@ -16379,7 +16383,7 @@ snapshots:
       '@babel/compat-data': 7.29.7
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/helper-define-polyfill-provider': 0.6.8(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)
-      semver: 6.3.1
+      semver: 6.3.2
     transitivePeerDependencies:
       - supports-color
 
@@ -19833,20 +19837,20 @@ snapshots:
     dependencies:
       prosemirror-state: 1.4.4
       prosemirror-transform: 1.12.0
-      prosemirror-view: 1.42.3
+      prosemirror-view: 1.42.9
 
   prosemirror-gapcursor@1.4.1:
     dependencies:
       prosemirror-keymap: 1.2.3
       prosemirror-model: 1.25.11
       prosemirror-state: 1.4.4
-      prosemirror-view: 1.42.3
+      prosemirror-view: 1.42.9
 
   prosemirror-history@1.5.1:
     dependencies:
       prosemirror-state: 1.4.4
       prosemirror-transform: 1.12.0
-      prosemirror-view: 1.42.3
+      prosemirror-view: 1.42.9
       rope-sequence: 1.3.4
 
   prosemirror-inputrules@1.5.1:
@@ -19877,7 +19881,7 @@ snapshots:
     dependencies:
       prosemirror-model: 1.25.11
       prosemirror-transform: 1.12.0
-      prosemirror-view: 1.42.3
+      prosemirror-view: 1.42.9
 
   prosemirror-tables@1.8.5:
     dependencies:
@@ -19885,21 +19889,21 @@ snapshots:
       prosemirror-model: 1.25.11
       prosemirror-state: 1.4.4
       prosemirror-transform: 1.12.0
-      prosemirror-view: 1.42.3
+      prosemirror-view: 1.42.9
 
   prosemirror-transform@1.12.0:
     dependencies:
-      prosemirror-model: 1.25.11
+      prosemirror-model: 1.25.12
 
   prosemirror-transform@1.12.4:
     dependencies:
       prosemirror-model: 1.25.11
 
-  prosemirror-view@1.42.3:
+  prosemirror-view@1.42.9:
     dependencies:
-      prosemirror-model: 1.25.11
+      prosemirror-model: 1.25.12
       prosemirror-state: 1.4.4
-      prosemirror-transform: 1.12.0
+      prosemirror-transform: 1.12.4
 
   proto-list@1.2.4: {}
 
@@ -20415,6 +20419,8 @@ snapshots:
   seemly@0.3.10: {}
 
   semver@6.3.1: {}
+
+  semver@6.3.2: {}
 
   semver@7.8.5: {}
 
