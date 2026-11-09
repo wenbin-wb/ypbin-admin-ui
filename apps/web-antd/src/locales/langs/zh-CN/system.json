@@ -298,9 +298,7 @@
     "unban": "解除封禁",
     "unbanConfirm": "确认解除 {0} 的自动封禁吗？",
     "refresh": "重新下发",
-    "refreshSuccess": "黑名单规则已重新下发",
-    "addTitle": "新增黑名单规则",
-    "editTitle": "编辑黑名单规则"
+    "refreshSuccess": "黑名单规则已重新下发"
   },
   "client": {
     "title": "客户端管理",

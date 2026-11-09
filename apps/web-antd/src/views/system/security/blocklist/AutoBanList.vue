@@ -11,6 +11,7 @@ import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import { getAutoBans, unbanAuto } from '#/api/system/blocklist';
 import { $t } from '#/locales';
 
+import { useAutoBanColumns } from './data';
 import BanForm from './modules/ban-form.vue';
 
 const [BanModal, banModalApi] = useVbenModal({
@@ -20,36 +21,13 @@ const [BanModal, banModalApi] = useVbenModal({
 
 const [Grid, gridApi] = useVbenVxeGrid({
   gridOptions: {
-    columns: [
-      {
-        field: 'clientIp',
-        title: $t('system.blocklist.clientIp'),
-        minWidth: 180,
-      },
-      {
-        field: 'reason',
-        title: $t('system.blocklist.reason'),
-        minWidth: 220,
-      },
-      {
-        field: 'expireTime',
-        title: $t('system.blocklist.expireTime'),
-        width: 180,
-      },
-      {
-        title: $t('common.action'),
-        field: 'action',
-        fixed: 'right',
-        width: 120,
-        slots: { default: 'action' },
-      },
-    ],
+    columns: useAutoBanColumns(),
     height: 'auto',
     keepSource: true,
     pagerConfig: { enabled: false },
     proxyConfig: {
       ajax: {
-        query: async () => (await getAutoBans()) ?? [],
+        query: async () => await getAutoBans(),
       },
     },
     rowConfig: { keyField: 'clientIp' },

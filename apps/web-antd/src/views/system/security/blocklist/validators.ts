@@ -1,4 +1,7 @@
-export type MatchType = 'CIDR' | 'IP' | 'PATH' | 'USER_AGENT';
+import type { SystemBlocklistApi } from '#/api/system/blocklist';
+
+/** 与后端/接口保持同一份联合类型，避免前端两处定义漂移 */
+export type MatchType = SystemBlocklistApi.MatchType;
 
 function isIPv4(value: string): boolean {
   const parts = value.split('.');
