@@ -66,8 +66,16 @@ const [Drawer, drawerApi] = useVbenDrawer<DictItemListData>({
         drawerApi.setState({
           title: `${$t('system.dictItem.title')} - ${data.dictName ?? ''}`,
         });
-        gridApi.query();
       }
+    }
+  },
+  onOpened() {
+    // 抽屉内容里的 Grid 在打开动画结束后才完成挂载。若在 onOpenChange 里同步
+    // gridApi.query()，此时 VxeGridApi 还没有绑定到真实 grid 实例，会报
+    // "e.grid.commitProxy is not a function"（首次打开必现）。
+    // 这里改用 onOpened：此时 Grid 已挂载，query 能正常走 proxyConfig。
+    if (dictId.value) {
+      void gridApi.query();
     }
   },
 });
