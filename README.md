@@ -6,14 +6,14 @@
 
 > 由后端动态路由驱动的 Vue 3 管理前端：RBAC、多租户、SSE 实时消息、AI 对话界面，开箱即用。
 
-**Vue 3.5 · TypeScript · Vite · Ant Design Vue 4 · Pinia**
+**Vue 3.5 · TypeScript 6 · Vite 8 · Ant Design Vue 4 · Pinia**
 
 [![CI](https://github.com/wenbin-wb/ypbin-admin-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/wenbin-wb/ypbin-admin-ui/actions/workflows/ci.yml)
 [![Code Style](https://img.shields.io/badge/Code%20Style-Oxlint%20%2B%20Prettier-brightgreen.svg)](https://github.com/wenbin-wb/ypbin-admin-ui/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Vue](https://img.shields.io/badge/Vue-3.5-green.svg)](https://vuejs.org/)
-[![Vite](https://img.shields.io/badge/Vite-6-blueviolet.svg)](https://vitejs.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-8-blueviolet.svg)](https://vitejs.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6.svg)](https://www.typescriptlang.org/)
 [![Ant Design Vue](https://img.shields.io/badge/Ant%20Design%20Vue-4-1677ff.svg)](https://next.antdv.com/)
 
 [在线演示](https://admin.ypbin.cn) · [文档](https://ypbin.cn/guide/admin-ui/) · [开发指南](https://ypbin.cn/guide/admin-ui/development)
@@ -69,7 +69,8 @@ Ypbin Admin UI 是 [ypbin-admin](https://github.com/wenbin-wb/ypbin-admin) 企�
 | 模块 | 说明 |
 |---|---|
 | 🧭 **后端驱动路由** | 菜单从 `ypbin-admin` 后端（`/menu/all`）加载，支持按钮级权限码 |
-| 🏛️ **系统管理** | 用户、角色、部门、岗位、菜单、字典、参数配置、租户、权限模板 |
+| 🏛️ **系统管理** | 用户、角色、部门、岗位、空间、菜单、字典、参数配置、租户、权限模板 |
+| 🛡️ **安全防护** | 访问黑名单（手动规则 / 自动封禁） |
 | 📨 **消息中心** | 站内信 SSE 实时推送，通知公告富文本发布 |
 | ⏰ **定时任务** | 基于 Cron 的任务管理与执行日志 |
 | 🏢 **多租户隔离** | 租户级数据与权限模板 |
@@ -89,7 +90,9 @@ Ypbin Admin UI 是 [ypbin-admin](https://github.com/wenbin-wb/ypbin-admin) 企�
 
 ## 🚀 快速开始
 
-前端需要后端服务先启动（后端启动方式见 [ypbin-admin](https://github.com/wenbin-wb/ypbin-admin)）。
+前端需要后端服务先启动（后端启动方式见 [ypbin-admin](https://github.com/wenbin-wb/ypbin-admin)，`main` 微服务版与 `boot`/`boot-miniapp` 单体版共用本前端）。
+
+前置：Node.js `^22.18.0 || ^24.12.0`、pnpm `11.16.0`（`corepack` 可直接启用）。
 
 ```bash
 # 安装依赖
@@ -129,6 +132,11 @@ apps/
 packages/            # 共享库（layouts、common-ui、preferences 等）
 internal/            # 构建工具链（vite-config、eslint-config 等）
 ```
+
+## 📚 文档说明
+
+- 产品文档：[ypbin.cn/guide/admin-ui](https://ypbin.cn/guide/admin-ui/)
+- 仓库内 `docs/` 为 Vben Admin 上游组件文档（随模板保留），不是本产品的业务文档；业务文档以上面的产品文档为准。
 
 ## 🤝 贡献
 
