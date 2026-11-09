@@ -19,14 +19,16 @@ type SpaceFormData = null | Partial<SystemSpaceApi.SpaceResp>;
 const formData = ref<Partial<SystemSpaceApi.SpaceResp>>();
 const getTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', [$t('system.space.name')])
-    : $t('ui.actionTitle.create', [$t('system.space.name')]);
+    ? $t('ui.actionTitle.edit', [$t('system.space.entityName')])
+    : $t('ui.actionTitle.create', [$t('system.space.entityName')]);
 });
 
 const [Form, formApi] = useVbenForm({
   layout: 'vertical',
   schema: useSchema(),
   showDefaultActions: false,
+  // 与部门/岗位表单一致：单列纵向布局。空间字段多、抽屉窄，双列会挤压文案与控件。
+  wrapperClass: 'grid-cols-1',
 });
 
 function resetForm() {

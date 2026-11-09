@@ -63,6 +63,7 @@ export type ComponentType =
   | 'RichEditor'
   | 'Select'
   | 'Space'
+  | 'SpaceSelect'
   | 'Switch'
   | 'Textarea'
   | 'TianaiCaptcha'
@@ -70,6 +71,18 @@ export type ComponentType =
   | 'TreeSelect'
   | 'Upload'
   | BaseFormComponentType;
+
+/** 共享空间选择器（_shared/space-select.vue）的表单入参 */
+export interface SpaceSelectProps {
+  allowClear?: boolean;
+  class?: string;
+  disabled?: boolean;
+  excludeIds?: string[];
+  leafOnly?: boolean;
+  modelValue?: null | string | string[];
+  multiple?: boolean;
+  placeholder?: string;
+}
 
 export interface ComponentPropsMap {
   ApiCascader: ApiComponentSharedProps & CascaderProps;
@@ -95,6 +108,7 @@ export interface ComponentPropsMap {
   RichEditor: TipTapProps;
   Select: SelectProps;
   Space: SpaceProps;
+  SpaceSelect: SpaceSelectProps;
   Switch: SwitchProps;
   Textarea: TextAreaProps;
   TimePicker: TimePickerProps;

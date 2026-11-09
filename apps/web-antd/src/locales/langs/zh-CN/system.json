@@ -546,6 +546,7 @@
   "space": {
     "title": "空间管理",
     "name": "空间名称",
+    "entityName": "空间",
     "code": "空间编码",
     "codePlaceholder": "留空则不参与唯一约束",
     "codeRule": "编码只能包含字母、数字、下划线与连字符，最长 64 字符",

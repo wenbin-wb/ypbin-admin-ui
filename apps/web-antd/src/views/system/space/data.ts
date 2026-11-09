@@ -50,7 +50,7 @@ export function useSchema(): VbenFormSchema[] {
     {
       component: 'Divider',
       fieldName: 'divider_basic',
-      formItemClass: 'col-span-2 md:col-span-2 pb-0',
+      formItemClass: 'col-span-full pb-0',
       hideLabel: true,
       renderComponentContent() {
         return { default: () => $t('system.space.groupBasic') };
@@ -136,7 +136,7 @@ export function useSchema(): VbenFormSchema[] {
     {
       component: 'Divider',
       fieldName: 'divider_location',
-      formItemClass: 'col-span-2 md:col-span-2 pb-0',
+      formItemClass: 'col-span-full pb-0',
       hideLabel: true,
       renderComponentContent() {
         return { default: () => $t('system.space.groupLocation') };
@@ -229,7 +229,7 @@ export function useSchema(): VbenFormSchema[] {
     {
       component: 'Divider',
       fieldName: 'divider_responsibility',
-      formItemClass: 'col-span-2 md:col-span-2 pb-0',
+      formItemClass: 'col-span-full pb-0',
       hideLabel: true,
       renderComponentContent() {
         return { default: () => $t('system.space.groupResponsibility') };
@@ -263,13 +263,19 @@ export function useSchema(): VbenFormSchema[] {
     },
     {
       component: 'Textarea',
-      componentProps: { maxlength: 500, rows: 3, showCount: true },
+      componentProps: {
+        class: 'w-full',
+        maxlength: 500,
+        rows: 3,
+        showCount: true,
+      },
       fieldName: 'remark',
       label: $t('system.space.remark'),
     },
     {
       component: 'Textarea',
       componentProps: {
+        class: 'w-full',
         placeholder: $t('system.space.extJsonPlaceholder'),
         rows: 3,
       },
@@ -327,7 +333,9 @@ export function useColumns(): VxeTableGridColumns<SystemSpaceApi.SpaceResp> {
       fixed: 'right',
       slots: { default: 'action' },
       title: $t('common.action'),
-      width: 170,
+      // 三个操作（编辑/关联对象/删除）与「关联对象」四字文案，170 会被截断；
+      // 与部门列表（200）对齐并留出余量（240 避免最右侧删除按钮贴边）。
+      width: 240,
     },
   ];
 }

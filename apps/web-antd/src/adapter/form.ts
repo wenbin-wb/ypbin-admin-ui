@@ -19,6 +19,8 @@ async function initSetupVbenForm() {
       modelPropNameMap: {
         Checkbox: 'checked',
         Radio: 'checked',
+        // 共享空间选择器使用 Vue 标准的 modelValue（非 ant 的 value）
+        SpaceSelect: 'modelValue',
         Switch: 'checked',
         Upload: 'fileList',
       },

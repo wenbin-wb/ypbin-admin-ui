@@ -546,6 +546,7 @@
   "space": {
     "title": "Space Management",
     "name": "Space Name",
+    "entityName": "Space",
     "code": "Space Code",
     "codePlaceholder": "Leave empty to skip the uniqueness constraint",
     "codeRule": "Only letters, digits, underscore and hyphen, max 64 chars",

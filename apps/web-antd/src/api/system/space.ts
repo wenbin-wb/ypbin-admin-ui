@@ -318,10 +318,23 @@ export async function countSpaceRelationsBySpaceTrees(spaceIds: string[]) {
   if (spaceIds.length === 0) {
     return {} as Record<string, Record<string, number>>;
   }
-  return requestClient.post<Record<string, Record<string, number>>>(
-    '/system/space/relation-counts',
-    spaceIds,
-  );
+  // 后端 Long 统一序列化为字符串（与全局 Jackson 配置一致），数量值运行时是 "2" 而不是 2。
+  // 直接参与求和会得到 "2" + "1" = "21" 这类拼接结果，必须在 API 边界归一为 number。
+  const data = await requestClient.post<
+    Record<string, Record<string, number | string>>
+  >('/system/space/relation-counts', spaceIds);
+  const normalized: Record<string, Record<string, number>> = {};
+  for (const [spaceId, counts] of Object.entries(data ?? {})) {
+    const byType: Record<string, number> = {};
+    for (const [targetType, value] of Object.entries(counts ?? {})) {
+      const count = Number(value);
+      if (Number.isFinite(count)) {
+        byType[targetType] = count;
+      }
+    }
+    normalized[spaceId] = byType;
+  }
+  return normalized;
 }
 
 /**

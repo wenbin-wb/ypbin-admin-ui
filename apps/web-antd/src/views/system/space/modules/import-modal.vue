@@ -15,13 +15,13 @@ import type { SpaceImportResult } from '#/api/system/space';
 import { computed, ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
+import { createIconifyIcon, Download } from '@vben/icons';
 
 import {
   Alert,
   Button,
   message,
   Radio,
-  Space,
   Table,
   Tag,
   Upload,
@@ -34,11 +34,14 @@ import { downloadBlobSafe } from '#/utils/file';
 
 const emit = defineEmits(['success']);
 
+const InboxIcon = createIconifyIcon('lucide:inbox');
+
 type ImportMode = 'insert' | 'upsert';
 
 const mode = ref<ImportMode>('insert');
 const selectedFile = ref<File>();
 const submitting = ref(false);
+const downloadLoading = ref(false);
 const result = ref<SpaceImportResult>();
 
 /** 是否已导入过（决定是否展示结果区） */
@@ -53,6 +56,7 @@ const allSucceeded = computed(() => {
 
 /** 下载导入模板 */
 async function onDownloadTemplate() {
+  downloadLoading.value = true;
   try {
     const blob = await downloadSpaceImportTemplate();
     // 用既有 downloadBlobSafe：它会识别「HTTP 200 但 body 是业务失败 JSON」，
@@ -66,6 +70,8 @@ async function onDownloadTemplate() {
     message.error(
       extractErrorMessage(error, $t('system.space.templateDownloadFailed')),
     );
+  } finally {
+    downloadLoading.value = false;
   }
 }
 
@@ -114,6 +120,8 @@ async function onImport() {
 }
 
 const [Modal, modalApi] = useVbenModal({
+  title: $t('system.space.importTitle'),
+  footer: false,
   async onOpenChange(isOpen: boolean) {
     if (isOpen) {
       // 每次打开重置：残留的上次文件/结果会让人误以为已导入
@@ -122,42 +130,34 @@ const [Modal, modalApi] = useVbenModal({
       result.value = undefined;
     }
   },
-  onConfirm() {
-    // 用自定义按钮而不是默认「确定」：默认按钮语义不明确（是「导入」还是「关闭」）
-    modalApi.close();
-  },
 });
 
 defineExpose({ modalApi });
 </script>
 
 <template>
-  <Modal
-    :title="$t('system.space.importTitle')"
-    class="w-[760px]"
-    :footer="false"
-  >
-    <div class="flex flex-col gap-4">
-      <!-- 步骤 1：模板 -->
-      <div class="rounded border border-solid p-3">
-        <div class="mb-1 text-sm font-medium">
-          {{ $t('system.space.importStep1') }}
+  <Modal>
+    <div class="space-y-4 p-2">
+      <!-- 模板下载 + 导入模式：与用户导入页同一套面板样式 -->
+      <div class="rounded-md bg-slate-50 p-3 dark:bg-slate-800">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-xs text-gray-500 dark:text-gray-400">
+            {{ $t('system.space.importTemplateHelp') }}
+          </span>
+          <Button
+            :loading="downloadLoading"
+            size="small"
+            type="link"
+            @click="onDownloadTemplate"
+          >
+            <template #icon>
+              <Download class="size-4" />
+            </template>
+            {{ $t('system.space.downloadTemplate') }}
+          </Button>
         </div>
-        <div class="mb-2 text-xs text-muted-foreground">
-          {{ $t('system.space.importTemplateHelp') }}
-        </div>
-        <Button @click="onDownloadTemplate">
-          {{ $t('system.space.downloadTemplate') }}
-        </Button>
-      </div>
-
-      <!-- 步骤 2：模式 + 文件 -->
-      <div class="rounded border border-solid p-3">
-        <div class="mb-2 text-sm font-medium">
-          {{ $t('system.space.importStep2') }}
-        </div>
-        <div class="mb-2">
-          <div class="mb-1 text-xs text-muted-foreground">
+        <div class="mt-3">
+          <div class="mb-1 text-xs text-gray-500 dark:text-gray-400">
             {{ $t('system.space.importMode') }}
           </div>
           <Radio.Group v-model:value="mode">
@@ -172,21 +172,32 @@ defineExpose({ modalApi });
             {{ $t('system.space.importModeUpsertWarning') }}
           </div>
         </div>
-        <Upload
-          accept=".csv"
-          :before-upload="onBeforeUpload"
-          :file-list="[]"
-          :max-count="1"
-        >
-          <Button>{{ $t('system.space.selectCsvFile') }}</Button>
-        </Upload>
-        <div v-if="selectedFile" class="mt-2 text-xs text-muted-foreground">
-          {{ $t('system.space.selectedFile') }}{{ selectedFile.name }}
-        </div>
       </div>
 
-      <!-- 步骤 3：执行 -->
-      <Space>
+      <!-- 文件上传：与用户导入一致的 Dragger 交互 -->
+      <Upload.Dragger
+        accept=".csv"
+        :before-upload="onBeforeUpload"
+        :disabled="submitting"
+        :show-upload-list="false"
+      >
+        <div class="py-6 text-center">
+          <InboxIcon class="mx-auto mb-2 size-10 text-primary" />
+          <p class="text-sm font-medium">
+            {{
+              selectedFile
+                ? selectedFile.name
+                : $t('system.space.selectCsvFile')
+            }}
+          </p>
+          <p class="mt-1 text-xs text-gray-400">
+            {{ $t('system.space.importTemplateHelp') }}
+          </p>
+        </div>
+      </Upload.Dragger>
+
+      <div class="flex justify-end gap-2">
+        <Button @click="modalApi.close()">{{ $t('common.cancel') }}</Button>
         <Button
           :disabled="!selectedFile"
           :loading="submitting"
@@ -195,8 +206,7 @@ defineExpose({ modalApi });
         >
           {{ $t('system.space.startImport') }}
         </Button>
-        <Button @click="modalApi.close()">{{ $t('common.cancel') }}</Button>
-      </Space>
+      </div>
 
       <!-- 结果 -->
       <div v-if="hasResult">
