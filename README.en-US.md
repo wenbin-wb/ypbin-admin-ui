@@ -4,7 +4,7 @@
 
 **企业级中后台管理前端 · Enterprise Admin UI**
 
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![vue](https://img.shields.io/badge/Vue-3.5-green.svg)](https://vuejs.org/) [![vite](https://img.shields.io/badge/Vite-6-blueviolet.svg)](https://vitejs.dev/) [![typescript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)](https://www.typescriptlang.org/) [![ant-design-vue](https://img.shields.io/badge/Ant%20Design%20Vue-4-1677ff.svg)](https://next.antdv.com/)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![vue](https://img.shields.io/badge/Vue-3.5-green.svg)](https://vuejs.org/) [![vite](https://img.shields.io/badge/Vite-8-blueviolet.svg)](https://vitejs.dev/) [![typescript](https://img.shields.io/badge/TypeScript-6-3178c6.svg)](https://www.typescriptlang.org/) [![ant-design-vue](https://img.shields.io/badge/Ant%20Design%20Vue-4-1677ff.svg)](https://next.antdv.com/)
 
 </div>
 
@@ -46,7 +46,8 @@ Ypbin Admin is the frontend of the [ypbin-admin](https://github.com/wenbin-wb/yp
 ## Features
 
 - **Backend-driven Menus & Permissions** — menus are loaded from the ypbin-admin backend (`/menu/all`) with button-level permission codes
-- **System Management** — users, roles, departments, posts, menus, dictionaries, configs, tenants, permission templates
+- **System Management** — users, roles, departments, posts, spaces, menus, dictionaries, configs, tenants, permission templates
+- **Security** — access blocklist (manual rules and automatic bans)
 - **Messaging Center** — in-site messages with real-time push via SSE, notification/announcement publishing with rich text
 - **Scheduled Tasks** — Cron-based task management with execution logs
 - **Multi-tenant Isolation** — tenant-scoped data and permission templates
@@ -61,7 +62,9 @@ Ypbin Admin is the frontend of the [ypbin-admin](https://github.com/wenbin-wb/yp
 
 ## Quick Start
 
-The frontend requires the backend service to be running (see the backend's `DEVELOPMENT-PLAN.md` for how to start it).
+The frontend requires the backend service to be running (see the [ypbin-admin](https://github.com/wenbin-wb/ypbin-admin) repository; the `main` microservice branch and the `boot` / `boot-miniapp` monolith branches share this frontend).
+
+Prerequisites: Node.js `^22.18.0 || ^24.12.0` and pnpm `11.16.0` (enable via `corepack`).
 
 ```bash
 # install dependencies
@@ -81,6 +84,11 @@ apps/
 packages/            # shared libraries (layouts, common-ui, preferences, ...)
 internal/            # build tooling (vite-config, eslint-config, ...)
 ```
+
+## Documentation
+
+- Product documentation: [ypbin.cn/guide/admin-ui](https://ypbin.cn/guide/admin-ui/)
+- The `docs/` directory contains the upstream Vben Admin component documentation kept with the template; it is not the product documentation.
 
 ## License
 
