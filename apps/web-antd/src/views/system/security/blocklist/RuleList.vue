@@ -89,19 +89,19 @@ function onRefreshRules() {
     <Grid :table-title="$t('system.blocklist.list')">
       <template #toolbar-tools>
         <Button
-          v-access:code="['system:blocklist:edit']"
-          class="mr-2"
-          @click="onRefreshRules"
-        >
-          {{ $t('system.blocklist.refresh') }}
-        </Button>
-        <Button
           v-access:code="['system:blocklist:add']"
           type="primary"
           @click="onCreate"
         >
           <Plus class="size-5" />
           {{ $t('ui.actionTitle.create', [$t('system.blocklist.name')]) }}
+        </Button>
+        <Button
+          v-access:code="['system:blocklist:edit']"
+          class="ml-2"
+          @click="onRefreshRules"
+        >
+          {{ $t('system.blocklist.refresh') }}
         </Button>
       </template>
 
