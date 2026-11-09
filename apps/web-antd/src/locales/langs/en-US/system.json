@@ -298,9 +298,7 @@
     "unban": "Unban",
     "unbanConfirm": "Unban {0}?",
     "refresh": "Republish",
-    "refreshSuccess": "Blocklist rules republished",
-    "addTitle": "New Blocklist Rule",
-    "editTitle": "Edit Blocklist Rule"
+    "refreshSuccess": "Blocklist rules republished"
   },
   "client": {
     "title": "Client Management",

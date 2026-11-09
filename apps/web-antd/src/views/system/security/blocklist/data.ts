@@ -1,6 +1,6 @@
-import type { SystemBlocklistApi } from '#/api/system/blocklist';
 import type { VbenFormSchema as FormSchema } from '#/adapter/form';
 import type { VxeTableGridColumns } from '#/adapter/vxe-table';
+import type { SystemBlocklistApi } from '#/api/system/blocklist';
 
 import { $t } from '#/locales';
 
@@ -67,6 +67,33 @@ export function useColumns(): VxeTableGridColumns {
       field: 'action',
       fixed: 'right',
       width: 150,
+      slots: { default: 'action' },
+    },
+  ];
+}
+
+export function useAutoBanColumns(): VxeTableGridColumns {
+  return [
+    {
+      field: 'clientIp',
+      title: $t('system.blocklist.clientIp'),
+      minWidth: 180,
+    },
+    {
+      field: 'reason',
+      title: $t('system.blocklist.reason'),
+      minWidth: 220,
+    },
+    {
+      field: 'expireTime',
+      title: $t('system.blocklist.expireTime'),
+      width: 180,
+    },
+    {
+      title: $t('common.action'),
+      field: 'action',
+      fixed: 'right',
+      width: 120,
       slots: { default: 'action' },
     },
   ];

@@ -14,6 +14,8 @@ import { $t } from '#/locales';
 import { matchTypeOptions } from '../data';
 import { isValidMatchValue } from '../validators';
 
+const emit = defineEmits(['success']);
+
 const MATCH_VALUE_ERROR_KEY: Record<SystemBlocklistApi.MatchType, string> = {
   CIDR: 'system.blocklist.invalidCidr',
   IP: 'system.blocklist.invalidIp',
@@ -32,8 +34,6 @@ function matchValueRules(values: Record<string, any>) {
     .min(1, $t('system.blocklist.matchValue'))
     .refine((value) => !!type && isValidMatchValue(type, value), message);
 }
-
-const emit = defineEmits(['success']);
 
 const [Form, formApi] = useVbenForm({
   schema: [
@@ -130,8 +130,8 @@ const [Drawer, drawerApi] =
       formApi.reset();
       drawerApi.setState({
         title: isUpdate
-          ? $t('system.blocklist.editTitle')
-          : $t('system.blocklist.addTitle'),
+          ? $t('ui.actionTitle.edit', [$t('system.blocklist.name')])
+          : $t('ui.actionTitle.create', [$t('system.blocklist.name')]),
       });
       await nextTick();
       if (data) {
@@ -139,6 +139,8 @@ const [Drawer, drawerApi] =
       }
     },
   });
+
+defineExpose({ drawerApi });
 </script>
 <template>
   <Drawer>
