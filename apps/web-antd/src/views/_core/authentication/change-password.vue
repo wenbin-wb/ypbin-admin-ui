@@ -5,13 +5,17 @@
  * 后端在改密前只放行改密/登出/身份查询接口，因此这里不拉用户信息或菜单；
  * 改密成功后后端会踢掉既有会话，前端清令牌并回登录页重新登录。
  */
+import type { VbenFormSchema } from '#/adapter/form';
+
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
+import { z } from '@vben/common-ui';
 import { LOGIN_PATH } from '@vben/constants';
 
-import { Button, Form, Input, message } from 'ant-design-vue';
+import { Button, message } from 'ant-design-vue';
 
+import { useVbenForm } from '#/adapter/form';
 import { changePassword } from '#/api/system/profile';
 import { $t } from '#/locales';
 import { useAuthStore } from '#/store';
@@ -23,29 +27,79 @@ defineOptions({ name: 'ChangePassword' });
 const router = useRouter();
 const authStore = useAuthStore();
 const submitting = ref(false);
-const form = ref({
-  confirmPassword: '',
-  newPassword: '',
-  oldPassword: '',
+
+const formSchema: VbenFormSchema[] = [
+  {
+    component: 'InputPassword',
+    componentProps: {
+      placeholder: $t('profile.oldPasswordPlaceholder'),
+    },
+    fieldName: 'oldPassword',
+    label: $t('system.user.password'),
+    rules: z
+      .string({ error: $t('profile.oldPasswordPlaceholder') })
+      .min(1, { message: $t('profile.oldPasswordPlaceholder') }),
+  },
+  {
+    component: 'InputPassword',
+    componentProps: {
+      placeholder: $t('profile.newPasswordPlaceholder'),
+    },
+    fieldName: 'newPassword',
+    label: $t('profile.newPassword'),
+    rules: z
+      .string({ error: $t('profile.newPasswordPlaceholder') })
+      .min(1, { message: $t('profile.newPasswordPlaceholder') })
+      .refine(isPasswordPolicySatisfied, {
+        message: $t('system.user.passwordRule'),
+      }),
+  },
+  {
+    component: 'InputPassword',
+    componentProps: {
+      placeholder: $t('profile.confirmPasswordPlaceholder'),
+    },
+    dependencies: {
+      rules(values: Record<string, any>) {
+        const { newPassword } = values;
+        return z
+          .string({ error: $t('profile.confirmPasswordPlaceholder') })
+          .min(1, { message: $t('profile.confirmPasswordPlaceholder') })
+          .refine((value) => value === newPassword, {
+            message: $t('profile.passwordMismatch'),
+          });
+      },
+      triggerFields: ['newPassword'],
+    },
+    fieldName: 'confirmPassword',
+    label: $t('profile.confirmPassword'),
+  },
+];
+
+const [Form, formApi] = useVbenForm({
+  layout: 'vertical',
+  schema: formSchema,
+  showDefaultActions: false,
 });
 
 async function handleSubmit() {
-  const { oldPassword, newPassword, confirmPassword } = form.value;
-  if (!oldPassword || !newPassword) {
-    message.warning($t('profile.oldPasswordPlaceholder'));
+  if (submitting.value) {
     return;
   }
-  if (!isPasswordPolicySatisfied(newPassword)) {
-    message.warning($t('system.user.passwordRule'));
+  const { valid } = await formApi.validate();
+  if (!valid) {
     return;
   }
-  if (newPassword !== confirmPassword) {
-    message.warning($t('profile.passwordMismatch'));
-    return;
-  }
+  const values = await formApi.getValues<{
+    newPassword: string;
+    oldPassword: string;
+  }>();
   submitting.value = true;
   try {
-    await changePassword({ newPassword, oldPassword });
+    await changePassword({
+      newPassword: values.newPassword,
+      oldPassword: values.oldPassword,
+    });
     message.success($t('page.auth.changePasswordSuccess'));
     clearMustChangePassword();
     // 后端已踢掉既有会话：本地清令牌，回登录页重新登录
@@ -58,7 +112,6 @@ async function handleSubmit() {
   }
 }
 </script>
-
 <template>
   <div class="mx-auto w-full max-w-md">
     <div class="rounded-xl border border-border bg-card p-6 shadow-sm">
@@ -68,41 +121,10 @@ async function handleSubmit() {
       <p class="mt-2 mb-6 text-center text-sm text-muted-foreground">
         {{ $t('page.auth.changePasswordHint') }}
       </p>
-      <Form layout="vertical" @finish="handleSubmit">
-        <Form.Item
-          :label="$t('system.user.password')"
-          name="oldPassword"
-          required
-        >
-          <Input.Password
-            v-model:value="form.oldPassword"
-            :placeholder="$t('profile.oldPasswordPlaceholder')"
-          />
-        </Form.Item>
-        <Form.Item
-          :label="$t('profile.newPassword')"
-          name="newPassword"
-          required
-        >
-          <Input.Password
-            v-model:value="form.newPassword"
-            :placeholder="$t('profile.newPasswordPlaceholder')"
-          />
-        </Form.Item>
-        <Form.Item
-          :label="$t('profile.confirmPassword')"
-          name="confirmPassword"
-          required
-        >
-          <Input.Password
-            v-model:value="form.confirmPassword"
-            :placeholder="$t('profile.confirmPasswordPlaceholder')"
-          />
-        </Form.Item>
-        <Button block html-type="submit" :loading="submitting" type="primary">
-          {{ $t('common.confirm') }}
-        </Button>
-      </Form>
+      <Form />
+      <Button block :loading="submitting" type="primary" @click="handleSubmit">
+        {{ $t('common.confirm') }}
+      </Button>
     </div>
   </div>
 </template>
