@@ -64,6 +64,15 @@ async function getMenuList() {
   );
 }
 
+/**
+ * 获取当前租户可授权的菜单树（角色授权弹窗使用）
+ */
+async function getAssignableMenuList() {
+  return requestClient.get<Array<SystemMenuApi.SystemMenu>>(
+    '/system/menu/assignable',
+  );
+}
+
 async function isMenuNameExists(
   name: string,
   id?: SystemMenuApi.SystemMenu['id'],
@@ -111,6 +120,7 @@ async function deleteMenu(id: string) {
 export {
   createMenu,
   deleteMenu,
+  getAssignableMenuList,
   getMenuList,
   isMenuNameExists,
   isMenuPathExists,

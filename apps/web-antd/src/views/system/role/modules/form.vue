@@ -12,7 +12,7 @@ import { IconifyIcon } from '@vben/icons';
 import { Spin } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
-import { getMenuList } from '#/api/system/menu';
+import { getAssignableMenuList } from '#/api/system/menu';
 import { createRole, updateRole } from '#/api/system/role';
 import { $t } from '#/locales';
 
@@ -94,7 +94,8 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemRoleApi.SystemRole>({
 async function loadPermissions() {
   loadingPermissions.value = true;
   try {
-    const res = await getMenuList();
+    // 只加载当前租户模板内的菜单：平台专用等模板外菜单授予后会被保存校验拒绝
+    const res = await getAssignableMenuList();
     permissions.value = res;
   } finally {
     loadingPermissions.value = false;
