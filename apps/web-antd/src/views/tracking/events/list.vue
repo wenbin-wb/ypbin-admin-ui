@@ -13,6 +13,7 @@ import { TRACKING_EVENT_CATALOG } from '@vben/tracking';
 import { Button, message, Segmented, Switch } from 'ant-design-vue';
 import dayjs from 'dayjs';
 
+import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import { exportTrackEvents, getTrackEventList } from '#/api/system/tracking';
 import { $t } from '#/locales';
@@ -74,17 +75,40 @@ function buildQuery(values: Recordable<any>): QueryFilters {
   return { ...rest, ...resolveTimeRange(values) };
 }
 
+/**
+ * 筛选表单独立于网格：视图切到「事件流」时网格会被卸载，
+ * 把表单放在网格内部会导致事件流视图下无法调整筛选条件。
+ */
+const [FilterForm, filterFormApi] = useVbenForm({
+  layout: 'horizontal',
+  schema: useGridFormSchema(),
+  showDefaultActions: false,
+  wrapperClass: 'grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3',
+});
+
+/** 已提交的筛选条件：表格与事件流共用，避免两者看到不同的数据 */
+const activeFilters = ref<Recordable<any>>({ quickRange: '24h' });
+
+async function onSearch() {
+  activeFilters.value = await filterFormApi.getValues();
+  refreshCurrentView();
+}
+
+async function onResetFilters() {
+  await filterFormApi.reset();
+  await onSearch();
+}
+
 const [Grid, gridApi] = useVbenVxeGrid({
-  formOptions: { schema: useGridFormSchema(), submitOnChange: true },
   gridOptions: {
     columns: useColumns(),
     height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
-        query: async ({ page }, formValues: Recordable<any>) =>
+        query: async ({ page }) =>
           await getTrackEventList({
-            ...buildQuery(formValues),
+            ...buildQuery(activeFilters.value),
             page: page.currentPage,
             pageSize: page.pageSize,
           }),
@@ -97,7 +121,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
       custom: true,
       export: false,
       refresh: true,
-      search: true,
+      search: false,
       zoom: true,
     },
   } as VxeTableGridOptions<SystemTrackingApi.TrackEvent>,
@@ -118,9 +142,8 @@ const streamLoading = ref(false);
 async function loadStream() {
   streamLoading.value = true;
   try {
-    const formValues = gridApi.formApi?.form?.values ?? {};
     const result = await getTrackEventList({
-      ...buildQuery(formValues as Recordable<any>),
+      ...buildQuery(activeFilters.value),
       page: 1,
       pageSize: 100,
     });
@@ -169,10 +192,10 @@ onBeforeUnmount(() => {
 
 /* ---------------- 概览联动 ---------------- */
 
-function applyEventCode(eventCode: string) {
+async function applyEventCode(eventCode: string) {
   viewMode.value = VIEW_TABLE;
-  gridApi.formApi?.setFieldValue('eventCode', eventCode);
-  gridApi.query();
+  await filterFormApi.setFieldValue('eventCode', eventCode);
+  await onSearch();
 }
 
 /* ---------------- 单元格渲染 ---------------- */
@@ -270,9 +293,8 @@ async function onExport() {
   exportLoading.value = true;
   try {
     // 导出沿用当前筛选条件（与列表同源），否则会导出与屏幕上不一致的数据
-    const formValues = gridApi.formApi?.form?.values ?? {};
     const blob = await exportTrackEvents({
-      ...buildQuery(formValues as Recordable<any>),
+      ...buildQuery(activeFilters.value),
       page: 1,
       pageSize: 1,
     });
@@ -297,6 +319,17 @@ async function onExport() {
   <Page auto-content-height>
     <Detail />
     <SummaryBar @apply-event-code="applyEventCode" />
+
+    <div class="mb-3 rounded-lg border bg-card p-4">
+      <FilterForm />
+      <div class="mt-3 flex justify-end gap-2">
+        <Button @click="onResetFilters">{{ $t('common.reset') }}</Button>
+        <Button type="primary" @click="onSearch">
+          {{ $t('common.query') }}
+        </Button>
+      </div>
+    </div>
+
     <Grid
       v-if="viewMode === VIEW_TABLE"
       :table-title="$t('tracking.events.title')"
@@ -413,6 +446,7 @@ async function onExport() {
 
     <StreamView
       v-else
+      class="mt-3"
       :events="streamEvents"
       :loading="streamLoading"
       @select="onDetail"
