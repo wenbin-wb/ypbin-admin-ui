@@ -121,11 +121,11 @@ defineExpose({ reload: load });
       </div>
 
       <!-- 趋势 -->
-      <div class="flex min-w-48 flex-1 flex-col gap-2">
+      <div class="flex min-w-48 max-w-72 flex-1 flex-col gap-2">
         <span class="text-xs text-muted-foreground">
           {{ $t('tracking.events.trendTitle', [TREND_DAYS]) }}
         </span>
-        <div class="flex h-12 items-end gap-1">
+        <div class="flex h-12 items-end gap-1 border-b border-border/60 pb-0.5">
           <div
             v-for="item in trend"
             :key="item.date"

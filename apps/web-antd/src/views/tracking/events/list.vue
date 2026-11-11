@@ -101,6 +101,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
       zoom: true,
     },
   } as VxeTableGridOptions<SystemTrackingApi.TrackEvent>,
+  gridEvents: {
+    cellClick: onCellClick,
+  },
 });
 
 /* ---------------- 视图切换：明细表 / 事件流 ---------------- */
@@ -220,12 +223,40 @@ function onDetail(row: SystemTrackingApi.TrackEvent) {
   drawerApi.open();
 }
 
+/**
+ * 复制文本：优先 Clipboard API，非安全上下文（HTTP 部署）下降级到 execCommand。
+ *
+ * <p>实测通过 http://<ip>:18081 访问时 navigator.clipboard 为 undefined，
+ * 直接调用会抛 TypeError、复制功能在测试环境完全不可用。</p>
+ */
+async function copyToClipboard(text: string) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+  } catch {
+    // 非安全上下文/权限被拒：降级到 execCommand
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.append(textarea);
+  textarea.select();
+  const copied = document.execCommand('copy');
+  textarea.remove();
+  if (!copied) {
+    throw new Error('clipboard copy failed');
+  }
+}
+
 async function copyTraceId(row: SystemTrackingApi.TrackEvent) {
   if (!row.traceId) {
     return;
   }
   try {
-    await navigator.clipboard.writeText(row.traceId);
+    await copyToClipboard(row.traceId);
     message.success($t('common.copySuccess'));
   } catch (error) {
     console.error('Failed to copy traceId:', error);
@@ -269,7 +300,6 @@ async function onExport() {
     <Grid
       v-if="viewMode === VIEW_TABLE"
       :table-title="$t('tracking.events.title')"
-      @cell-click="onCellClick"
     >
       <template #toolbar-tools>
         <Segmented
@@ -366,6 +396,8 @@ async function onExport() {
               auth: 'system:track:list',
               onClick: () => onDetail(row),
             },
+          ]"
+          :dropdown-actions="[
             {
               text: $t('tracking.events.copyTraceId'),
               icon: 'lucide:copy',

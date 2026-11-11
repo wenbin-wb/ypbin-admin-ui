@@ -145,7 +145,7 @@ export function useColumns(): VxeTableGridColumns {
       title: $t('common.action'),
       field: 'action',
       fixed: 'right',
-      width: 96,
+      width: 116,
       slots: { default: 'action' },
     },
   ];
