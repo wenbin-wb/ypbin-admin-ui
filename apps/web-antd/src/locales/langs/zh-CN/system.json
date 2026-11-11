@@ -195,6 +195,11 @@
       "emay": "亿美软通",
       "cloopen": "容联云"
     },
+    "registerVerifyMode": {
+      "none": "不验证",
+      "sms": "手机短信验证",
+      "email": "邮箱验证"
+    },
     "social": {
       "enabled": "启用登录",
       "clientId": "客户端 ID",

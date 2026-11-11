@@ -195,6 +195,11 @@
       "emay": "Emay",
       "cloopen": "Cloopen"
     },
+    "registerVerifyMode": {
+      "none": "No verification",
+      "sms": "SMS verification",
+      "email": "Email verification"
+    },
     "social": {
       "enabled": "Enable Login",
       "clientId": "Client ID",
