@@ -70,7 +70,16 @@
     "tabSession": "同会话（{0}）",
     "tabUser": "同用户（{0}）",
     "sessionEmpty": "该会话没有其他事件",
-    "userEmpty": "该用户最近没有其他事件"
+    "userEmpty": "该用户最近没有其他事件",
+    "savedViewsPlaceholder": "选择常用视图",
+    "saveCurrentView": "保存当前筛选",
+    "viewNamePlaceholder": "视图名称（最多 30 字）",
+    "saveView": "保存",
+    "deleteView": "删除视图",
+    "viewSaved": "视图已保存",
+    "viewDeleted": "视图已删除",
+    "viewNameRequired": "请输入视图名称",
+    "viewLimitReached": "最多保存 {0} 个视图"
   },
   "catalog": {
     "title": "事件目录",

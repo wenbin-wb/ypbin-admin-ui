@@ -70,7 +70,16 @@
     "tabSession": "Same session ({0})",
     "tabUser": "Same user ({0})",
     "sessionEmpty": "No other events in this session",
-    "userEmpty": "No recent events for this user"
+    "userEmpty": "No recent events for this user",
+    "savedViewsPlaceholder": "Select a saved view",
+    "saveCurrentView": "Save current filters",
+    "viewNamePlaceholder": "View name (max 30 chars)",
+    "saveView": "Save",
+    "deleteView": "Delete view",
+    "viewSaved": "View saved",
+    "viewDeleted": "View deleted",
+    "viewNameRequired": "View name is required",
+    "viewLimitReached": "Up to {0} views"
   },
   "catalog": {
     "title": "Event Catalog",

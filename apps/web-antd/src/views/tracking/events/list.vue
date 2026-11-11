@@ -4,13 +4,21 @@ import type { Recordable } from '@vben/types';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { SystemTrackingApi } from '#/api/system/tracking';
 
-import { onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import { Page, useVbenDrawer } from '@vben/common-ui';
 import { Download } from '@vben/icons';
 import { TRACKING_EVENT_CATALOG } from '@vben/tracking';
 
-import { Button, message, Segmented, Switch } from 'ant-design-vue';
+import {
+  Button,
+  Input,
+  message,
+  Popover,
+  Segmented,
+  Select,
+  Switch,
+} from 'ant-design-vue';
 import dayjs from 'dayjs';
 
 import { useVbenForm } from '#/adapter/form';
@@ -33,6 +41,12 @@ import DetailDrawer from './modules/detail.vue';
 import StreamView from './modules/stream.vue';
 import SummaryBar from './modules/summary.vue';
 import { usePageTitle } from './use-page-title';
+import {
+  createSavedView,
+  loadSavedViews,
+  MAX_SAVED_VIEWS,
+  persistSavedViews,
+} from './use-saved-views';
 
 const [Detail, drawerApi] = useVbenDrawer({ connectedComponent: DetailDrawer });
 
@@ -97,6 +111,69 @@ async function onSearch() {
 async function onResetFilters() {
   await filterFormApi.reset();
   await onSearch();
+}
+
+/* ---------------- 常用筛选视图（localStorage） ---------------- */
+
+const savedViews = ref(loadSavedViews());
+const selectedViewId = ref<string>();
+const savePopoverOpen = ref(false);
+const viewName = ref('');
+
+const savedViewOptions = computed(() =>
+  savedViews.value.map((view) => ({ label: view.name, value: view.id })),
+);
+
+async function applySavedView(value?: unknown) {
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    return;
+  }
+  const viewId = String(value);
+  const view = savedViews.value.find((item) => item.id === viewId);
+  if (!view) {
+    return;
+  }
+  await filterFormApi.setValues(view.filters);
+  await onSearch();
+}
+
+async function onSaveView() {
+  const name = viewName.value.trim();
+  if (!name) {
+    message.warning($t('tracking.events.viewNameRequired'));
+    return;
+  }
+  const values = (await filterFormApi.getValues()) as Record<string, unknown>;
+  const existing = savedViews.value.find((item) => item.name === name);
+  if (!existing && savedViews.value.length >= MAX_SAVED_VIEWS) {
+    message.warning($t('tracking.events.viewLimitReached', [MAX_SAVED_VIEWS]));
+    return;
+  }
+  if (existing) {
+    // 同名即覆盖：用户重复保存同名视图时，期望的是更新而不是出现两个同名项
+    existing.filters = values;
+    selectedViewId.value = existing.id;
+  } else {
+    const view = createSavedView(name, values);
+    savedViews.value = [...savedViews.value, view];
+    selectedViewId.value = view.id;
+  }
+  persistSavedViews(savedViews.value);
+  savePopoverOpen.value = false;
+  viewName.value = '';
+  message.success($t('tracking.events.viewSaved'));
+}
+
+function onDeleteView() {
+  if (!selectedViewId.value) {
+    return;
+  }
+  savedViews.value = savedViews.value.filter(
+    (item) => item.id !== selectedViewId.value,
+  );
+  persistSavedViews(savedViews.value);
+  selectedViewId.value = undefined;
+  message.success($t('tracking.events.viewDeleted'));
 }
 
 const [Grid, gridApi] = useVbenVxeGrid({
@@ -321,6 +398,48 @@ async function onExport() {
     <SummaryBar @apply-event-code="applyEventCode" />
 
     <div class="mb-3 rounded-lg border bg-card p-4">
+      <div class="mb-3 flex flex-wrap items-center justify-end gap-2">
+        <Select
+          v-model:value="selectedViewId"
+          :options="savedViewOptions"
+          :placeholder="$t('tracking.events.savedViewsPlaceholder')"
+          allow-clear
+          class="w-56"
+          @change="applySavedView"
+        />
+        <Popover
+          v-model:open="savePopoverOpen"
+          placement="bottomRight"
+          trigger="click"
+        >
+          <template #content>
+            <div class="flex w-64 flex-col gap-2">
+              <Input
+                v-model:value="viewName"
+                :placeholder="$t('tracking.events.viewNamePlaceholder')"
+                :maxlength="30"
+                @press-enter="onSaveView"
+              />
+              <div class="flex justify-end gap-2">
+                <Button size="small" @click="savePopoverOpen = false">
+                  {{ $t('common.cancel') }}
+                </Button>
+                <Button size="small" type="primary" @click="onSaveView">
+                  {{ $t('tracking.events.saveView') }}
+                </Button>
+              </div>
+            </div>
+          </template>
+          <Button size="small">
+{{
+            $t('tracking.events.saveCurrentView')
+          }}
+</Button>
+        </Popover>
+        <Button v-if="selectedViewId" danger size="small" @click="onDeleteView">
+          {{ $t('tracking.events.deleteView') }}
+        </Button>
+      </div>
       <FilterForm />
       <div class="mt-3 flex justify-end gap-2">
         <Button @click="onResetFilters">{{ $t('common.reset') }}</Button>
