@@ -201,6 +201,11 @@ function isBooleanValue(configValue: string): boolean {
 }
 
 function toFormValue(configKey: string, configValue: string): number | string {
+  // 特殊字段（租户/角色这类 ID 或编码）即使值形如 0/1 也按字符串处理；
+  // 否则 ApiSelect 的选项值是字符串时匹配不上数字，会回显原始 ID
+  if (SPECIAL_FIELDS[configKey]) {
+    return configValue;
+  }
   if (isBooleanKey(configKey) || isBooleanValue(configValue)) {
     return ['1', 'on', 'true', 'yes'].includes(configValue.trim().toLowerCase())
       ? 1
