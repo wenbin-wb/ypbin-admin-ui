@@ -45,6 +45,42 @@ export namespace AuthApi {
     mustChangePassword?: boolean;
   }
 
+  /** 注册公开配置（GET /auth/register/options） */
+  export interface RegisterOptions {
+    /** 是否需要行为验证码 */
+    captchaEnabled: boolean;
+    /** 注册总开关 */
+    enabled: boolean;
+    /** 归属验证方式：NONE / SMS / EMAIL */
+    verifyMode: 'EMAIL' | 'NONE' | 'SMS';
+  }
+
+  /** 注册接口参数（与后端 UserRegisterReq 同名） */
+  export interface RegisterParams {
+    captchaId?: string;
+    captchaTrack?: CaptchaTrack;
+    email?: string;
+    nickname?: string;
+    password: string;
+    phone?: string;
+    realName: string;
+    username: string;
+    /** 归属验证码（SMS/EMAIL 模式必传） */
+    verifyCode?: string;
+  }
+
+  /** 注册接口返回值（与登录同构） */
+  export interface RegisterResult {
+    accessToken: string;
+    mustChangePassword?: boolean;
+  }
+
+  /** 发送注册验证码参数：按当前渠道带 phone 或 email */
+  export interface RegisterCodeSendParams {
+    email?: string;
+    phone?: string;
+  }
+
   /** 后端行为验证码数据（tianai ImageCaptchaVO） */
   export interface CaptchaVo {
     id: string;
@@ -89,4 +125,27 @@ export async function logoutApi() {
  */
 export async function getAccessCodesApi() {
   return requestClient.get<string[]>('/auth/codes');
+}
+
+/**
+ * 注册公开配置（是否开启 / 验证渠道 / 是否需要行为验证码）
+ */
+export async function getRegisterOptionsApi() {
+  return requestClient.get<AuthApi.RegisterOptions>('/auth/register/options');
+}
+
+/**
+ * 用户注册（成功即建立会话，返回与登录同构的令牌）
+ */
+export async function registerApi(data: AuthApi.RegisterParams) {
+  return requestClient.post<AuthApi.RegisterResult>('/auth/register', data);
+}
+
+/**
+ * 发送注册验证码（渠道由后端配置决定）
+ */
+export async function sendRegisterCodeApi(
+  data: AuthApi.RegisterCodeSendParams,
+) {
+  return requestClient.post('/auth/register/code/send', data);
 }

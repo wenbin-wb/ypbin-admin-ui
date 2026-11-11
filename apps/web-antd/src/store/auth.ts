@@ -80,6 +80,20 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * 注册成功：后端已签发令牌，复用与第三方登录相同的收尾流程。
+   *
+   * <p>与直接跳登录页相比，走这里能立刻建立会话（后端注册接口已登录），避免留下
+   * 「注册成功但会话被丢弃、用户还要再输一次密码」的断点。</p>
+   */
+  async function registerLogin(
+    accessToken: string,
+    mustChangePassword?: boolean,
+    onSuccess?: () => Promise<void> | void,
+  ) {
+    return socialLogin(accessToken, mustChangePassword, onSuccess);
+  }
+
+  /**
    * 登录成功后的公共收尾：写令牌、拉取用户信息与权限码、跳转首页
    */
   async function completeLogin(
@@ -170,6 +184,7 @@ export const useAuthStore = defineStore('auth', () => {
     fetchUserInfo,
     loginLoading,
     logout,
+    registerLogin,
     socialLogin,
   };
 });
