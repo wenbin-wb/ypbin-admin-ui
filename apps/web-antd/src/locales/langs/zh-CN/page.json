@@ -36,6 +36,7 @@
       "renameSession": "重命名",
       "deleteSession": "删除",
       "send": "发送",
+      "list": "对话列表",
       "stop": "停止",
       "welcomeSubtitle": "选择一个角色开始对话，或直接输入问题",
       "quickQuestion_1": "帮我写一份工作周报",
@@ -86,6 +87,7 @@
     },
     "knowledge": {
       "title": "知识库",
+      "list": "查看知识库",
       "create": "新建知识库",
       "wizard": "创建向导",
       "name": "知识库名称",
@@ -255,8 +257,19 @@
       "ask": "提问",
       "askHint": "输入问题后点击提问，AI 将基于当前知识库内容作答"
     },
+    "document": {
+      "upload": "上传文档",
+      "delete": "删除文档"
+    },
+    "model": {
+      "list": "查看模型",
+      "create": "新增模型",
+      "edit": "编辑模型",
+      "delete": "删除模型"
+    },
     "wiki": {
       "title": "Wiki 阅读",
+      "view": "阅读 Wiki",
       "askAi": "问 AI",
       "askPlaceholder": "输入问题，AI 会结合知识库回答…",
       "ask": "提问",
@@ -272,6 +285,7 @@
     },
     "prompt": {
       "title": "Prompt 模板",
+      "list": "查看模板",
       "create": "新增模板",
       "edit": "编辑模板",
       "name": "模板名称",
@@ -298,6 +312,7 @@
     },
     "role": {
       "title": "对话角色",
+      "list": "角色列表",
       "create": "新建角色",
       "edit": "编辑角色",
       "name": "角色名称",
@@ -316,6 +331,7 @@
     },
     "usage": {
       "title": "统计看板",
+      "view": "查看统计看板",
       "totalCalls": "总对话次数",
       "totalTokens": "总 Token 消耗",
       "avgLatency": "平均响应耗时",

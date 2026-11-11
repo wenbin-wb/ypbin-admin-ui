@@ -1,5 +1,14 @@
 {
   "title": "系统管理",
+  "dashboard": {
+    "view": "查看概览"
+  },
+  "mail": {
+    "test": "邮件测试"
+  },
+  "push": {
+    "test": "推送测试"
+  },
   "user": {
     "title": "用户管理",
     "list": "用户列表",

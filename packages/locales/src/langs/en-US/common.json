@@ -18,6 +18,8 @@
   "delete": "Delete",
   "detail": "Detail",
   "create": "Create",
+  "upload": "Upload",
+  "kickout": "Force Logout",
   "creator": "Creator",
   "operator": "Operator",
   "status": "Status",

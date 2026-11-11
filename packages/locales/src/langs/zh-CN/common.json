@@ -18,6 +18,8 @@
   "delete": "删除",
   "detail": "详情",
   "create": "新增",
+  "upload": "上传",
+  "kickout": "强制下线",
   "creator": "创建人",
   "operator": "操作人",
   "action": "操作",

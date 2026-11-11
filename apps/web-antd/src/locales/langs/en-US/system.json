@@ -1,5 +1,14 @@
 {
   "title": "System Management",
+  "dashboard": {
+    "view": "View Dashboard"
+  },
+  "mail": {
+    "test": "Mail Test"
+  },
+  "push": {
+    "test": "Push Test"
+  },
   "user": {
     "title": "User Management",
     "list": "User List",

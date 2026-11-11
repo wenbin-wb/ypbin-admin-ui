@@ -51,6 +51,7 @@
       "renameSession": "Rename",
       "deleteSession": "Delete",
       "send": "Send",
+      "list": "Conversation List",
       "stop": "Stop",
       "welcomeSubtitle": "Choose a role or just start typing",
       "quickQuestion_1": "Write a weekly work summary",
@@ -101,6 +102,7 @@
     },
     "knowledge": {
       "title": "Knowledge Base",
+      "list": "View Knowledge Base",
       "create": "Create Knowledge Base",
       "wizard": "Create Wizard",
       "name": "Name",
@@ -270,8 +272,19 @@
       "ask": "Ask",
       "askHint": "Enter a question and click Ask. AI will answer based on the current knowledge base."
     },
+    "document": {
+      "upload": "Upload Document",
+      "delete": "Delete Document"
+    },
+    "model": {
+      "list": "View Models",
+      "create": "New Model",
+      "edit": "Edit Model",
+      "delete": "Delete Model"
+    },
     "wiki": {
       "title": "Wiki Reader",
+      "view": "Read Wiki",
       "askAi": "Ask AI",
       "askPlaceholder": "Ask a question, AI will answer based on the knowledge base…",
       "ask": "Ask",
@@ -287,6 +300,7 @@
     },
     "prompt": {
       "title": "Prompt Templates",
+      "list": "View Templates",
       "create": "New Template",
       "edit": "Edit Template",
       "name": "Template Name",
@@ -313,6 +327,7 @@
     },
     "role": {
       "title": "Chat Roles",
+      "list": "Role List",
       "create": "New Role",
       "edit": "Edit Role",
       "name": "Role Name",
@@ -331,6 +346,7 @@
     },
     "usage": {
       "title": "Statistics Dashboard",
+      "view": "View Statistics",
       "totalCalls": "Total Calls",
       "totalTokens": "Total Tokens",
       "avgLatency": "Avg Latency",
