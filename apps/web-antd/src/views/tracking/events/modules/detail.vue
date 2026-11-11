@@ -8,14 +8,73 @@ import { computed, ref } from 'vue';
 import { useVbenDrawer } from '@vben/common-ui';
 import { TRACKING_EVENT_CATALOG } from '@vben/tracking';
 
-import { Descriptions, DescriptionsItem } from 'ant-design-vue';
+import {
+  Descriptions,
+  DescriptionsItem,
+  Empty,
+  Spin,
+  Tabs,
+} from 'ant-design-vue';
 
+import { getTrackEventList } from '#/api/system/tracking';
 import { $t } from '#/locales';
 
+import { clockTime, eventDomain, isFailed } from '../meta';
 import { humanizePayload, translatePayloadValue } from '../payload';
 import { usePageTitle } from '../use-page-title';
 
 const record = ref<Partial<SystemTrackingApi.TrackEvent>>({});
+
+/** 详情页签：详情 / 同会话 / 同用户 */
+const activeTab = ref('detail');
+
+const sessionEvents = ref<SystemTrackingApi.TrackEvent[]>([]);
+const userEvents = ref<SystemTrackingApi.TrackEvent[]>([]);
+const sessionLoading = ref(false);
+const userLoading = ref(false);
+
+/**
+ * 拉取同一会话与同一用户的上下文事件。
+ *
+ * <p>排查一次操作时只看单条事件没有意义：会话内前后发生了什么、这个用户最近还触发了什么，
+ * 才是判断问题的依据。两个列表按接收时间升序，和人在页面上操作的时间顺序一致。</p>
+ */
+async function loadContext(event: Partial<SystemTrackingApi.TrackEvent>) {
+  sessionEvents.value = [];
+  userEvents.value = [];
+  if (event.sessionId) {
+    sessionLoading.value = true;
+    try {
+      const result = await getTrackEventList({
+        page: 1,
+        pageSize: 100,
+        sessionId: event.sessionId,
+      });
+      sessionEvents.value = sortAsc(result.items ?? []);
+    } finally {
+      sessionLoading.value = false;
+    }
+  }
+  if (event.userId) {
+    userLoading.value = true;
+    try {
+      const result = await getTrackEventList({
+        page: 1,
+        pageSize: 10,
+        userId: event.userId,
+      });
+      userEvents.value = sortAsc(result.items ?? []);
+    } finally {
+      userLoading.value = false;
+    }
+  }
+}
+
+function sortAsc(events: SystemTrackingApi.TrackEvent[]) {
+  return [...events].toSorted((a, b) =>
+    (a.receivedTime ?? '').localeCompare(b.receivedTime ?? ''),
+  );
+}
 
 /**
  * 空值占位。
@@ -77,7 +136,9 @@ const [Drawer, drawerApi] = useVbenDrawer<SystemTrackingApi.TrackEvent>({
   onOpenChange(isOpen: boolean) {
     if (isOpen) {
       record.value = drawerApi.getData() ?? {};
+      activeTab.value = 'detail';
       drawerApi.setState({ title: $t('tracking.events.detailTitle') });
+      void loadContext(record.value);
     }
   },
 });
@@ -145,6 +206,14 @@ const hasPayload = computed(
  * 说明文案只在「括号里的原始 key」确实出现时才展示——否则对绝大多数 payload
  * 都是一句用不上的噪音。
  */
+const sessionTab = computed(() =>
+  $t('tracking.events.tabSession', [sessionEvents.value.length]),
+);
+
+const userTab = computed(() =>
+  $t('tracking.events.tabUser', [userEvents.value.length]),
+);
+
 const hasTranslatedPayload = computed(() =>
   Object.values(record.value.payload ?? {}).some(
     (value) => translatePayloadValue(value) !== value,
@@ -154,86 +223,166 @@ const hasTranslatedPayload = computed(() =>
 
 <template>
   <Drawer>
-    <Descriptions
-      bordered
-      size="small"
-      :column="1"
-      :label-style="LABEL_CELL_STYLE"
-    >
-      <DescriptionsItem :label="$t('tracking.events.eventId')">
-        {{ toText(record.eventId) }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.eventCode')">
-        {{ toText(record.eventCode) }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.catalog.description')">
-        {{ eventDescription }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.appId')">
-        {{ toText(record.appId) }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.userId')">
-        {{ toText(record.userIdName || record.userId) }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.anonId')">
-        {{ toText(record.anonId) }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.sessionId')">
-        {{ toText(record.sessionId) }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.traceId')">
-        {{ toText(record.traceId) }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.pageUrl')">
-        {{ toText(pageTitleText) }}
-      </DescriptionsItem>
-      <DescriptionsItem
-        v-if="showRawPageUrl"
-        :label="$t('tracking.events.pageUrlRaw')"
-      >
-        {{ record.pageUrl }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.referrer')">
-        {{ toText(record.referrer) }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.ip')">
-        {{ toText(record.ip) }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.userAgent')">
-        {{ toText(record.userAgent) }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.durationMs')">
-        {{ durationText }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.result')">
-        {{ resultText }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.eventTime')">
-        {{ toText(record.eventTime) }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('tracking.events.receivedTime')">
-        {{ toText(record.receivedTime) }}
-      </DescriptionsItem>
-    </Descriptions>
-
-    <div class="mt-4">
-      <div class="mb-2 text-sm font-medium">
-        {{ $t('tracking.events.payload') }}
-      </div>
-      <template v-if="hasPayload">
-        <div
-          v-if="hasTranslatedPayload"
-          class="mb-2 text-xs text-muted-foreground"
+    <Tabs v-model:active-key="activeTab" :animated="false">
+      <Tabs.TabPane key="detail" :tab="$t('tracking.events.tabDetail')">
+        <Descriptions
+          bordered
+          size="small"
+          :column="1"
+          :label-style="LABEL_CELL_STYLE"
         >
-          {{ $t('tracking.events.payloadI18nHint') }}
+          <DescriptionsItem :label="$t('tracking.events.eventId')">
+            {{ toText(record.eventId) }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.eventCode')">
+            {{ toText(record.eventCode) }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.catalog.description')">
+            {{ eventDescription }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.appId')">
+            {{ toText(record.appId) }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.userId')">
+            {{ toText(record.userIdName || record.userId) }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.anonId')">
+            {{ toText(record.anonId) }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.sessionId')">
+            {{ toText(record.sessionId) }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.traceId')">
+            {{ toText(record.traceId) }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.pageUrl')">
+            {{ toText(pageTitleText) }}
+          </DescriptionsItem>
+          <DescriptionsItem
+            v-if="showRawPageUrl"
+            :label="$t('tracking.events.pageUrlRaw')"
+          >
+            {{ record.pageUrl }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.referrer')">
+            {{ toText(record.referrer) }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.ip')">
+            {{ toText(record.ip) }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.userAgent')">
+            {{ toText(record.userAgent) }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.durationMs')">
+            {{ durationText }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.result')">
+            {{ resultText }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.eventTime')">
+            {{ toText(record.eventTime) }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('tracking.events.receivedTime')">
+            {{ toText(record.receivedTime) }}
+          </DescriptionsItem>
+        </Descriptions>
+
+        <div class="mt-4">
+          <div class="mb-2 text-sm font-medium">
+            {{ $t('tracking.events.payload') }}
+          </div>
+          <template v-if="hasPayload">
+            <div
+              v-if="hasTranslatedPayload"
+              class="mb-2 text-xs text-muted-foreground"
+            >
+              {{ $t('tracking.events.payloadI18nHint') }}
+            </div>
+            <pre
+              class="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted/60 p-3 text-xs leading-relaxed"
+              >{{ prettyPayload }}</pre>
+          </template>
+          <div v-else class="text-sm text-muted-foreground">
+            {{ $t('tracking.events.payloadEmpty') }}
+          </div>
         </div>
-        <pre
-          class="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted/60 p-3 text-xs leading-relaxed"
-          >{{ prettyPayload }}</pre>
-      </template>
-      <div v-else class="text-sm text-muted-foreground">
-        {{ $t('tracking.events.payloadEmpty') }}
-      </div>
-    </div>
+      </Tabs.TabPane>
+
+      <Tabs.TabPane key="session" :tab="sessionTab">
+        <Spin :spinning="sessionLoading">
+          <Empty
+            v-if="!sessionLoading && sessionEvents.length === 0"
+            :description="$t('tracking.events.sessionEmpty')"
+          />
+          <ul v-else class="divide-y rounded-md border">
+            <li
+              v-for="item in sessionEvents"
+              :key="item.id"
+              class="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm transition-colors hover:bg-muted/60"
+              :class="item.id === record.id ? 'bg-primary/5' : ''"
+              @click="record = item"
+            >
+              <span
+                class="w-16 shrink-0 font-mono text-xs text-muted-foreground"
+              >
+                {{ clockTime(item.receivedTime) }}
+              </span>
+              <span
+                class="size-2 shrink-0 rounded-full"
+                :class="eventDomain(item.eventCode).dotClass"
+              ></span>
+              <span class="min-w-0 flex-1 truncate">{{ item.eventCode }}</span>
+              <span
+                v-if="isFailed(item)"
+                class="shrink-0 text-xs font-medium text-destructive"
+              >
+                {{ $t('tracking.events.fail') }}
+              </span>
+              <span
+                v-if="item.durationMs"
+                class="w-20 shrink-0 text-right font-mono text-xs text-muted-foreground"
+              >
+                {{ item.durationMs }} ms
+              </span>
+            </li>
+          </ul>
+        </Spin>
+      </Tabs.TabPane>
+
+      <Tabs.TabPane key="user" :tab="userTab">
+        <Spin :spinning="userLoading">
+          <Empty
+            v-if="!userLoading && userEvents.length === 0"
+            :description="$t('tracking.events.userEmpty')"
+          />
+          <ul v-else class="divide-y rounded-md border">
+            <li
+              v-for="item in userEvents"
+              :key="item.id"
+              class="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm transition-colors hover:bg-muted/60"
+              :class="item.id === record.id ? 'bg-primary/5' : ''"
+              @click="record = item"
+            >
+              <span
+                class="w-32 shrink-0 font-mono text-xs text-muted-foreground"
+              >
+                {{ item.receivedTime }}
+              </span>
+              <span
+                class="size-2 shrink-0 rounded-full"
+                :class="eventDomain(item.eventCode).dotClass"
+              ></span>
+              <span class="min-w-0 flex-1 truncate">{{ item.eventCode }}</span>
+              <span
+                v-if="isFailed(item)"
+                class="shrink-0 text-xs font-medium text-destructive"
+              >
+                {{ $t('tracking.events.fail') }}
+              </span>
+            </li>
+          </ul>
+        </Spin>
+      </Tabs.TabPane>
+    </Tabs>
   </Drawer>
 </template>

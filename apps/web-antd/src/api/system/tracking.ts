@@ -16,6 +16,8 @@ export namespace SystemTrackingApi {
     endTime?: string;
     /** 事件码（精确匹配） */
     eventCode?: string;
+    /** 关键词（模糊匹配事件 ID / 链路 ID / 会话 ID / 页面地址 / 事件属性） */
+    keyword?: string;
     /** 会话 ID（精确匹配） */
     sessionId?: string;
     /** 起始时间（yyyy-MM-dd HH:mm:ss，按服务端接收时间过滤） */
