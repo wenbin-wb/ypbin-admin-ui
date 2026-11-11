@@ -12,8 +12,7 @@ import { IconifyIcon } from '@vben/icons';
 import { Spin } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
-import { getAssignableMenuList } from '#/api/system/menu';
-import { createRole, updateRole } from '#/api/system/role';
+import { createRole, getAssignableMenus, updateRole } from '#/api/system/role';
 import { $t } from '#/locales';
 
 import { useFormSchema } from '../data';
@@ -91,12 +90,23 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemRoleApi.SystemRole>({
   },
 });
 
+// 仅为保持树结构保留的祖先节点不可勾选，否则保存会被后端模板校验拒绝
+function markUnassignable(
+  nodes: SystemMenuApi.SystemMenu[],
+): SystemMenuApi.SystemMenu[] {
+  return nodes.map((node) => ({
+    ...node,
+    children: node.children ? markUnassignable(node.children) : undefined,
+    disabled: node.assignable === false,
+  }));
+}
+
 async function loadPermissions() {
   loadingPermissions.value = true;
   try {
     // 只加载当前租户模板内的菜单：平台专用等模板外菜单授予后会被保存校验拒绝
-    const res = await getAssignableMenuList();
-    permissions.value = res;
+    const res = await getAssignableMenus();
+    permissions.value = markUnassignable(res);
   } finally {
     loadingPermissions.value = false;
   }

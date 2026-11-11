@@ -1,4 +1,5 @@
 import type { SystemCommonApi } from './common';
+import type { SystemMenuApi } from './menu';
 
 import { requestClient } from '#/api/request';
 
@@ -46,6 +47,15 @@ async function getRoleList(params: SystemRoleApi.RoleQuery) {
 }
 
 /**
+ * 获取当前租户可授权的菜单树（角色授权弹窗使用）
+ */
+async function getAssignableMenus() {
+  return requestClient.get<Array<SystemMenuApi.SystemMenu>>(
+    '/system/role/assignable-menus',
+  );
+}
+
+/**
  * 创建角色
  * @param data 角色数据
  */
@@ -90,6 +100,7 @@ async function getRoleAll() {
 export {
   createRole,
   deleteRole,
+  getAssignableMenus,
   getRoleAll,
   getRoleList,
   updateRole,

@@ -49,7 +49,11 @@ export namespace SystemMenuApi {
 
   /** 菜单管理响应，字段与保存请求保持同名。 */
   export interface SystemMenu extends MenuSaveReq {
+    /** 是否可授予当前角色；仅角色授权树返回，false 表示仅为保持树结构的祖先 */
+    assignable?: boolean;
     children?: SystemMenu[];
+    /** 前端授权树置灰标记（由 assignable 推导，不来自后端） */
+    disabled?: boolean;
     id: string;
     pid: string;
   }
@@ -61,15 +65,6 @@ export namespace SystemMenuApi {
 async function getMenuList() {
   return requestClient.get<Array<SystemMenuApi.SystemMenu>>(
     '/system/menu/list',
-  );
-}
-
-/**
- * 获取当前租户可授权的菜单树（角色授权弹窗使用）
- */
-async function getAssignableMenuList() {
-  return requestClient.get<Array<SystemMenuApi.SystemMenu>>(
-    '/system/menu/assignable',
   );
 }
 
@@ -120,7 +115,6 @@ async function deleteMenu(id: string) {
 export {
   createMenu,
   deleteMenu,
-  getAssignableMenuList,
   getMenuList,
   isMenuNameExists,
   isMenuPathExists,
