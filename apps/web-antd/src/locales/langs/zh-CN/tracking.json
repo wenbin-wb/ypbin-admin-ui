@@ -61,7 +61,6 @@
     "streamView": "事件流",
     "autoRefresh": "自动刷新",
     "copyTraceId": "复制链路 ID",
-    "sessionGroup": "会话 {0}",
     "sessionEventsCount": "{0} 条事件",
     "noSession": "未带会话",
     "anonymous": "匿名",
@@ -78,7 +77,11 @@
     "viewSaved": "视图已保存",
     "viewDeleted": "视图已删除",
     "viewNameRequired": "请输入视图名称",
-    "viewLimitReached": "最多保存 {0} 个视图"
+    "viewLimitReached": "最多保存 {0} 个视图",
+    "trendTotal": "合计 {0} 条",
+    "trendToday": "今天",
+    "sessionLabel": "会话",
+    "copySessionId": "复制会话 ID"
   },
   "catalog": {
     "title": "事件目录",

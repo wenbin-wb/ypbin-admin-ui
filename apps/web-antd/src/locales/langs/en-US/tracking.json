@@ -61,7 +61,6 @@
     "streamView": "Stream",
     "autoRefresh": "Auto refresh",
     "copyTraceId": "Copy trace ID",
-    "sessionGroup": "Session {0}",
     "sessionEventsCount": "{0} events",
     "noSession": "No session",
     "anonymous": "Anonymous",
@@ -78,7 +77,11 @@
     "viewSaved": "View saved",
     "viewDeleted": "View deleted",
     "viewNameRequired": "View name is required",
-    "viewLimitReached": "Up to {0} views"
+    "viewLimitReached": "Up to {0} views",
+    "trendTotal": "Total {0}",
+    "trendToday": "Today",
+    "sessionLabel": "Session",
+    "copySessionId": "Copy session ID"
   },
   "catalog": {
     "title": "Event Catalog",

@@ -3,13 +3,16 @@ import type { SystemTrackingApi } from '#/api/system/tracking';
 
 import { computed } from 'vue';
 
+import { IconifyIcon } from '@vben/icons';
 import { TRACKING_EVENT_CATALOG } from '@vben/tracking';
 
-import { Empty, Spin } from 'ant-design-vue';
+import { Button, Empty, message, Spin } from 'ant-design-vue';
 
 import { $t } from '#/locales';
 
+import { copyToClipboard } from '../clipboard';
 import { clockTime, eventDomain, isFailed } from '../meta';
+import { usePageTitle } from '../use-page-title';
 
 const props = defineProps<{
   events: SystemTrackingApi.TrackEvent[];
@@ -17,6 +20,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{ select: [event: SystemTrackingApi.TrackEvent] }>();
+
+const { pageTitle } = usePageTitle();
 
 interface SessionGroup {
   key: string;
@@ -54,7 +59,7 @@ const groups = computed<SessionGroup[]>(() => {
   }
   const result = [...bySession.values()];
   for (const group of result) {
-    group.events.toSorted((a, b) =>
+    group.events = group.events.toSorted((a, b) =>
       (a.receivedTime ?? '').localeCompare(b.receivedTime ?? ''),
     );
     group.startTime = group.events[0]?.receivedTime;
@@ -66,15 +71,26 @@ const groups = computed<SessionGroup[]>(() => {
   );
 });
 
-function sessionLabel(sessionId?: string): string {
-  if (!sessionId) {
-    return $t('tracking.events.noSession');
-  }
-  return sessionId.length > 12 ? `${sessionId.slice(0, 12)}…` : sessionId;
-}
-
 function eventName(eventCode: string): string {
   return TRACKING_EVENT_CATALOG[eventCode]?.description ?? eventCode;
+}
+
+/** 页面标题；未命中菜单树时回退原始路径 */
+function pageText(event: SystemTrackingApi.TrackEvent): string {
+  return pageTitle(event.pageUrl) || event.pageUrl || '-';
+}
+
+async function copySessionId(sessionId?: string) {
+  if (!sessionId) {
+    return;
+  }
+  try {
+    await copyToClipboard(sessionId);
+    message.success($t('common.copySuccess'));
+  } catch (error) {
+    console.error('Failed to copy sessionId:', error);
+    message.error($t('common.copyFailed'));
+  }
 }
 </script>
 
@@ -84,7 +100,7 @@ function eventName(eventCode: string): string {
       v-if="!loading && groups.length === 0"
       :description="$t('common.noData')"
     />
-    <div v-else class="flex flex-col gap-3 overflow-auto">
+    <div v-else class="flex flex-col gap-3">
       <div
         v-for="group in groups"
         :key="group.key"
@@ -93,12 +109,26 @@ function eventName(eventCode: string): string {
         <div
           class="flex flex-wrap items-center gap-x-4 gap-y-1 border-b bg-muted/40 px-3 py-2 text-xs"
         >
-          <span class="font-medium">
-            {{
-              $t('tracking.events.sessionGroup', [
-                sessionLabel(group.sessionId),
-              ])
-            }}
+          <span class="flex min-w-0 items-center gap-1.5">
+            <span class="shrink-0 font-medium">
+              {{ $t('tracking.events.sessionLabel') }}
+            </span>
+            <code
+              class="break-all font-mono text-muted-foreground"
+              :title="group.sessionId ?? $t('tracking.events.noSession')"
+            >
+              {{ group.sessionId ?? $t('tracking.events.noSession') }}
+            </code>
+            <Button
+              v-if="group.sessionId"
+              v-access:code="['system:track:list']"
+              :title="$t('tracking.events.copySessionId')"
+              size="small"
+              type="text"
+              @click.stop="copySessionId(group.sessionId)"
+            >
+              <IconifyIcon icon="lucide:copy" class="size-3.5" />
+            </Button>
           </span>
           <span class="text-muted-foreground">{{ group.userText }}</span>
           <span class="text-muted-foreground">
@@ -106,7 +136,7 @@ function eventName(eventCode: string): string {
               $t('tracking.events.sessionEventsCount', [group.events.length])
             }}
           </span>
-          <span class="ml-auto text-muted-foreground">
+          <span class="ml-auto shrink-0 text-muted-foreground tabular-nums">
             {{ clockTime(group.startTime) }} – {{ clockTime(group.endTime) }}
           </span>
         </div>
@@ -124,9 +154,15 @@ function eventName(eventCode: string): string {
               class="size-2 shrink-0 rounded-full"
               :class="eventDomain(event.eventCode).dotClass"
             ></span>
-            <span class="min-w-0 flex-1 truncate">
-              {{ eventName(event.eventCode) }}
-            </span>
+            <div class="flex min-w-0 flex-1 flex-col">
+              <span class="truncate">{{ eventName(event.eventCode) }}</span>
+              <span
+                class="truncate text-xs text-muted-foreground"
+                :title="event.pageUrl"
+              >
+                {{ pageText(event) }}
+              </span>
+            </div>
             <span
               v-if="isFailed(event)"
               class="shrink-0 text-xs font-medium text-destructive"
