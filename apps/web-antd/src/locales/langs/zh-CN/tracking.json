@@ -48,7 +48,6 @@
     "weekFailRate": "近 7 天失败率",
     "weekUsers": "近 7 天活跃用户",
     "trendTitle": "近 {0} 天趋势",
-    "topEvents": "Top 事件（近 {0} 天）",
     "summaryLoadFailed": "概览加载失败，请刷新重试",
     "timeRange": "时间范围",
     "keyword": "关键词",

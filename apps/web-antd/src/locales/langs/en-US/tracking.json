@@ -48,7 +48,6 @@
     "weekFailRate": "Failure rate (7d)",
     "weekUsers": "Active users (7d)",
     "trendTitle": "Trend (last {0} days)",
-    "topEvents": "Top events (last {0} days)",
     "summaryLoadFailed": "Failed to load summary, please refresh",
     "timeRange": "Time range",
     "keyword": "Keyword",

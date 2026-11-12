@@ -7,18 +7,9 @@ import type { SystemTrackingApi } from '#/api/system/tracking';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import { Page, useVbenDrawer } from '@vben/common-ui';
-import { Download } from '@vben/icons';
 import { TRACKING_EVENT_CATALOG } from '@vben/tracking';
 
-import {
-  Button,
-  Input,
-  message,
-  Popover,
-  Segmented,
-  Select,
-  Switch,
-} from 'ant-design-vue';
+import { Button, Input, message, Popover, Select } from 'ant-design-vue';
 import dayjs from 'dayjs';
 
 import { useVbenForm } from '#/adapter/form';
@@ -40,6 +31,7 @@ import {
 import DetailDrawer from './modules/detail.vue';
 import StreamView from './modules/stream.vue';
 import SummaryBar from './modules/summary.vue';
+import ViewControls from './modules/view-controls.vue';
 import { usePageTitle } from './use-page-title';
 import {
   createSavedView,
@@ -96,7 +88,20 @@ function buildQuery(values: Recordable<any>): QueryFilters {
 const [FilterForm, filterFormApi] = useVbenForm({
   layout: 'horizontal',
   schema: useGridFormSchema(),
-  showDefaultActions: false,
+  // 用表单自带的动作栏（重置/查询/展开收起），与系统其它列表页的搜索区一致；
+  // 折叠按钮就渲染在动作栏里，关掉默认动作等于同时关掉了折叠入口。
+  showDefaultActions: true,
+  showCollapseButton: true,
+  collapsed: true,
+  collapsedRows: 1,
+  submitButtonOptions: { content: $t('common.query') },
+  handleSubmit: async () => {
+    await onSearch();
+  },
+  handleReset: async () => {
+    await filterFormApi.reset();
+    await onSearch();
+  },
   wrapperClass: 'grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3',
 });
 
@@ -106,11 +111,6 @@ const activeFilters = ref<Recordable<any>>({ quickRange: '24h' });
 async function onSearch() {
   activeFilters.value = await filterFormApi.getValues();
   refreshCurrentView();
-}
-
-async function onResetFilters() {
-  await filterFormApi.reset();
-  await onSearch();
 }
 
 /* ---------------- 常用筛选视图（localStorage） ---------------- */
@@ -269,12 +269,6 @@ onBeforeUnmount(() => {
 
 /* ---------------- 概览联动 ---------------- */
 
-async function applyEventCode(eventCode: string) {
-  viewMode.value = VIEW_TABLE;
-  await filterFormApi.setFieldValue('eventCode', eventCode);
-  await onSearch();
-}
-
 /* ---------------- 单元格渲染 ---------------- */
 
 /**
@@ -395,180 +389,177 @@ async function onExport() {
 <template>
   <Page auto-content-height>
     <Detail />
-    <SummaryBar @apply-event-code="applyEventCode" />
+    <div class="flex h-full min-h-0 flex-col">
+      <SummaryBar class="shrink-0" />
 
-    <div class="mb-3 rounded-lg border bg-card p-4">
-      <div class="mb-3 flex flex-wrap items-center justify-end gap-2">
-        <Select
-          v-model:value="selectedViewId"
-          :options="savedViewOptions"
-          :placeholder="$t('tracking.events.savedViewsPlaceholder')"
-          allow-clear
-          class="w-56"
-          @change="applySavedView"
-        />
-        <Popover
-          v-model:open="savePopoverOpen"
-          placement="bottomRight"
-          trigger="click"
-        >
-          <template #content>
-            <div class="flex w-64 flex-col gap-2">
-              <Input
-                v-model:value="viewName"
-                :placeholder="$t('tracking.events.viewNamePlaceholder')"
-                :maxlength="30"
-                @press-enter="onSaveView"
-              />
-              <div class="flex justify-end gap-2">
-                <Button size="small" @click="savePopoverOpen = false">
-                  {{ $t('common.cancel') }}
-                </Button>
-                <Button size="small" type="primary" @click="onSaveView">
-                  {{ $t('tracking.events.saveView') }}
-                </Button>
+      <div class="mb-3 shrink-0 rounded-lg border bg-card p-4">
+        <div class="mb-3 flex flex-wrap items-center justify-end gap-2">
+          <Select
+            v-model:value="selectedViewId"
+            :options="savedViewOptions"
+            :placeholder="$t('tracking.events.savedViewsPlaceholder')"
+            allow-clear
+            class="w-56"
+            @change="applySavedView"
+          />
+          <Popover
+            v-model:open="savePopoverOpen"
+            placement="bottomRight"
+            trigger="click"
+          >
+            <template #content>
+              <div class="flex w-64 flex-col gap-2">
+                <Input
+                  v-model:value="viewName"
+                  :placeholder="$t('tracking.events.viewNamePlaceholder')"
+                  :maxlength="30"
+                  @press-enter="onSaveView"
+                />
+                <div class="flex justify-end gap-2">
+                  <Button size="small" @click="savePopoverOpen = false">
+                    {{ $t('common.cancel') }}
+                  </Button>
+                  <Button size="small" type="primary" @click="onSaveView">
+                    {{ $t('tracking.events.saveView') }}
+                  </Button>
+                </div>
+              </div>
+            </template>
+            <Button size="small">
+              {{ $t('tracking.events.saveCurrentView') }}
+            </Button>
+          </Popover>
+          <Button
+            v-if="selectedViewId"
+            danger
+            size="small"
+            @click="onDeleteView"
+          >
+            {{ $t('tracking.events.deleteView') }}
+          </Button>
+        </div>
+        <FilterForm />
+      </div>
+
+      <div v-if="viewMode === VIEW_TABLE" class="min-h-0 flex-1">
+        <Grid :table-title="$t('tracking.events.title')">
+          <template #toolbar-tools>
+            <ViewControls
+              v-model:auto-refresh="autoRefresh"
+              v-model:view-mode="viewMode"
+              :export-loading="exportLoading"
+              @export="onExport"
+            />
+          </template>
+
+          <template #receivedTime="{ row }">
+            <span class="font-mono" :title="row.receivedTime">
+              {{ clockTime(row.receivedTime) }}
+            </span>
+          </template>
+
+          <template #eventCode="{ row }">
+            <div class="flex items-start gap-2">
+              <span
+                class="mt-1.5 size-2 shrink-0 rounded-full"
+                :class="eventDomain(row.eventCode).dotClass"
+                :title="$t(eventDomain(row.eventCode).labelKey)"
+              ></span>
+              <div class="flex min-w-0 flex-col">
+                <span class="truncate font-medium">{{ row.eventCode }}</span>
+                <span class="truncate text-xs text-muted-foreground">
+                  {{ eventDescription(row.eventCode) }}
+                </span>
               </div>
             </div>
           </template>
-          <Button size="small">
-{{
-            $t('tracking.events.saveCurrentView')
-          }}
-</Button>
-        </Popover>
-        <Button v-if="selectedViewId" danger size="small" @click="onDeleteView">
-          {{ $t('tracking.events.deleteView') }}
-        </Button>
-      </div>
-      <FilterForm />
-      <div class="mt-3 flex justify-end gap-2">
-        <Button @click="onResetFilters">{{ $t('common.reset') }}</Button>
-        <Button type="primary" @click="onSearch">
-          {{ $t('common.query') }}
-        </Button>
-      </div>
-    </div>
 
-    <Grid
-      v-if="viewMode === VIEW_TABLE"
-      :table-title="$t('tracking.events.title')"
-    >
-      <template #toolbar-tools>
-        <Segmented
-          v-model:value="viewMode"
-          :options="[
-            { label: $t('tracking.events.tableView'), value: 'table' },
-            { label: $t('tracking.events.streamView'), value: 'stream' },
-          ]"
-          class="mr-2"
-        />
-        <div class="mr-2 flex items-center gap-2 text-sm">
-          <Switch v-model:checked="autoRefresh" size="small" />
-          <span class="text-muted-foreground">
-            {{ $t('tracking.events.autoRefresh') }}
-          </span>
-        </div>
-        <Button
-          v-access:code="['system:track:export']"
-          :loading="exportLoading"
-          @click="onExport"
-        >
-          <Download class="mr-1 size-4" />
-          {{ $t('tracking.events.export') }}
-        </Button>
-      </template>
+          <template #payloadHighlights="{ row }">
+            <div class="flex flex-wrap items-center gap-1">
+              <template v-if="rowHighlights(row).length > 0">
+                <span
+                  v-for="item in rowHighlights(row)"
+                  :key="item.label"
+                  class="max-w-56 truncate rounded border bg-muted/50 px-1.5 py-0.5 font-mono text-xs"
+                  :title="`${item.label}: ${item.value}`"
+                >
+                  <span class="text-muted-foreground">{{ item.label }}</span>
+                  {{ item.value }}
+                </span>
+                <span
+                  v-if="payloadKeyCount(row.payload) > MAX_HIGHLIGHTS"
+                  class="text-xs text-muted-foreground"
+                  :title="$t('tracking.events.payloadMoreHint')"
+                >
+                  +{{ payloadKeyCount(row.payload) - MAX_HIGHLIGHTS }}
+                </span>
+              </template>
+              <span v-else class="text-muted-foreground">-</span>
+            </div>
+          </template>
 
-      <template #receivedTime="{ row }">
-        <span class="font-mono" :title="row.receivedTime">
-          {{ clockTime(row.receivedTime) }}
-        </span>
-      </template>
-
-      <template #eventCode="{ row }">
-        <div class="flex items-start gap-2">
-          <span
-            class="mt-1.5 size-2 shrink-0 rounded-full"
-            :class="eventDomain(row.eventCode).dotClass"
-            :title="$t(eventDomain(row.eventCode).labelKey)"
-          ></span>
-          <div class="flex min-w-0 flex-col">
-            <span class="truncate font-medium">{{ row.eventCode }}</span>
-            <span class="truncate text-xs text-muted-foreground">
-              {{ eventDescription(row.eventCode) }}
-            </span>
-          </div>
-        </div>
-      </template>
-
-      <template #payloadHighlights="{ row }">
-        <div class="flex flex-wrap items-center gap-1">
-          <template v-if="rowHighlights(row).length > 0">
-            <span
-              v-for="item in rowHighlights(row)"
-              :key="item.label"
-              class="max-w-56 truncate rounded border bg-muted/50 px-1.5 py-0.5 font-mono text-xs"
-              :title="`${item.label}: ${item.value}`"
-            >
-              <span class="text-muted-foreground">{{ item.label }}</span>
-              {{ item.value }}
-            </span>
-            <span
-              v-if="payloadKeyCount(row.payload) > MAX_HIGHLIGHTS"
-              class="text-xs text-muted-foreground"
-              :title="$t('tracking.events.payloadMoreHint')"
-            >
-              +{{ payloadKeyCount(row.payload) - MAX_HIGHLIGHTS }}
+          <template #pageUrl="{ row }">
+            <span class="truncate" :title="row.pageUrl">
+              {{ pageTitle(row.pageUrl) }}
             </span>
           </template>
-          <span v-else class="text-muted-foreground">-</span>
-        </div>
-      </template>
 
-      <template #pageUrl="{ row }">
-        <span class="truncate" :title="row.pageUrl">
-          {{ pageTitle(row.pageUrl) }}
-        </span>
-      </template>
+          <template #durationMs="{ row }">
+            <span
+              class="font-mono"
+              :class="isSlow(row.durationMs) ? 'text-amber-600' : ''"
+            >
+              {{ durationText(row.durationMs) }}
+            </span>
+          </template>
 
-      <template #durationMs="{ row }">
-        <span
-          class="font-mono"
-          :class="isSlow(row.durationMs) ? 'text-amber-600' : ''"
+          <template #action="{ row }">
+            <VbenTableAction
+              :actions="[
+                {
+                  text: $t('common.detail'),
+                  icon: 'lucide:eye',
+                  auth: 'system:track:list',
+                  onClick: () => onDetail(row),
+                },
+              ]"
+              :dropdown-actions="[
+                {
+                  text: $t('tracking.events.copyTraceId'),
+                  icon: 'lucide:copy',
+                  auth: 'system:track:list',
+                  disabled: !row.traceId,
+                  onClick: () => copyTraceId(row),
+                },
+              ]"
+              align="center"
+            />
+          </template>
+        </Grid>
+      </div>
+
+      <div v-else class="flex min-h-0 flex-1 flex-col">
+        <div
+          class="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2"
         >
-          {{ durationText(row.durationMs) }}
-        </span>
-      </template>
-
-      <template #action="{ row }">
-        <VbenTableAction
-          :actions="[
-            {
-              text: $t('common.detail'),
-              icon: 'lucide:eye',
-              auth: 'system:track:list',
-              onClick: () => onDetail(row),
-            },
-          ]"
-          :dropdown-actions="[
-            {
-              text: $t('tracking.events.copyTraceId'),
-              icon: 'lucide:copy',
-              auth: 'system:track:list',
-              disabled: !row.traceId,
-              onClick: () => copyTraceId(row),
-            },
-          ]"
-          align="center"
-        />
-      </template>
-    </Grid>
-
-    <StreamView
-      v-else
-      class="mt-3"
-      :events="streamEvents"
-      :loading="streamLoading"
-      @select="onDetail"
-    />
+          <span class="text-base font-medium">
+            {{ $t('tracking.events.title') }}
+          </span>
+          <ViewControls
+            v-model:auto-refresh="autoRefresh"
+            v-model:view-mode="viewMode"
+            :export-loading="exportLoading"
+            @export="onExport"
+          />
+        </div>
+        <div class="min-h-0 flex-1 overflow-auto">
+          <StreamView
+            :events="streamEvents"
+            :loading="streamLoading"
+            @select="onDetail"
+          />
+        </div>
+      </div>
+    </div>
   </Page>
 </template>
