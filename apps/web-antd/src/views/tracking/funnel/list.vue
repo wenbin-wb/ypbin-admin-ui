@@ -196,6 +196,7 @@ const [FunnelGrid, funnelGridApi] = useVbenVxeGrid<FunnelRow>({
       },
     ],
     emptyText: $t('tracking.funnel.noData'),
+    height: 280,
     pagerConfig: { enabled: false },
     proxyConfig: {
       ajax: {
@@ -203,7 +204,7 @@ const [FunnelGrid, funnelGridApi] = useVbenVxeGrid<FunnelRow>({
           // 步骤非法时显式提示且不发请求：空 steps 会让后端直接抛业务错误
           if (!validateSteps()) {
             truncatedCount.value = 0;
-            return { items: [], total: 0 };
+            return [];
           }
           try {
             const result = await getTrackFunnel(
@@ -211,14 +212,14 @@ const [FunnelGrid, funnelGridApi] = useVbenVxeGrid<FunnelRow>({
               days.value,
             );
             truncatedCount.value = toCount(result.truncatedSessionCount);
-            const items = toFunnelRows(result.steps);
-            return { items, total: items.length };
+            // 非分页网格：vxe 在 pager 关闭时直接取数组作为行数据
+            return toFunnelRows(result.steps);
           } catch (error) {
             // 不静默降级：明确提示失败，表格空态配合错误提示一起暴露问题
             console.error('Failed to load tracking funnel:', error);
             message.error($t('tracking.funnel.loadFailed'));
             truncatedCount.value = 0;
-            return { items: [], total: 0 };
+            return [];
           }
         },
       },

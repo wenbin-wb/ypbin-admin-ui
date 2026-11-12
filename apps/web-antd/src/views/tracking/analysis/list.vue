@@ -272,18 +272,19 @@ const [TopGrid] = useVbenVxeGrid<SystemTrackingApi.TrackTopEvent>({
       },
     ],
     emptyText: $t('tracking.analysis.noData'),
+    height: 320,
     pagerConfig: { enabled: false },
     proxyConfig: {
       ajax: {
         query: async () => {
           try {
-            const items = await getTrackTopEvents(TOP_DAYS, TOP_LIMIT);
-            return { items, total: items.length };
+            // 非分页网格：vxe 在 pager 关闭时直接取数组作为行数据，返回 {items,total} 会被当成空表
+            return await getTrackTopEvents(TOP_DAYS, TOP_LIMIT);
           } catch (error) {
             // 不静默降级：明确提示失败，表格空态配合错误提示一起暴露问题
             console.error('Failed to load tracking top events:', error);
             message.error($t('tracking.analysis.loadFailed'));
-            return { items: [], total: 0 };
+            return [];
           }
         },
       },
@@ -319,17 +320,17 @@ const [AppGrid] = useVbenVxeGrid<SystemTrackingApi.TrackAppCount>({
     ],
     // 不用 appId 做行主键：空值行（未带应用标识）会与非空行共享键，改用表格自生成的键
     emptyText: $t('tracking.analysis.noData'),
+    height: 220,
     pagerConfig: { enabled: false },
     proxyConfig: {
       ajax: {
         query: async () => {
           try {
-            const items = await getTrackAppDistribution(TOP_DAYS);
-            return { items, total: items.length };
+            return await getTrackAppDistribution(TOP_DAYS);
           } catch (error) {
             console.error('Failed to load tracking app distribution:', error);
             message.error($t('tracking.analysis.loadFailed'));
-            return { items: [], total: 0 };
+            return [];
           }
         },
       },

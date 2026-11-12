@@ -112,6 +112,7 @@ const [RetentionGrid, retentionGridApi] = useVbenVxeGrid({
       })),
     ],
     emptyText: $t('tracking.retention.noData'),
+    height: 360,
     pagerConfig: { enabled: false },
     proxyConfig: {
       ajax: {
@@ -120,14 +121,15 @@ const [RetentionGrid, retentionGridApi] = useVbenVxeGrid({
             const result = await getTrackRetention(days.value);
             matrixDays.value = result.matrixDays;
             summary.value = result.summary;
-            return { items: result.rows, total: result.rows.length };
+            // 非分页网格：vxe 在 pager 关闭时直接取数组作为行数据
+            return result.rows;
           } catch (error) {
             // 不静默降级：明确提示失败，表格空态配合错误提示一起暴露问题
             console.error('Failed to load tracking retention:', error);
             message.error($t('tracking.retention.loadFailed'));
             matrixDays.value = 0;
             summary.value = [];
-            return { items: [], total: 0 };
+            return [];
           }
         },
       },
