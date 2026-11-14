@@ -2,6 +2,7 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { SystemClientApi } from '#/api/system/client';
 
+import { useAccess } from '@vben/access';
 import { Page, useVbenDrawer } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
 
@@ -27,10 +28,14 @@ const [FormDrawer, formDrawerApi] = useVbenDrawer({
   destroyOnClose: false,
 });
 
+// 没有编辑权限时状态列退化为只读标签，避免点了才收到 403
+const { hasAccessByCodes } = useAccess();
+const canEdit = hasAccessByCodes(['system:client:edit']);
+
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: { schema: useGridFormSchema(), submitOnChange: true },
   gridOptions: {
-    columns: useColumns(onStatusChange),
+    columns: useColumns(canEdit ? onStatusChange : undefined),
     height: 'auto',
     keepSource: true,
     pagerConfig: { enabled: false },

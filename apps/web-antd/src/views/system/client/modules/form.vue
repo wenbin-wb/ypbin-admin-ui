@@ -100,6 +100,13 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemClientApi.ClientResp>({
       if (data) {
         formApi.setValues(data);
       }
+      // 默认客户端的 clientId 是未声明身份登录的兜底入口，改名会直接锁死全站登录
+      formApi.updateSchema([
+        {
+          componentProps: { disabled: !!data?.defaultClient },
+          fieldName: 'clientId',
+        },
+      ]);
     }
   },
 });
