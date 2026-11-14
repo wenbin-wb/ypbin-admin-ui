@@ -321,6 +321,12 @@
     "clientType": "客户端类型",
     "clientSecret": "客户端密钥",
     "timeout": "超时时间",
+    "status": "状态",
+    "statusChangeTitle": "切换客户端状态",
+    "statusChangeContent": "你要将客户端 {0} 的状态切换为【{1}】吗？",
+    "clearSecret": "清除密钥",
+    "clearSecretConfirm": "清除后该客户端将恢复免密钥登录，确定清除？",
+    "defaultClientLocked": "默认客户端承接未声明身份的登录，不允许停用或配置密钥",
     "remark": "备注",
     "createTime": "创建时间"
   },

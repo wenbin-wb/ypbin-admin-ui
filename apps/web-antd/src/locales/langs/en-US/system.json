@@ -321,6 +321,12 @@
     "clientType": "Client Type",
     "clientSecret": "Client Secret",
     "timeout": "Timeout",
+    "status": "Status",
+    "statusChangeTitle": "Change Client Status",
+    "statusChangeContent": "Change the status of client {0} to [{1}]?",
+    "clearSecret": "Clear Secret",
+    "clearSecretConfirm": "After clearing, this client can log in without a secret. Continue?",
+    "defaultClientLocked": "The default client handles logins without a client ID; it cannot be disabled or configured with a secret.",
     "remark": "Remark",
     "createTime": "Creation Time"
   },

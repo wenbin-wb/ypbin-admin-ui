@@ -9,12 +9,15 @@ import { Button, message } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
 import {
+  clearClientSecret,
   deleteClient,
   getClientList,
   resetClientSecret,
+  updateClientStatus,
 } from '#/api/system/client';
 import { $t } from '#/locales';
 
+import { useConfirm } from '../_shared/confirm';
 import { showSecretOnce } from '../_shared/show-secret';
 import { useColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
@@ -27,7 +30,7 @@ const [FormDrawer, formDrawerApi] = useVbenDrawer({
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: { schema: useGridFormSchema(), submitOnChange: true },
   gridOptions: {
-    columns: useColumns(),
+    columns: useColumns(onStatusChange),
     height: 'auto',
     keepSource: true,
     pagerConfig: { enabled: false },
@@ -77,13 +80,45 @@ function onResetSecret(row: SystemClientApi.ClientResp) {
   });
 }
 
-function onSecret(secret: string) {
-  showSecretOnce(secret, $t('system.client.clientSecret'));
+function onClearSecret(row: SystemClientApi.ClientResp) {
+  clearClientSecret(row.id).then(() => {
+    message.success($t('common.success'));
+    onRefresh();
+  });
+}
+
+/**
+ * 启停开关：停用后该客户端无法再登录，必须二次确认。
+ * 返回 false 时开关回弹（CellSwitch 的 beforeChange 语义）。
+ */
+async function onStatusChange(
+  newStatus: 0 | 1,
+  row: SystemClientApi.ClientResp,
+) {
+  // 默认客户端承接所有「未声明身份」的登录，停用会让全站登录失败
+  if (row.defaultClient) {
+    message.warning($t('system.client.defaultClientLocked'));
+    return false;
+  }
+  const statusText =
+    newStatus === 1 ? $t('common.enabled') : $t('common.disabled');
+  try {
+    await useConfirm(
+      $t('system.client.statusChangeContent', [row.clientId, statusText]),
+      $t('system.client.statusChangeTitle'),
+    );
+    await updateClientStatus(row.id, newStatus);
+    row.status = newStatus;
+    return true;
+  } catch {
+    // 用户取消或请求失败：全局拦截器已给出错误提示，开关保持原状态
+    return false;
+  }
 }
 </script>
 <template>
   <Page auto-content-height>
-    <FormDrawer @secret="onSecret" @success="onRefresh" />
+    <FormDrawer @success="onRefresh" />
     <Grid :table-title="$t('system.client.title')">
       <template #toolbar-tools>
         <Button
@@ -105,25 +140,46 @@ function onSecret(secret: string) {
               auth: 'system:client:edit',
               onClick: () => onEdit(row),
             },
-            {
-              text: $t('system.common.resetSecret'),
-              icon: 'lucide:key-round',
-              auth: 'system:client:reset-secret',
-              popConfirm: {
-                title: $t('system.common.resetSecretConfirm'),
-                confirm: () => onResetSecret(row),
-              },
-            },
-            {
-              text: $t('common.delete'),
-              icon: 'lucide:trash-2',
-              auth: 'system:client:delete',
-              danger: true,
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.clientId]),
-                confirm: () => onDelete(row),
-              },
-            },
+            // 默认客户端不能被停用/删除/配置密钥，相关动作直接不展示
+            ...(row.defaultClient
+              ? []
+              : [
+                  {
+                    text: $t('system.common.resetSecret'),
+                    icon: 'lucide:key-round',
+                    auth: 'system:client:reset-secret',
+                    popConfirm: {
+                      title: $t('system.common.resetSecretConfirm'),
+                      confirm: () => onResetSecret(row),
+                    },
+                  },
+                  // 只有配置过密钥的客户端才需要「清除密钥」，否则是空操作
+                  ...(row.secretConfigured
+                    ? [
+                        {
+                          text: $t('system.client.clearSecret'),
+                          icon: 'lucide:key-square',
+                          auth: 'system:client:reset-secret',
+                          popConfirm: {
+                            title: $t('system.client.clearSecretConfirm'),
+                            confirm: () => onClearSecret(row),
+                          },
+                        },
+                      ]
+                    : []),
+                  {
+                    text: $t('common.delete'),
+                    icon: 'lucide:trash-2',
+                    auth: 'system:client:delete',
+                    danger: true,
+                    popConfirm: {
+                      title: $t('ui.actionMessage.deleteConfirm', [
+                        row.clientId,
+                      ]),
+                      confirm: () => onDelete(row),
+                    },
+                  },
+                ]),
           ]"
           align="center"
         />

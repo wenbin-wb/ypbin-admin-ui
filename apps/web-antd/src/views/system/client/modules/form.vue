@@ -11,7 +11,7 @@ import { useVbenForm } from '#/adapter/form';
 import { createClient, updateClient } from '#/api/system/client';
 import { $t } from '#/locales';
 
-const emit = defineEmits(['success', 'secret']);
+const emit = defineEmits(['success']);
 
 const [Form, formApi] = useVbenForm({
   schema: [
@@ -76,12 +76,8 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemClientApi.ClientResp>({
         remark: values.remark,
         timeout: values.timeout,
       };
-      if (isUpdate) {
-        await updateClient(updateId, data);
-      } else {
-        const credential = await createClient(data);
-        emit('secret', credential.clientSecret);
-      }
+      // 新建默认不生成密钥：需要密钥的客户端由列表里的「重置密钥」显式开启
+      await (isUpdate ? updateClient(updateId, data) : createClient(data));
       message.success($t('common.success'));
       emit('success');
       drawerApi.close();

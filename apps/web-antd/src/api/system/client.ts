@@ -21,6 +21,12 @@ export namespace SystemClientApi {
     activeTimeout?: number;
     concurrentEnabled?: number;
     maxLoginCount?: number;
+    /** 状态：1 启用、0 禁用 */
+    status?: number;
+    /** 是否已配置客户端密钥（不返回密钥本身） */
+    secretConfigured?: boolean;
+    /** 是否为默认客户端（禁止停用、删除、配置密钥与修改 clientId） */
+    defaultClient?: boolean;
     remark?: string;
     createTime: string;
   }
@@ -36,10 +42,16 @@ export function getClientList() {
 }
 
 export function createClient(data: SystemClientApi.ClientSaveReq) {
-  return requestClient.post<SystemClientApi.ClientCredentialResp>(
-    '/system/client',
-    data,
-  );
+  // 新建默认不生成密钥，只返回客户端本身
+  return requestClient.post<SystemClientApi.ClientResp>('/system/client', data);
+}
+
+export function updateClientStatus(id: string, status: number) {
+  return requestClient.put(`/system/client/${id}/status`, { status });
+}
+
+export function clearClientSecret(id: string) {
+  return requestClient.put(`/system/client/${id}/clear-secret`);
 }
 
 export function updateClient(id: string, data: SystemClientApi.ClientSaveReq) {
