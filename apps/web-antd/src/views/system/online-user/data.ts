@@ -3,6 +3,8 @@ import type { VxeTableGridColumns } from '#/adapter/vxe-table';
 
 import { $t } from '#/locales';
 
+import { clientTagOptions } from '../_shared/client-label';
+
 /**
  * 空值占位。
  *
@@ -20,6 +22,12 @@ export function useColumns(): VxeTableGridColumns {
       minWidth: 120,
     },
     { field: 'username', title: $t('system.onlineUser.username'), width: 120 },
+    {
+      field: 'clientId',
+      title: $t('system.onlineUser.clientId'),
+      width: 130,
+      cellRender: { name: 'CellTag', options: clientTagOptions() },
+    },
     {
       field: 'ip',
       title: $t('system.onlineUser.ip'),

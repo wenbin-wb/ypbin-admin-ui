@@ -7,6 +7,8 @@ import { Tag } from 'ant-design-vue';
 
 import { $t } from '#/locales';
 
+import { clientTagOptions } from '../_shared/client-label';
+
 export function useColumns(): VxeTableGridColumns {
   return [
     {
@@ -20,6 +22,13 @@ export function useColumns(): VxeTableGridColumns {
       width: 120,
     },
     { field: 'module', title: $t('system.log.module'), width: 100 },
+    {
+      field: 'clientId',
+      title: $t('system.log.clientId'),
+      width: 130,
+      cellRender: { name: 'CellTag', options: clientTagOptions() },
+    },
+    { field: 'clientType', title: $t('system.log.clientType'), width: 100 },
     { field: 'requestUri', title: 'URI', minWidth: 150 },
     { field: 'ip', title: 'IP', width: 120 },
     { field: 'location', title: $t('system.log.location'), width: 120 },

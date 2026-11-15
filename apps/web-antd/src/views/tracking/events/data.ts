@@ -27,6 +27,39 @@ function resultOptions() {
 }
 
 /**
+ * 应用（客户端）标签。
+ *
+ * 列表里同时混着 PC 管理端和微信小程序的事件，裸 appId（`ypbin-admin-ui` /
+ * `cardtab-miniapp`）看不出是哪一端；这里按 appId 换成可读的客户端名称。
+ * 未登记的 appId 由 `CellTag` 渲染器兜底显示原值，不会丢信息。
+ */
+function appTagOptions() {
+  return [
+    {
+      color: 'processing',
+      label: $t('tracking.events.appTagAdmin'),
+      value: 'ypbin-admin-ui',
+    },
+    {
+      color: 'success',
+      label: $t('tracking.events.appTagMiniapp'),
+      value: 'cardtab-miniapp',
+    },
+    {
+      color: 'purple',
+      label: $t('tracking.events.appTagIot'),
+      value: 'ypbin-iot-ui',
+    },
+    // 上报方未带应用标识时后端可能给空串：显示「未设置」而不是一个空标签
+    {
+      color: 'default',
+      label: $t('tracking.events.appTagUnset'),
+      value: '',
+    },
+  ];
+}
+
+/**
  * 事件码下拉项。
  *
  * 数据来自 `@vben/tracking` 的事件目录（不新增后端字典接口）：值为事件码，
@@ -51,6 +84,14 @@ export function useColumns(): VxeTableGridColumns {
       title: $t('tracking.events.receivedTime'),
       width: 110,
       slots: { default: 'receivedTime' },
+    },
+    {
+      field: 'appId',
+      title: $t('tracking.events.client'),
+      width: 150,
+      // 未登记的 appId 会原样显示，长度不可控，超出时悬停看全量
+      showOverflow: 'tooltip',
+      cellRender: { name: 'CellTag', options: appTagOptions() },
     },
     {
       field: 'eventCode',
@@ -93,12 +134,6 @@ export function useColumns(): VxeTableGridColumns {
       slots: { default: 'durationMs' },
     },
     // 以下为低频排查字段：默认隐藏，需要时在「列设置」里打开
-    {
-      field: 'appId',
-      title: $t('tracking.events.appId'),
-      visible: false,
-      width: 150,
-    },
     {
       field: 'sessionId',
       title: $t('tracking.events.sessionId'),

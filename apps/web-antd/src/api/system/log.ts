@@ -22,6 +22,10 @@ export namespace SystemLogApi {
     location?: string;
     browser?: string;
     os?: string;
+    /** 登录客户端 ID（web-admin / miniapp） */
+    clientId?: string;
+    /** 登录客户端类型（WEB / MINI） */
+    clientType?: string;
     timeTaken?: number;
     success?: number;
     errorMsg?: string;
