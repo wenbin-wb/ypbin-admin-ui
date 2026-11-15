@@ -20,3 +20,18 @@ export function clientTagOptions() {
     },
   ];
 }
+
+/**
+ * 客户端展示名：已知 ID 返回可读名称，未知 ID 原样返回，空值返回空串。
+ *
+ * @param clientId 客户端 ID
+ */
+export function clientLabel(clientId?: null | string): string {
+  if (!clientId) {
+    return '';
+  }
+  return (
+    clientTagOptions().find((item) => item.value === clientId)?.label ??
+    clientId
+  );
+}
