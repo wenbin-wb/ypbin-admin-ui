@@ -3,7 +3,7 @@ import type { VxeTableGridColumns } from '#/adapter/vxe-table';
 
 import { $t } from '#/locales';
 
-import { clientLabel } from '../_shared/client-label';
+import { clientLabels } from '../_shared/client-label';
 
 /** 通知范围选项 */
 export function getScopeOptions() {
@@ -40,11 +40,11 @@ export function useColumns(): VxeTableGridColumns {
       },
     },
     {
-      field: 'clientId',
+      field: 'clientIds',
       title: $t('system.notice.clientId'),
-      width: 120,
+      width: 160,
       formatter: ({ cellValue }) =>
-        clientLabel(cellValue) || $t('system.notice.allClients'),
+        clientLabels(cellValue) || $t('system.notice.allClients'),
     },
     { field: 'title', title: $t('system.notice.noticeTitle'), minWidth: 180 },
     {
@@ -123,16 +123,17 @@ export function useFormSchema(): FormSchema[] {
     },
     {
       component: 'Select',
-      fieldName: 'clientId',
+      fieldName: 'clientIds',
       label: $t('system.notice.clientId'),
       componentProps: {
         allowClear: true,
         class: 'w-full',
+        mode: 'multiple',
         placeholder: $t('system.notice.clientPlaceholder'),
         options: [],
       },
-      // 新建默认全部客户端
-      defaultValue: '',
+      // 不选表示全部客户端
+      defaultValue: [],
     },
     {
       component: 'RadioGroup',

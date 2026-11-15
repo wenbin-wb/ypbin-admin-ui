@@ -54,7 +54,7 @@ async function submit(draft: boolean) {
     return;
   }
   const values = await formApi.getValues<{
-    clientId?: string;
+    clientIds?: string[];
     content: string;
     cover?: string;
     effectiveTime?: string;
@@ -70,7 +70,7 @@ async function submit(draft: boolean) {
   }>();
   const data: SystemNoticeApi.NoticeSaveReq = {
     // 空串表示全部客户端：后端按「空/NULL 对全部可见」处理，也能在编辑时清除已有客户端
-    clientId: values.clientId || '',
+    clientIds: (values.clientIds || []).join(','),
     content: values.content,
     cover: values.cover,
     effectiveTime: values.effectiveTime,
@@ -130,22 +130,21 @@ const [Modal, modalApi] = useVbenModal<NoticeFormData>({
           componentProps: {
             allowClear: true,
             class: 'w-full',
-            options: [
-              { label: $t('system.notice.allClients'), value: '' },
-              ...clientIds.map((clientId) => ({
-                label: clientLabel(clientId),
-                value: clientId,
-              })),
-            ],
+            mode: 'multiple',
+            options: clientIds.map((clientId) => ({
+              label: clientLabel(clientId),
+              value: clientId,
+            })),
             placeholder: $t('system.notice.clientPlaceholder'),
           },
-          fieldName: 'clientId',
+          fieldName: 'clientIds',
         },
       ]);
       await nextTick();
       if (data) {
         formApi.setValues({
           ...data,
+          clientIds: data.clientIds ? data.clientIds.split(',') : [],
           notifyMethods: data.notifyMethods
             ? data.notifyMethods.split(',')
             : [],

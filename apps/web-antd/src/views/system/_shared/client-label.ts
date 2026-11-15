@@ -35,3 +35,19 @@ export function clientLabel(clientId?: null | string): string {
     clientId
   );
 }
+
+/**
+ * 客户端集合展示名：逗号分隔的 ID 集合 → 可读名称，用顿号连接；空集返回空串。
+ *
+ * @param clientIds 逗号分隔的客户端 ID 集合
+ */
+export function clientLabels(clientIds?: null | string): string {
+  if (!clientIds) {
+    return '';
+  }
+  return clientIds
+    .split(',')
+    .map((clientId) => clientLabel(clientId.trim()))
+    .filter(Boolean)
+    .join('、');
+}

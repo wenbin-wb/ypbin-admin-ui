@@ -14,8 +14,8 @@ export namespace SystemNoticeApi {
   export interface NoticeSaveReq {
     content: string;
     cover?: string;
-    /** 投放客户端 ID；空串表示全部客户端 */
-    clientId?: string;
+    /** 投放客户端 ID 集合（逗号分隔）；空表示全部客户端 */
+    clientIds?: string;
     effectiveTime?: string;
     expireTime?: string;
     isTop?: number;
@@ -35,8 +35,8 @@ export namespace SystemNoticeApi {
     /** 列表接口不返回正文（体积大），编辑/预览前需调用 getNoticeDetail 补全 */
     content?: string;
     cover?: string;
-    /** 投放客户端 ID；空表示全部客户端 */
-    clientId?: string;
+    /** 投放客户端 ID 集合（逗号分隔）；空表示全部客户端 */
+    clientIds?: string;
     noticeType: number;
     noticeScope?: number;
     scopeTargetIds?: string;
