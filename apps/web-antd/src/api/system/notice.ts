@@ -91,3 +91,12 @@ export function revokeNotice(id: string) {
 export function publishNotice(id: string) {
   return requestClient.put(`/system/notice/${id}/publish`);
 }
+
+/**
+ * 公告可选的客户端 ID 列表。
+ *
+ * 公告菜单对租户可见，但「客户端管理」仅平台用户可读，因此单独提供只读选项接口。
+ */
+export function getNoticeClientOptions() {
+  return requestClient.get<string[]>('/system/notice/options/clients');
+}

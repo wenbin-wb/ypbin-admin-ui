@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import type { SystemClientApi } from '#/api/system/client';
 import type { SystemNoticeApi } from '#/api/system/notice';
 
 import { computed, nextTick, ref } from 'vue';
@@ -11,8 +10,11 @@ import { VbenTiptap } from '@vben/plugins/tiptap';
 import { Button, message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
-import { getClientList } from '#/api/system/client';
-import { createNotice, updateNotice } from '#/api/system/notice';
+import {
+  createNotice,
+  getNoticeClientOptions,
+  updateNotice,
+} from '#/api/system/notice';
 import { $t } from '#/locales';
 
 import { clientLabel } from '../../_shared/client-label';
@@ -116,12 +118,12 @@ const [Modal, modalApi] = useVbenModal<NoticeFormData>({
           ? $t('ui.actionTitle.edit', [$t('system.notice.name')])
           : $t('ui.actionTitle.create', [$t('system.notice.name')]),
       });
-      // 客户端选项来自客户端管理；加载失败不阻塞编辑，只保留「全部客户端」
-      let clients: SystemClientApi.ClientResp[] = [];
+      // 客户端选项来自公告专用的只读接口；加载失败不阻塞编辑，只保留「全部客户端」
+      let clientIds: string[] = [];
       try {
-        clients = await getClientList();
+        clientIds = await getNoticeClientOptions();
       } catch (error) {
-        console.error('加载客户端列表失败', error);
+        console.error('加载客户端选项失败', error);
       }
       formApi.updateSchema([
         {
@@ -130,9 +132,9 @@ const [Modal, modalApi] = useVbenModal<NoticeFormData>({
             class: 'w-full',
             options: [
               { label: $t('system.notice.allClients'), value: '' },
-              ...clients.map((client) => ({
-                label: clientLabel(client.clientId),
-                value: client.clientId,
+              ...clientIds.map((clientId) => ({
+                label: clientLabel(clientId),
+                value: clientId,
               })),
             ],
             placeholder: $t('system.notice.clientPlaceholder'),
