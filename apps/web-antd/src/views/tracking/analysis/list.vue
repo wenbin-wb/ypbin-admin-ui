@@ -305,7 +305,7 @@ const [AppGrid] = useVbenVxeGrid<SystemTrackingApi.TrackAppCount>({
     columns: [
       {
         field: 'appId',
-        title: $t('tracking.events.appId'),
+        title: $t('tracking.events.client'),
         minWidth: 200,
         // appId 可能为空（上报方未带应用标识）→ 展示"未设置"而不是空白单元格
         formatter: ({ cellValue }: { cellValue?: string }) =>

@@ -267,10 +267,19 @@ export function useGridFormSchema(): FormSchema[] {
       label: $t('tracking.events.endTime'),
     },
     {
-      component: 'Input',
-      componentProps: { allowClear: true },
+      component: 'Select',
+      componentProps: {
+        allowClear: true,
+        class: 'w-full',
+        optionFilterProp: 'label',
+        showSearch: true,
+        // 与列表同一套客户端标签；空值选项只用于展示，不作为筛选项
+        options: appTagOptions()
+          .filter((item) => item.value !== '')
+          .map((item) => ({ label: item.label, value: item.value })),
+      },
       fieldName: 'appId',
-      label: $t('tracking.events.appId'),
+      label: $t('tracking.events.client'),
     },
     {
       component: 'Input',

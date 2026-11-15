@@ -26,6 +26,7 @@ export function useColumns(): VxeTableGridColumns {
       field: 'clientId',
       title: $t('system.onlineUser.clientId'),
       width: 130,
+      showOverflow: 'tooltip',
       cellRender: { name: 'CellTag', options: clientTagOptions() },
     },
     {

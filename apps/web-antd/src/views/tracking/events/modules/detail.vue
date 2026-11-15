@@ -240,7 +240,7 @@ const hasTranslatedPayload = computed(() =>
           <DescriptionsItem :label="$t('tracking.catalog.description')">
             {{ eventDescription }}
           </DescriptionsItem>
-          <DescriptionsItem :label="$t('tracking.events.appId')">
+          <DescriptionsItem :label="$t('tracking.events.client')">
             {{ toText(record.appId) }}
           </DescriptionsItem>
           <DescriptionsItem :label="$t('tracking.events.userId')">
