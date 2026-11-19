@@ -82,7 +82,10 @@ const schema = computed<FormSchema[]>(() =>
           h(
             'span',
             {
+              'aria-label': $t('system.config.copyKey'),
               class: 'cursor-pointer text-muted-foreground hover:text-primary',
+              role: 'button',
+              tabindex: 0,
               onClick: (e: MouseEvent) => {
                 e.stopPropagation();
                 void copyKey(item.configKey);

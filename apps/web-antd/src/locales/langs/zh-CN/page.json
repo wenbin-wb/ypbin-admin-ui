@@ -364,6 +364,7 @@
       "provider": "提供商",
       "modelType": "模型类型",
       "modelName": "模型名称",
+      "modelNamePlaceholder": "deepseek-v4-flash / deepseek-v4-pro",
       "apiKey": "API Key",
       "apiKeyTip": "编辑时留空表示不修改",
       "baseUrl": "接口地址",

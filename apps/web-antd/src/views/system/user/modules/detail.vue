@@ -33,7 +33,12 @@ defineExpose({ drawerApi });
       <div class="mb-2 text-sm font-medium">
         {{ $t('system.space.userSpace') }}
       </div>
-      <SpaceRelationPanel :target-id="detailData.id" target-type="user" />
+      <!-- 小程序用户由微信登录维护，不参与空间归属管理，只读展示 -->
+      <SpaceRelationPanel
+        :readonly="detailData.userType === 'MINIAPP'"
+        :target-id="detailData.id"
+        target-type="user"
+      />
     </div>
   </Drawer>
 </template>

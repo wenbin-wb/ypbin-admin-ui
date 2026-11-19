@@ -12,11 +12,11 @@ import { createDept, updateDept } from '#/api/system/dept';
 import { getRelationsByTarget, syncTargetSpaces } from '#/api/system/space';
 import { $t } from '#/locales';
 
-import { useSchema } from '../data';
 import {
   isSpaceSetChanged,
   spaceIdsFromRelations,
 } from '../../_shared/space-sync';
+import { useSchema } from '../data';
 
 const emit = defineEmits(['success']);
 type DeptFormData = null | Partial<SystemDeptApi.SystemDept>;
@@ -177,7 +177,7 @@ defineExpose({ drawerApi });
     <Form class="mx-4" />
     <template #prepend-footer>
       <div class="flex-auto">
-        <Button type="primary" danger @click="resetForm">
+        <Button type="primary" @click="resetForm">
           {{ $t('common.reset') }}
         </Button>
       </div>

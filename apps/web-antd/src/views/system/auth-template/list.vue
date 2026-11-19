@@ -57,13 +57,12 @@ function onDelete(row: SystemAuthTemplateApi.AuthTemplateResp) {
     })
     .catch((error) => {
       console.error('Failed to delete auth template:', error);
-      message.error($t('common.requestFailed'));
     });
 }
 </script>
 <template>
   <Page auto-content-height>
-    <FormDrawer @reload="onRefresh" />
+    <FormDrawer @success="onRefresh" />
     <Grid :table-title="$t('system.authTemplate.title')">
       <template #toolbar-tools>
         <Button

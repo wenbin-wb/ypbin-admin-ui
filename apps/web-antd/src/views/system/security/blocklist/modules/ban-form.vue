@@ -26,7 +26,7 @@ const [Form, formApi] = useVbenForm({
       component: 'Input',
       componentProps: {
         maxlength: 64,
-        placeholder: '10.0.0.1 / 2001:db8::1',
+        placeholder: $t('system.blocklist.banIpPlaceholder'),
       },
       fieldName: 'clientIp',
       label: $t('system.blocklist.banIp'),

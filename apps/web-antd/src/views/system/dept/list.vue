@@ -118,7 +118,7 @@ function refreshGrid() {
               onClick: () => onEdit(row),
             },
             {
-              text: $t('common.create'),
+              text: $t('system.dept.addChild'),
               icon: 'lucide:plus',
               auth: 'system:dept:add',
               onClick: () => onAppend(row),

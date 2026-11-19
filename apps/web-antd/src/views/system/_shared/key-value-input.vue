@@ -119,7 +119,12 @@ function removeRow(index: number) {
         class="flex-1"
         @update:value="(val: string) => updateRow(index, { value: val as V })"
       />
-      <Button type="text" danger @click="removeRow(index)">
+      <Button
+        type="text"
+        danger
+        :aria-label="$t('common.delete')"
+        @click="removeRow(index)"
+      >
         <IconifyIcon icon="lucide:trash-2" class="size-4" />
       </Button>
     </div>

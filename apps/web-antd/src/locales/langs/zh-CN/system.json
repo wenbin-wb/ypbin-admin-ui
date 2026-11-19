@@ -9,6 +9,21 @@
   "push": {
     "test": "推送测试"
   },
+  "platformUser": {
+    "title": "平台账号",
+    "userName": "登录账号",
+    "realName": "姓名",
+    "nickname": "昵称",
+    "status": "状态",
+    "lastLoginTime": "最后登录时间",
+    "createTime": "创建时间",
+    "resetPassword": "重置密码",
+    "password": "密码",
+    "passwordRule": "密码长度为 8-32 位，且需同时包含数字与字母",
+    "newPasswordPlaceholder": "请输入新密码",
+    "statusChangeTitle": "切换状态",
+    "statusChangeContent": "你要将 {0} 的状态切换为 【{1}】 吗？"
+  },
   "user": {
     "title": "用户管理",
     "list": "用户列表",
@@ -17,6 +32,10 @@
     "password": "密码",
     "realName": "真实姓名",
     "nickname": "昵称",
+    "userType": "用户类型",
+    "typeTenant": "后台用户",
+    "typeMiniapp": "小程序用户",
+    "miniappStatusReadonly": "小程序用户状态由微信登录维护，暂不支持后台启停",
     "phone": "手机号码",
     "email": "邮箱",
     "avatar": "头像",
@@ -60,6 +79,7 @@
   },
   "dept": {
     "list": "部门列表",
+    "addChild": "添加下级",
     "createTime": "创建时间",
     "deptName": "部门名称",
     "name": "部门",
@@ -85,6 +105,7 @@
   },
   "menu": {
     "list": "菜单列表",
+    "addChild": "添加下级",
     "activeIcon": "激活图标",
     "activePath": "激活路径",
     "activePathHelp": "跳转到当前路由时，需要激活的菜单路径。\n当不在导航菜单中显示时，需要指定激活路径",
@@ -267,7 +288,12 @@
     "export": "导出",
     "exportFailed": "导出失败",
     "exportFileName": "操作日志.xlsx",
-    "description": "操作内容"
+    "description": "操作内容",
+    "uri": "请求 URI",
+    "ip": "IP 地址",
+    "os": "操作系统",
+    "requestMethod": "请求方法",
+    "errorMsg": "错误信息"
   },
   "onlineUser": {
     "title": "在线用户",
@@ -276,11 +302,13 @@
     "clientId": "客户端",
     "ip": "IP",
     "deviceType": "设备类型",
+    "os": "操作系统",
     "loginTime": "登录时间",
     "forceLogout": "强退"
   },
   "blocklist": {
     "title": "安全防护",
+    "banIpPlaceholder": "10.0.0.1 / 2001:db8::1",
     "list": "访问黑名单",
     "name": "黑名单规则",
     "ruleTab": "手动规则",
@@ -326,6 +354,17 @@
     "labelMiniapp": "微信小程序",
     "clientSecret": "客户端密钥",
     "timeout": "超时时间",
+    "timeoutHint": "固定有效期（秒），-1 表示永不过期",
+    "activeTimeout": "活跃超时时间",
+    "activeTimeoutHint": "无操作多久后登出（秒），-1 表示永不因闲置登出",
+    "concurrentEnabled": "允许多端",
+    "maxLoginCount": "最大登录数",
+    "permanent": "永久",
+    "unlimited": "不限",
+    "days": "天",
+    "hours": "小时",
+    "minutes": "分钟",
+    "seconds": "秒",
     "status": "状态",
     "statusChangeTitle": "切换客户端状态",
     "statusChangeContent": "你要将客户端 {0} 的状态切换为【{1}】吗？",
@@ -339,11 +378,13 @@
     "title": "文件管理",
     "originalName": "原始文件名",
     "fileName": "存储文件名",
+    "module": "所属模块",
     "size": "文件大小",
     "extension": "后缀"
   },
   "notice": {
     "title": "通知公告",
+    "scopeTargetsPlaceholder": "ID1,ID2,...",
     "name": "公告",
     "noticeTitle": "公告标题",
     "clientId": "客户端",
@@ -447,6 +488,8 @@
     "secretKey": "私有密钥",
     "expireTime": "过期时间",
     "enabled": "状态",
+    "statusChangeTitle": "切换状态",
+    "statusChangeContent": "你要将应用 {0} 的状态切换为【{1}】吗？",
     "createTime": "创建时间"
   },
   "post": {
@@ -571,6 +614,12 @@
   },
   "space": {
     "title": "空间管理",
+    "addChild": "添加下级",
+    "exportFileName": "空间管理",
+    "typeDept": "部门",
+    "typeUser": "人员",
+    "typeDevice": "设备",
+    "typeAsset": "资产",
     "name": "空间名称",
     "entityName": "空间",
     "code": "空间编码",

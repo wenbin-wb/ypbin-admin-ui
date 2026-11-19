@@ -88,7 +88,6 @@ function onDelete(row: SystemLicenseApi.SystemLicense) {
     })
     .catch((error) => {
       console.error('Failed to delete license:', error);
-      message.error($t('common.requestFailed'));
     });
 }
 
@@ -100,7 +99,6 @@ function onSubmit(row: SystemLicenseApi.SystemLicense) {
     })
     .catch((error) => {
       console.error('Failed to submit license:', error);
-      message.error($t('common.requestFailed'));
     });
 }
 
@@ -112,7 +110,6 @@ function onRevoke(row: SystemLicenseApi.SystemLicense) {
     })
     .catch((error) => {
       console.error('Failed to revoke license:', error);
-      message.error($t('common.requestFailed'));
     });
 }
 

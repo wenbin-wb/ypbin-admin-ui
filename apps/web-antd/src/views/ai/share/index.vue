@@ -97,8 +97,8 @@ async function loadDocs() {
   }
 }
 
-async function openDoc(docId: string) {
-  if (activeDocId.value === docId) return;
+async function openDoc(docId: string, force = false) {
+  if (!force && activeDocId.value === docId) return;
   activeDocId.value = docId;
   docContent.value = '';
   docError.value = '';
@@ -329,7 +329,7 @@ onUnmounted(() => {
       >
         <span class="i-lucide-alert-circle size-10 text-destructive/60"></span>
         <p class="text-sm">{{ docError }}</p>
-        <Button @click="openDoc(activeDocId)">
+        <Button @click="openDoc(activeDocId, true)">
           {{ $t('page.ai.share.reload') }}
         </Button>
       </div>

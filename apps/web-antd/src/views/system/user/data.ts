@@ -14,6 +14,22 @@ import { getPostList } from '#/api/system/post';
 import { $t } from '#/locales';
 import { isPasswordPolicySatisfied } from '#/utils/password';
 
+/** 用户类型选项：后台用户与小程序用户 */
+export function getUserTypeOptions() {
+  return [
+    {
+      color: 'processing',
+      label: $t('system.user.typeTenant'),
+      value: 'TENANT',
+    },
+    {
+      color: 'success',
+      label: $t('system.user.typeMiniapp'),
+      value: 'MINIAPP',
+    },
+  ];
+}
+
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -133,6 +149,14 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       component: 'Select',
+      // 默认只看后台用户；切到小程序用户可查看微信注册账号
+      defaultValue: 'TENANT',
+      fieldName: 'userType',
+      label: $t('system.user.userType'),
+      componentProps: { options: getUserTypeOptions() },
+    },
+    {
+      component: 'Select',
       componentProps: {
         allowClear: true,
         options: [
@@ -205,6 +229,12 @@ export function useColumns<T = SystemUserApi.SystemUser>(
     { field: 'username', title: $t('system.user.userName'), minWidth: 120 },
     { field: 'realName', title: $t('system.user.realName'), minWidth: 120 },
     { field: 'nickname', title: $t('system.user.nickname'), minWidth: 120 },
+    {
+      field: 'userType',
+      title: $t('system.user.userType'),
+      width: 110,
+      cellRender: { name: 'CellTag', options: getUserTypeOptions() },
+    },
     { field: 'deptIdName', title: $t('system.user.dept'), minWidth: 150 },
     { field: 'phone', title: $t('system.user.phone'), minWidth: 120 },
     { field: 'email', title: $t('system.user.email'), minWidth: 180 },
@@ -231,7 +261,7 @@ export function useColumns<T = SystemUserApi.SystemUser>(
       fixed: 'right',
       slots: { default: 'action' },
       title: $t('system.user.operation'),
-      minWidth: 180,
+      minWidth: 260,
     },
   ];
 }

@@ -39,9 +39,41 @@ const [Form, formApi] = useVbenForm({
       component: 'InputNumber',
       fieldName: 'timeout',
       label: $t('system.client.timeout'),
+      componentProps: {
+        min: -1,
+        placeholder: $t('system.client.timeoutHint'),
+      },
     },
     {
-      component: 'InputTextArea',
+      component: 'InputNumber',
+      fieldName: 'activeTimeout',
+      label: $t('system.client.activeTimeout'),
+      componentProps: {
+        min: -1,
+        placeholder: $t('system.client.activeTimeoutHint'),
+      },
+    },
+    {
+      component: 'RadioGroup',
+      fieldName: 'concurrentEnabled',
+      label: $t('system.client.concurrentEnabled'),
+      componentProps: {
+        optionType: 'button',
+        options: [
+          { label: $t('common.enabled'), value: 1 },
+          { label: $t('common.disabled'), value: 0 },
+        ],
+      },
+      defaultValue: 1,
+    },
+    {
+      component: 'InputNumber',
+      fieldName: 'maxLoginCount',
+      label: $t('system.client.maxLoginCount'),
+      componentProps: { min: 1 },
+    },
+    {
+      component: 'Textarea',
       fieldName: 'remark',
       label: $t('system.client.remark'),
     },
@@ -65,14 +97,20 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemClientApi.ClientResp>({
         return;
       }
       const values = await formApi.getValues<{
+        activeTimeout?: number;
         clientId: string;
         clientType: string;
+        concurrentEnabled?: number;
+        maxLoginCount?: number;
         remark?: string;
         timeout?: number;
       }>();
       const data: SystemClientApi.ClientSaveReq = {
+        activeTimeout: values.activeTimeout,
         clientId: values.clientId,
         clientType: values.clientType,
+        concurrentEnabled: values.concurrentEnabled,
+        maxLoginCount: values.maxLoginCount,
         remark: values.remark,
         timeout: values.timeout,
       };

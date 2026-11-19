@@ -169,7 +169,7 @@ export function useFormSchema(): FormSchema[] {
       label: $t('system.notice.scopeTargets'),
       componentProps: {
         allowClear: true,
-        placeholder: 'ID1,ID2,...',
+        placeholder: $t('system.notice.scopeTargetsPlaceholder'),
       },
       dependencies: {
         show: (values) => values.noticeScope !== 1,

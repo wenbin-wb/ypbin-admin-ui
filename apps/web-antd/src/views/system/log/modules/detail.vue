@@ -1,15 +1,47 @@
 <script lang="ts" setup>
+import type { DescriptionsItemType } from '@vben/common-ui';
+
 import type { SystemLogApi } from '#/api/system/log';
 
-import { ref } from 'vue';
+import { computed, h, ref } from 'vue';
 
-import { useVbenDrawer } from '@vben/common-ui';
-
-import { Descriptions, DescriptionsItem } from 'ant-design-vue';
+import { useVbenDrawer, VbenDescriptions } from '@vben/common-ui';
 
 import { $t } from '#/locales';
 
 const record = ref<Partial<SystemLogApi.LogResp>>({});
+
+const items = computed<DescriptionsItemType[]>(() => {
+  const list: DescriptionsItemType[] = [
+    { label: $t('system.log.description'), content: record.value.description },
+    { label: $t('system.log.module'), content: record.value.module },
+    { label: $t('system.log.uri'), content: record.value.requestUri },
+    { label: $t('system.log.ip'), content: record.value.ip },
+    { label: $t('system.log.location'), content: record.value.location },
+    { label: $t('system.log.browser'), content: record.value.browser },
+    { label: $t('system.log.os'), content: record.value.os },
+    {
+      label: $t('system.log.timeTaken'),
+      content: record.value.timeTaken ? `${record.value.timeTaken} ms` : '',
+    },
+    {
+      label: $t('system.log.requestMethod'),
+      content: record.value.requestMethod,
+    },
+  ];
+  if (record.value.errorMsg) {
+    list.push({
+      label: $t('system.log.errorMsg'),
+      content: () =>
+        h(
+          'pre',
+          { class: 'overflow-auto text-red-500' },
+          record.value.errorMsg,
+        ),
+    });
+  }
+  return list;
+});
 
 const [Drawer, drawerApi] = useVbenDrawer<SystemLogApi.LogResp>({
   onCancel() {
@@ -30,31 +62,6 @@ defineExpose({ drawerApi });
 </script>
 <template>
   <Drawer>
-    <Descriptions bordered :column="1">
-      <DescriptionsItem :label="$t('system.log.description')">
-        {{ record.description }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('system.log.module')">
-        {{ record.module }}
-      </DescriptionsItem>
-      <DescriptionsItem label="URI">{{ record.requestUri }}</DescriptionsItem>
-      <DescriptionsItem label="IP">{{ record.ip }}</DescriptionsItem>
-      <DescriptionsItem :label="$t('system.log.location')">
-        {{ record.location }}
-      </DescriptionsItem>
-      <DescriptionsItem :label="$t('system.log.browser')">
-        {{ record.browser }}
-      </DescriptionsItem>
-      <DescriptionsItem label="OS">{{ record.os }}</DescriptionsItem>
-      <DescriptionsItem :label="$t('system.log.timeTaken')">
-        {{ record.timeTaken }} ms
-      </DescriptionsItem>
-      <DescriptionsItem label="Request Method">
-        {{ record.requestMethod }}
-      </DescriptionsItem>
-      <DescriptionsItem label="Error Msg" v-if="record.errorMsg">
-        <pre class="text-red-500 overflow-auto">{{ record.errorMsg }}</pre>
-      </DescriptionsItem>
-    </Descriptions>
+    <VbenDescriptions bordered :column="1" :items="items" />
   </Drawer>
 </template>

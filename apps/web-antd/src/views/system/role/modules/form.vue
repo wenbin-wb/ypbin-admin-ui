@@ -107,6 +107,8 @@ async function loadPermissions() {
     // 只加载当前租户模板内的菜单：平台专用等模板外菜单授予后会被保存校验拒绝
     const res = await getAssignableMenus();
     permissions.value = markUnassignable(res);
+  } catch {
+    // 失败文案由全局响应拦截器展示，这里只收尾 loading，不重复报错
   } finally {
     loadingPermissions.value = false;
   }

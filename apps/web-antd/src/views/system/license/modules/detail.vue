@@ -1,11 +1,13 @@
 <script lang="ts" setup>
+import type { DescriptionsItemType } from '@vben/common-ui';
+
 import type { SystemLicenseApi } from '#/api/system/license';
 
-import { ref } from 'vue';
+import { computed, h, ref } from 'vue';
 
-import { useVbenDrawer } from '@vben/common-ui';
+import { useVbenDrawer, VbenDescriptions } from '@vben/common-ui';
 
-import { Descriptions, Spin } from 'ant-design-vue';
+import { Spin } from 'ant-design-vue';
 
 import { getLicenseDetail } from '#/api/system/license';
 import { $t } from '#/locales';
@@ -33,6 +35,66 @@ function toMapText(map?: Record<string, number | string>) {
     .join('\n');
 }
 
+/** 多行文本用 pre-line 保留换行 */
+function preline(text: string) {
+  return () => h('span', { class: 'whitespace-pre-line' }, text);
+}
+
+const items = computed<DescriptionsItemType[]>(() => {
+  const d = detail.value;
+  if (!d) {
+    return [];
+  }
+  return [
+    { label: $t('system.license.subject'), content: d.subject },
+    { label: $t('system.license.licenseId'), content: d.licenseId || '-' },
+    {
+      label: $t('system.license.deliveryMode'),
+      content: toLabel(getDeliveryModeOptions(), d.deliveryMode),
+    },
+    {
+      label: $t('system.license.approveStatus'),
+      content: toLabel(getApproveStatusOptions(), d.approveStatus),
+    },
+    {
+      label: $t('system.license.currentStatus'),
+      content: d.currentStatus || '-',
+    },
+    { label: $t('system.license.tenantId'), content: d.tenantId || '-' },
+    { label: $t('system.license.effectiveAt'), content: d.effectiveAt || '-' },
+    { label: $t('system.license.expireAt'), content: d.expireAt || '-' },
+    { label: $t('system.license.graceDays'), content: d.graceDays ?? '-' },
+    {
+      label: $t('system.license.fingerprints'),
+      content: preline(toListText(d.fingerprints)),
+    },
+    {
+      label: $t('system.license.modules'),
+      content: preline(toListText(d.modules)),
+    },
+    {
+      label: $t('system.license.quotas'),
+      content: preline(toMapText(d.quotas)),
+    },
+    {
+      label: $t('system.license.attributes'),
+      content: preline(toMapText(d.attributes)),
+    },
+    { label: $t('system.license.remark'), content: d.remark || '-' },
+    {
+      label: $t('system.license.approveUser'),
+      content: d.approveUserName || '-',
+    },
+    { label: $t('system.license.approveTime'), content: d.approveTime || '-' },
+    {
+      label: $t('system.license.rejectReason'),
+      content: d.rejectReason || '-',
+    },
+    { label: $t('common.creator'), content: d.createUserName || '-' },
+    { label: $t('system.license.createTime'), content: d.createTime || '-' },
+  ];
+});
+
 const [Drawer, drawerApi] = useVbenDrawer<SystemLicenseApi.SystemLicense>({
   async onOpenChange(isOpen) {
     if (!isOpen) return;
@@ -56,73 +118,7 @@ defineExpose({ drawerApi });
 <template>
   <Drawer :title="$t('system.license.detailTitle')" class="w-[720px]">
     <Spin :spinning="loading">
-      <Descriptions v-if="detail" :column="1" bordered size="small">
-        <Descriptions.Item :label="$t('system.license.subject')">
-          {{ detail.subject }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.licenseId')">
-          {{ detail.licenseId || '-' }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.deliveryMode')">
-          {{ toLabel(getDeliveryModeOptions(), detail.deliveryMode) }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.approveStatus')">
-          {{ toLabel(getApproveStatusOptions(), detail.approveStatus) }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.currentStatus')">
-          {{ detail.currentStatus || '-' }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.tenantId')">
-          {{ detail.tenantId || '-' }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.effectiveAt')">
-          {{ detail.effectiveAt || '-' }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.expireAt')">
-          {{ detail.expireAt || '-' }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.graceDays')">
-          {{ detail.graceDays ?? '-' }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.fingerprints')">
-          <span class="whitespace-pre-line">{{
-            toListText(detail.fingerprints)
-          }}</span>
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.modules')">
-          <span class="whitespace-pre-line">{{
-            toListText(detail.modules)
-          }}</span>
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.quotas')">
-          <span class="whitespace-pre-line">{{
-            toMapText(detail.quotas)
-          }}</span>
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.attributes')">
-          <span class="whitespace-pre-line">{{
-            toMapText(detail.attributes)
-          }}</span>
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.remark')">
-          {{ detail.remark || '-' }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.approveUser')">
-          {{ detail.approveUserName || '-' }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.approveTime')">
-          {{ detail.approveTime || '-' }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.rejectReason')">
-          {{ detail.rejectReason || '-' }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('common.creator')">
-          {{ detail.createUserName || '-' }}
-        </Descriptions.Item>
-        <Descriptions.Item :label="$t('system.license.createTime')">
-          {{ detail.createTime || '-' }}
-        </Descriptions.Item>
-      </Descriptions>
+      <VbenDescriptions bordered :column="1" :items="items" />
     </Spin>
   </Drawer>
 </template>

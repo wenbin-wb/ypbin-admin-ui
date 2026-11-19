@@ -246,7 +246,7 @@ async function onExport() {
     const blob = await exportSpaces();
     await downloadBlobSafe(
       blob,
-      `空间管理-${new Date().toISOString().slice(0, 10)}.csv`,
+      `${$t('system.space.exportFileName')}-${new Date().toISOString().slice(0, 10)}.csv`,
       $t('system.space.exportFailed'),
     );
   } catch (error: unknown) {
@@ -310,6 +310,7 @@ function refreshGrid() {
           -->
           <Button
             v-access:code="['system:space:add']"
+            :aria-label="$t('system.space.addChild')"
             class="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
             size="small"
             type="text"

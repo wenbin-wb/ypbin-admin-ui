@@ -120,7 +120,7 @@ function onDelete(row: SystemMenuApi.SystemMenu) {
         <VbenTableAction
           :actions="[
             {
-              text: $t('common.add'),
+              text: $t('system.menu.addChild'),
               icon: 'lucide:plus',
               auth: 'system:menu:add',
               onClick: () => onAppend(row),

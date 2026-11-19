@@ -19,7 +19,6 @@ import {
   updateModelStatus,
 } from '#/api/ai';
 import { $t } from '#/locales';
-import { extractErrorMessage } from '#/utils/error';
 
 import { useColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
@@ -85,10 +84,8 @@ function onTest(row: AiApi.ModelConfig) {
     .then((result) => {
       message.success($t('page.ai.config.testOk', [String(result.latencyMs)]));
     })
-    .catch((error) => {
-      // 显示后端返回的具体失败原因（如 HTTP 401/404、超时等）
-      const reason = extractErrorMessage(error, '');
-      message.error(reason || $t('page.ai.config.testFail'));
+    .catch(() => {
+      // 失败文案由全局响应拦截器展示
     });
 }
 
@@ -105,10 +102,8 @@ function onDelete(row: AiApi.ModelConfig) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch((error) => {
-      // 显示后端返回的具体失败原因（如默认模型不可删除），不静默吞错
-      const reason = error?.message || error?.data?.message;
-      message.error(reason || $t('page.ai.config.deleteFail'));
+    .catch(() => {
+      // 失败文案由全局响应拦截器展示
     });
 }
 
@@ -119,9 +114,8 @@ function onToggleStatus(row: AiApi.ModelConfig) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch((error) => {
-      const reason = error?.message || error?.data?.message;
-      message.error(reason || $t('page.ai.config.deleteFail'));
+    .catch(() => {
+      // 失败文案由全局响应拦截器展示
     });
 }
 
@@ -131,9 +125,8 @@ function onDuplicate(row: AiApi.ModelConfig) {
       message.success($t('common.success'));
       onRefresh();
     })
-    .catch((error) => {
-      const reason = error?.message || error?.data?.message;
-      message.error(reason || $t('page.ai.config.duplicateFail'));
+    .catch(() => {
+      // 失败文案由全局响应拦截器展示
     });
 }
 

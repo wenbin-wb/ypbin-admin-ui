@@ -21,7 +21,7 @@ import { $t } from '#/locales';
 
 import { useFormSchema } from '../data';
 
-const emit = defineEmits(['reload']);
+const emit = defineEmits(['success']);
 
 const [Form, formApi] = useVbenForm({
   schema: useFormSchema(),
@@ -39,6 +39,8 @@ async function loadPermissions() {
   try {
     const res = await getMenuList();
     permissions.value = res;
+  } catch {
+    // 失败文案由全局响应拦截器展示，这里只收尾 loading，不重复报错
   } finally {
     loadingPermissions.value = false;
   }
@@ -85,7 +87,7 @@ const [Drawer, drawerApi] = useVbenDrawer<AuthTemplateFormData>({
         : createAuthTemplate(request));
       message.success($t('common.success'));
       drawerApi.close();
-      emit('reload');
+      emit('success');
     } finally {
       drawerApi.setState({ confirmLoading: false });
     }

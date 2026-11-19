@@ -11,32 +11,32 @@ import { $t } from '#/locales';
 import { collectSubtreeIds } from '../_shared/space-tree';
 
 /** 需要地址/经纬度的空间类型（园区、楼栋） */
-const GEO_TYPES = new Set(['park', 'building']);
+const GEO_TYPES = new Set(['building', 'park']);
 
 /** 需要楼层号的空间类型（楼层以下的实体空间） */
 const FLOOR_NO_TYPES = new Set([
-  'floor',
-  'room',
-  'office',
   'dormitory',
+  'floor',
+  'office',
+  'room',
   'warehouse',
 ]);
 
 /** 需要房间号的空间类型 */
-const ROOM_NO_TYPES = new Set(['room', 'office', 'dormitory', 'warehouse']);
+const ROOM_NO_TYPES = new Set(['dormitory', 'office', 'room', 'warehouse']);
 
 /** 需要面积的空间类型（园区层统计粒度不同，不在此列） */
 const AREA_TYPES = new Set([
   'building',
-  'floor',
-  'room',
-  'office',
   'dormitory',
+  'floor',
+  'office',
+  'room',
   'warehouse',
 ]);
 
 /** 需要容量（容纳人数）的空间类型 */
-const CAPACITY_TYPES = new Set(['office', 'dormitory', 'warehouse']);
+const CAPACITY_TYPES = new Set(['dormitory', 'office', 'warehouse']);
 
 /**
  * 空间管理表单 schema。

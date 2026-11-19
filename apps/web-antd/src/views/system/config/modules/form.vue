@@ -11,6 +11,8 @@ import { useVbenForm } from '#/adapter/form';
 import { createConfig, updateConfig } from '#/api/system/config';
 import { $t } from '#/locales';
 
+import { isSensitiveKey } from '../special-fields';
+
 const emit = defineEmits(['success']);
 
 const [Form, formApi] = useVbenForm({
@@ -40,7 +42,7 @@ const [Form, formApi] = useVbenForm({
       rules: 'required',
     },
     {
-      component: 'InputTextArea',
+      component: 'Textarea',
       fieldName: 'remark',
       label: $t('system.config.remark'),
     },
@@ -100,6 +102,15 @@ const [Drawer, drawerApi] = useVbenDrawer<null | SystemConfigApi.ConfigResp>({
       if (data) {
         formApi.setValues(data);
       }
+      // 敏感配置的取值按密码框编辑，避免明文回显；新建时 key 尚不可知，保持普通输入框
+      formApi.updateSchema([
+        {
+          component: isSensitiveKey(data?.configKey ?? '')
+            ? 'InputPassword'
+            : 'Input',
+          fieldName: 'configValue',
+        },
+      ]);
     }
   },
 });

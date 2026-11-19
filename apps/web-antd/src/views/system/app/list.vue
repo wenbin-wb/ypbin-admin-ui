@@ -17,6 +17,7 @@ import {
 } from '#/api/system/app';
 import { $t } from '#/locales';
 
+import { useConfirm } from '../_shared/confirm';
 import { showSecretOnce } from '../_shared/show-secret';
 import { useColumns } from './data';
 import Form from './modules/form.vue';
@@ -73,7 +74,13 @@ async function onStatusChange(
   status: number,
   row: SystemAppApi.AppResp,
 ): Promise<boolean> {
+  const statusText =
+    status === 1 ? $t('common.enabled') : $t('common.disabled');
   try {
+    await useConfirm(
+      $t('system.app.statusChangeContent', [row.appName, statusText]),
+      $t('system.app.statusChangeTitle'),
+    );
     const data: SystemAppApi.AppSaveReq = {
       appName: row.appName,
       enabled: status,
@@ -89,7 +96,7 @@ async function onStatusChange(
 </script>
 <template>
   <Page auto-content-height>
-    <FormDrawer @reload="gridApi.reload()" @secret="onSecret" />
+    <FormDrawer @success="gridApi.reload()" @secret="onSecret" />
     <Grid>
       <template #toolbar-tools>
         <Button

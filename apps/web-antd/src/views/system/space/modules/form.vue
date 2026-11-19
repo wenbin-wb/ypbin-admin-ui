@@ -99,7 +99,7 @@ defineExpose({ drawerApi });
     <Form class="mx-4" />
     <template #prepend-footer>
       <div class="flex-auto">
-        <Button danger type="primary" @click="resetForm">
+        <Button type="primary" @click="resetForm">
           {{ $t('common.reset') }}
         </Button>
       </div>

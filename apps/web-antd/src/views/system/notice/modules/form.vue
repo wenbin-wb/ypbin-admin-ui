@@ -21,7 +21,7 @@ import { clientLabel } from '../../_shared/client-label';
 import ImageUpload from '../../_shared/image-upload.vue';
 import { useFormSchema } from '../data';
 
-const emit = defineEmits(['reload']);
+const emit = defineEmits(['success']);
 const { hasAccessByCodes } = useAccess();
 const isUpdate = ref(false);
 const canUploadCover = computed(
@@ -92,7 +92,7 @@ async function submit(draft: boolean) {
       : createNotice(data));
     message.success($t('common.success'));
     modalApi.close();
-    emit('reload');
+    emit('success');
   } finally {
     modalApi.setState({ confirmLoading: false });
   }

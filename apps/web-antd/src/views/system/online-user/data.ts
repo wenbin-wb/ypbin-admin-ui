@@ -46,7 +46,7 @@ export function useColumns(): VxeTableGridColumns {
     },
     { field: 'location', title: $t('system.log.location'), width: 120 },
     { field: 'browser', title: $t('system.log.browser'), minWidth: 160 },
-    { field: 'os', title: 'OS', minWidth: 140 },
+    { field: 'os', title: $t('system.log.os'), minWidth: 140 },
     {
       field: 'loginTime',
       title: $t('system.onlineUser.loginTime'),

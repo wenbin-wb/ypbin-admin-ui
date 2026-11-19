@@ -6,7 +6,7 @@ import { onUnmounted, ref } from 'vue';
 import { useVbenModal, VCropper } from '@vben/common-ui';
 import { IconifyIcon } from '@vben/icons';
 
-import { message } from 'ant-design-vue';
+import { Button, message } from 'ant-design-vue';
 
 import { uploadFile } from '#/api/system/common';
 import { $t } from '#/locales';
@@ -129,7 +129,7 @@ function onRemove() {
         v-if="modelValue"
         :src="modelValue"
         class="size-full object-cover"
-        alt="image"
+        alt=""
       />
       <IconifyIcon
         v-else
@@ -146,12 +146,24 @@ function onRemove() {
       </div>
     </div>
     <div v-if="shape === 'square'" class="flex flex-col gap-1">
-      <a class="text-primary text-xs" @click="onPick">
+      <Button
+        type="link"
+        size="small"
+        class="!h-auto !px-0 text-xs"
+        @click="onPick"
+      >
         {{ $t('ui.placeholder.upload') }}
-      </a>
-      <a v-if="modelValue" class="text-destructive text-xs" @click="onRemove">
+      </Button>
+      <Button
+        v-if="modelValue"
+        danger
+        type="link"
+        size="small"
+        class="!h-auto !px-0 text-xs"
+        @click="onRemove"
+      >
         {{ $t('common.delete') }}
-      </a>
+      </Button>
     </div>
 
     <input

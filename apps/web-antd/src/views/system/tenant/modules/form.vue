@@ -13,7 +13,7 @@ import { $t } from '#/locales';
 
 import { useFormSchema } from '../data';
 
-const emit = defineEmits(['reload']);
+const emit = defineEmits(['success']);
 
 interface TenantFormValues {
   code: string;
@@ -59,7 +59,7 @@ const [Drawer, drawerApi] = useVbenDrawer<TenantFormData>({
       await (data?.id ? updateTenant(data.id, request) : createTenant(request));
       message.success($t('common.success'));
       drawerApi.close();
-      emit('reload');
+      emit('success');
     } finally {
       drawerApi.setState({ confirmLoading: false });
     }

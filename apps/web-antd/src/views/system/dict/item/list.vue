@@ -123,7 +123,7 @@ defineExpose({ drawerApi });
 
 <template>
   <Drawer class="w-[800px]">
-    <FormDrawer @reload="gridApi.query()" />
+    <FormDrawer @success="gridApi.query()" />
     <Grid>
       <template #toolbar-tools>
         <Button

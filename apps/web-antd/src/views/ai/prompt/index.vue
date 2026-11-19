@@ -72,7 +72,6 @@ function onToggle(row: AiApi.PromptTemplate) {
     },
     (error) => {
       console.error('Failed to toggle prompt template:', error);
-      message.error($t('common.requestFailed'));
     },
   );
 }
@@ -85,7 +84,6 @@ function onDelete(row: AiApi.PromptTemplate) {
     })
     .catch((error) => {
       console.error('Failed to delete prompt template:', error);
-      message.error($t('common.requestFailed'));
     });
 }
 

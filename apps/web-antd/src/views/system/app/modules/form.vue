@@ -13,7 +13,7 @@ import { $t } from '#/locales';
 
 import { useFormSchema } from '../data';
 
-const emit = defineEmits(['reload', 'secret']);
+const emit = defineEmits(['success', 'secret']);
 const isUpdate = ref(false);
 const rowId = ref('');
 
@@ -55,7 +55,7 @@ const [Drawer, drawerApi] = useVbenDrawer<AppFormData>({
       }
       message.success($t('common.success'));
       drawerApi.close();
-      emit('reload');
+      emit('success');
     } finally {
       drawerApi.setState({ confirmLoading: false });
     }

@@ -13,7 +13,7 @@ import { $t } from '#/locales';
 
 import { useFormSchema } from '../data';
 
-const emit = defineEmits(['reload']);
+const emit = defineEmits(['success']);
 const isUpdate = ref(false);
 const rowId = ref('');
 const parentDictId = ref('');
@@ -66,7 +66,7 @@ const [Drawer, drawerApi] = useVbenDrawer<DictItemFormData>({
 
       message.success($t('common.success'));
       drawerApi.close();
-      emit('reload');
+      emit('success');
     } finally {
       drawerApi.setState({ confirmLoading: false });
     }

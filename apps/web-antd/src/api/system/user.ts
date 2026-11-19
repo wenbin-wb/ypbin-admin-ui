@@ -17,6 +17,8 @@ export namespace SystemUserApi {
     phone?: string;
     realName?: string;
     status?: 0 | 1;
+    /** 用户类型：TENANT 后台用户（默认）/ MINIAPP 小程序用户 */
+    userType?: 'MINIAPP' | 'TENANT';
     username?: string;
   }
 
@@ -47,6 +49,8 @@ export namespace SystemUserApi {
      */
     realName: null | string;
     nickname?: string;
+    /** 用户类型：TENANT 后台用户 / MINIAPP 小程序用户 */
+    userType?: 'MINIAPP' | 'TENANT';
     deptId?: string;
     deptIdName?: string;
     avatar?: string;

@@ -86,7 +86,6 @@ function onDelete(row: SystemNoticeApi.NoticeResp) {
     })
     .catch((error) => {
       console.error('Failed to delete notice:', error);
-      message.error($t('common.requestFailed'));
     });
 }
 function onRevoke(row: SystemNoticeApi.NoticeResp) {
@@ -97,7 +96,6 @@ function onRevoke(row: SystemNoticeApi.NoticeResp) {
     },
     (error) => {
       console.error('Failed to revoke notice:', error);
-      message.error($t('common.requestFailed'));
     },
   );
 }
@@ -109,14 +107,13 @@ function onPublish(row: SystemNoticeApi.NoticeResp) {
     },
     (error) => {
       console.error('Failed to publish notice:', error);
-      message.error($t('common.requestFailed'));
     },
   );
 }
 </script>
 <template>
   <Page auto-content-height>
-    <FormModal @reload="onRefresh" />
+    <FormModal @success="onRefresh" />
     <PreviewModal />
     <Grid :table-title="$t('system.notice.title')">
       <template #toolbar-tools>

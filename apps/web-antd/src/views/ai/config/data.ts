@@ -60,7 +60,7 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       component: 'Input',
       componentProps: {
-        placeholder: 'deepseek-v4-flash / deepseek-v4-pro',
+        placeholder: $t('page.ai.config.modelNamePlaceholder'),
       },
       fieldName: 'modelName',
       label: $t('page.ai.config.modelName'),

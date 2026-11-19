@@ -30,11 +30,11 @@ export function useColumns(): VxeTableGridColumns {
       cellRender: { name: 'CellTag', options: clientTagOptions() },
     },
     { field: 'clientType', title: $t('system.log.clientType'), width: 100 },
-    { field: 'requestUri', title: 'URI', minWidth: 150 },
-    { field: 'ip', title: 'IP', width: 120 },
+    { field: 'requestUri', title: $t('system.log.uri'), minWidth: 150 },
+    { field: 'ip', title: $t('system.log.ip'), width: 120 },
     { field: 'location', title: $t('system.log.location'), width: 120 },
     { field: 'browser', title: $t('system.log.browser'), minWidth: 160 },
-    { field: 'os', title: 'OS', minWidth: 140 },
+    { field: 'os', title: $t('system.log.os'), minWidth: 140 },
     {
       field: 'timeTaken',
       title: $t('system.log.timeTaken'),
@@ -76,13 +76,13 @@ export function useGridFormSchema(): FormSchema[] {
     {
       component: 'Input',
       fieldName: 'requestUri',
-      label: 'URI',
+      label: $t('system.log.uri'),
       componentProps: { allowClear: true },
     },
     {
       component: 'Input',
       fieldName: 'ip',
-      label: 'IP',
+      label: $t('system.log.ip'),
       componentProps: { allowClear: true },
     },
     {

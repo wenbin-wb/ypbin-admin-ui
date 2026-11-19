@@ -82,6 +82,11 @@ const [ImportModal, importModalApi] = useVbenModal({
 });
 
 async function onStatusChange(newStatus: 0 | 1, row: SystemUserApi.SystemUser) {
+  // 小程序用户的状态由微信登录流程维护，后台不提供启停
+  if (row.userType === 'MINIAPP') {
+    message.warning($t('system.user.miniappStatusReadonly'));
+    return false;
+  }
   const statusText =
     newStatus === 1 ? $t('common.enabled') : $t('common.disabled');
   try {
@@ -115,7 +120,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
         query: async ({ page }, formValues: Recordable<any>) => {
           const params: SystemUserApi.UserQuery = {
             ...userSearchCodec.encode(formValues as UserSearchSubmitValues),
-            deptId: selectedDeptId.value,
+            // 左侧树优先，其次用搜索表单里选的部门；两者都空表示不限部门
+            deptId: selectedDeptId.value || formValues?.deptId || '',
             page: page.currentPage,
             pageSize: page.pageSize,
           };
@@ -183,7 +189,11 @@ async function onExport() {
     const formValues = gridApi.formApi?.form?.values ?? {};
     const params = {
       ...userSearchCodec.encode(formValues as UserSearchSubmitValues),
-      deptId: selectedDeptId.value,
+      // 与列表同一口径：左侧树优先，其次搜索表单里的部门
+      deptId:
+        selectedDeptId.value ||
+        (formValues as { deptId?: string })?.deptId ||
+        '',
     } as unknown as SystemUserApi.UserQuery;
     const blob = await exportUsers(params);
     const downloaded = await downloadBlobSafe(
@@ -211,8 +221,17 @@ async function loadDeptList() {
   }
 }
 
-function selectDept(v: string) {
-  selectedDeptId.value = v;
+/**
+ * 部门树选中回调。
+ *
+ * <p>Tree 的 select 事件回传的是整棵节点（FlattenedItem，形如
+ * `{ value: 原始节点, level, index, hasChildren, bind }`），而不是 value-field 对应的值。
+ * 直接把节点当部门 ID 传下去会把整个对象序列化进查询串，请求被容器以 400 拒绝，
+ * 因此这里取 `node.value.id`。</p>
+ */
+function selectDept(node: unknown) {
+  const flattened = node as null | { value?: { id?: string } };
+  selectedDeptId.value = flattened?.value?.id ?? '';
   gridApi.query();
 }
 
@@ -295,6 +314,8 @@ watch(inputSearchValue, (value) => {
                   text: $t('common.edit'),
                   icon: 'lucide:edit',
                   auth: 'system:user:edit',
+                  // 小程序用户由微信登录自动创建，不参与后台账号的编辑/删除
+                  ifShow: () => row.userType !== 'MINIAPP',
                   onClick: () => onEdit(row),
                 },
                 {
@@ -302,6 +323,7 @@ watch(inputSearchValue, (value) => {
                   icon: 'lucide:trash-2',
                   auth: 'system:user:delete',
                   danger: true,
+                  ifShow: () => row.userType !== 'MINIAPP',
                   popConfirm: {
                     title: $t('ui.actionMessage.deleteConfirm', [
                       row.realName || row.username,
@@ -321,13 +343,14 @@ watch(inputSearchValue, (value) => {
                   text: $t('system.user.assignRoles'),
                   icon: 'lucide:users',
                   auth: 'system:user:edit',
-                  ifShow: canAssignRoles,
+                  ifShow: () => canAssignRoles && row.userType !== 'MINIAPP',
                   onClick: () => onAssignRoles(row),
                 },
                 {
                   text: $t('system.user.resetPassword'),
                   icon: 'lucide:key-round',
                   auth: 'system:user:edit',
+                  ifShow: () => row.userType !== 'MINIAPP',
                   onClick: () => onResetPassword(row),
                 },
               ]"

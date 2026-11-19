@@ -103,8 +103,8 @@ async function loadDocs(kbId: string) {
 }
 
 // ===== 打开文档 =====
-async function openDoc(docId: string) {
-  if (activeDocId.value === docId) return;
+async function openDoc(docId: string, force = false) {
+  if (!force && activeDocId.value === docId) return;
   activeDocId.value = docId;
   docContent.value = '';
   docError.value = '';
@@ -292,7 +292,7 @@ onMounted(loadKbs);
             class="i-lucide-alert-circle size-10 text-destructive/60"
           ></span>
           <p class="text-sm">{{ docError }}</p>
-          <Button @click="openDoc(activeDocId)">
+          <Button @click="openDoc(activeDocId, true)">
             {{ $t('page.ai.wiki.reload') }}
           </Button>
         </div>
@@ -363,8 +363,7 @@ onMounted(loadKbs);
               <div class="mb-1.5 flex items-center gap-2">
                 <span
                   class="inline-flex size-4 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary"
-                  >#{{ idx + 1 }}</span
-                >
+                  >#{{ idx + 1 }}</span>
                 <span class="truncate text-xs text-muted-foreground">{{
                   src.source
                 }}</span>

@@ -379,6 +379,7 @@
       "provider": "Provider",
       "modelType": "Model Type",
       "modelName": "Model Name",
+      "modelNamePlaceholder": "deepseek-v4-flash / deepseek-v4-pro",
       "apiKey": "API Key",
       "apiKeyTip": "Leave blank to keep unchanged when editing",
       "baseUrl": "Base URL",

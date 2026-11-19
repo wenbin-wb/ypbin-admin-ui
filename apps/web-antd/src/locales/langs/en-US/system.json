@@ -9,6 +9,21 @@
   "push": {
     "test": "Push Test"
   },
+  "platformUser": {
+    "title": "Platform Accounts",
+    "userName": "Login Account",
+    "realName": "Name",
+    "nickname": "Nickname",
+    "status": "Status",
+    "lastLoginTime": "Last Login Time",
+    "createTime": "Created At",
+    "resetPassword": "Reset Password",
+    "password": "Password",
+    "passwordRule": "Password must be 8-32 characters and contain both letters and digits",
+    "newPasswordPlaceholder": "Enter new password",
+    "statusChangeTitle": "Change Status",
+    "statusChangeContent": "Change the status of {0} to [{1}]?"
+  },
   "user": {
     "title": "User Management",
     "list": "User List",
@@ -17,6 +32,10 @@
     "password": "Password",
     "realName": "Real Name",
     "nickname": "Nickname",
+    "userType": "User Type",
+    "typeTenant": "Backend User",
+    "typeMiniapp": "Mini Program User",
+    "miniappStatusReadonly": "Mini program users are managed by WeChat login and cannot be enabled or disabled here",
     "phone": "Phone Number",
     "email": "Email",
     "avatar": "Avatar",
@@ -60,6 +79,7 @@
   },
   "dept": {
     "list": "Department List",
+    "addChild": "Add Child",
     "createTime": "Create Time",
     "deptName": "Department Name",
     "name": "Department",
@@ -85,6 +105,7 @@
   },
   "menu": {
     "list": "Menu List",
+    "addChild": "Add Child",
     "activeIcon": "Active Icon",
     "activePath": "Active Path",
     "activePathHelp": "When jumping to the current route, \nthe menu path that needs to be activated must be specified when it does not display in the navigation menu.",
@@ -267,7 +288,12 @@
     "export": "Export",
     "exportFailed": "Export failed",
     "exportFileName": "operation-logs.xlsx",
-    "description": "Content"
+    "description": "Content",
+    "uri": "Request URI",
+    "ip": "IP",
+    "os": "OS",
+    "requestMethod": "Method",
+    "errorMsg": "Error"
   },
   "onlineUser": {
     "title": "Online Users",
@@ -276,11 +302,13 @@
     "clientId": "Client",
     "ip": "IP",
     "deviceType": "Device Type",
+    "os": "OS",
     "loginTime": "Login Time",
     "forceLogout": "Force Logout"
   },
   "blocklist": {
     "title": "Access Security",
+    "banIpPlaceholder": "10.0.0.1 / 2001:db8::1",
     "list": "Access Blocklist",
     "name": "Blocklist Rule",
     "ruleTab": "Manual Rules",
@@ -326,6 +354,17 @@
     "labelMiniapp": "WeChat mini program",
     "clientSecret": "Client Secret",
     "timeout": "Timeout",
+    "timeoutHint": "Fixed validity in seconds; -1 means never expires",
+    "activeTimeout": "Active Timeout",
+    "activeTimeoutHint": "Seconds of inactivity before logout; -1 disables idle logout",
+    "concurrentEnabled": "Multi-device",
+    "maxLoginCount": "Max Logins",
+    "permanent": "Permanent",
+    "unlimited": "Unlimited",
+    "days": "d",
+    "hours": "h",
+    "minutes": "min",
+    "seconds": "s",
     "status": "Status",
     "statusChangeTitle": "Change Client Status",
     "statusChangeContent": "Change the status of client {0} to [{1}]?",
@@ -338,12 +377,14 @@
   "file": {
     "title": "File Management",
     "originalName": "Original File Name",
+    "module": "Module",
     "fileName": "Stored File Name",
     "size": "File Size",
     "extension": "Extension"
   },
   "notice": {
     "title": "Notices",
+    "scopeTargetsPlaceholder": "ID1,ID2,...",
     "name": "Notice",
     "noticeTitle": "Notice Title",
     "clientId": "Client",
@@ -447,6 +488,8 @@
     "secretKey": "Secret Key",
     "expireTime": "Expiration Time",
     "enabled": "Status",
+    "statusChangeTitle": "Change Status",
+    "statusChangeContent": "Change the status of app {0} to [{1}]?",
     "createTime": "Creation Time"
   },
   "post": {
@@ -571,6 +614,12 @@
   },
   "space": {
     "title": "Space Management",
+    "addChild": "Add Child",
+    "exportFileName": "Space Management",
+    "typeDept": "Department",
+    "typeUser": "User",
+    "typeDevice": "Device",
+    "typeAsset": "Asset",
     "name": "Space Name",
     "entityName": "Space",
     "code": "Space Code",
