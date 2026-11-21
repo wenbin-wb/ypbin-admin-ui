@@ -201,7 +201,7 @@ async function fillRelationCounts(rows: SystemSpaceApi.SpaceTreeNode[]) {
       });
       countFailureWarned = true;
       // 控制台留原始错误便于排障（不是业务提示，不展示给用户）
-      console.warn('[space] 对象数量统计失败', error);
+      console.warn('[space] Failed to count objects', error);
     }
   }
 }

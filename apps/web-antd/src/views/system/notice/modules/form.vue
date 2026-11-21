@@ -123,7 +123,7 @@ const [Modal, modalApi] = useVbenModal<NoticeFormData>({
       try {
         clientIds = await getNoticeClientOptions();
       } catch (error) {
-        console.error('加载客户端选项失败', error);
+        console.error('Failed to load client options', error);
       }
       formApi.updateSchema([
         {

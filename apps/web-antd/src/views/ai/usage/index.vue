@@ -11,25 +11,10 @@ import { useAiStats } from './use-ai-stats';
 
 defineOptions({ name: 'AiUsage' });
 
-// ---- 统一视觉色板（与 vben 主题/内置色板一致）----
-// 品牌渐变：primary(蓝 212) → 靛紫(245)，用于所有强调元素
-const BRAND_GRAD =
-  'linear-gradient(135deg, hsl(var(--primary)), hsl(245 82% 67%))';
-const BRAND_GLOW = 'hsl(var(--primary) / 28%)';
-// 进度条渐变（品牌横向渐变）
-const BAR_GRAD =
-  'linear-gradient(90deg, hsl(var(--primary)), hsl(245 82% 67%))';
+// ---- 统一视觉：品牌主色与奖牌语义色（扁平实色）----
+const BAR_COLOR = 'hsl(var(--primary))';
 // 奖牌语义色（金/银/铜，全局惯例）
-const MEDAL_GRADS = [
-  'linear-gradient(135deg, hsl(45 93% 47%), hsl(38 92% 50%))',
-  'linear-gradient(135deg, hsl(215 13% 47%), hsl(217 13% 55%))',
-  'linear-gradient(135deg, hsl(28 87% 50%), hsl(25 90% 52%))',
-];
-const MEDAL_GLOWS = [
-  'hsl(45 93% 47% / 35%)',
-  'hsl(215 13% 47% / 30%)',
-  'hsl(28 87% 50% / 30%)',
-];
+const MEDAL_COLORS = ['hsl(45 93% 47%)', 'hsl(215 13% 55%)', 'hsl(28 87% 50%)'];
 
 // 统计域（数据加载/归一化/派生指标/模型表）
 const {
@@ -91,10 +76,7 @@ function showTick(i: number) {
 }
 
 function medal(i: number) {
-  return i < 3 ? MEDAL_GRADS[i] : 'hsl(var(--muted-foreground) / 25%)';
-}
-function medalGlow(i: number) {
-  return i < 3 ? MEDAL_GLOWS[i] : 'transparent';
+  return i < 3 ? MEDAL_COLORS[i] : 'hsl(var(--muted-foreground) / 30%)';
 }
 
 // 数据到位后启动数字滚动动画
@@ -111,22 +93,13 @@ onMounted(() => {
       <!-- ===== 概览指标卡（统一品牌渐变）===== -->
       <div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
         <div
-          v-for="(m, i) in metrics"
+          v-for="m in metrics"
           :key="m.key"
-          class="metric-card group relative overflow-hidden rounded-xl border border-border/80 bg-card p-4"
-          :style="{ '--glow': BRAND_GLOW, animationDelay: `${i * 60}ms` }"
+          class="rounded-xl border border-border/80 bg-card p-4 transition-colors hover:border-primary/40"
         >
-          <span
-            class="pointer-events-none absolute -right-6 -top-6 size-20 rounded-full opacity-60 blur-2xl transition-opacity duration-300 group-hover:opacity-90"
-            :style="{ background: BRAND_GRAD }"
-          ></span>
-          <div class="relative">
+          <div>
             <div
-              class="inline-flex size-9 items-center justify-center rounded-lg text-white shadow-lg"
-              :style="{
-                background: BRAND_GRAD,
-                boxShadow: `0 6px 16px ${BRAND_GLOW}`,
-              }"
+              class="inline-flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary"
             >
               <span class="size-[18px]" :class="m.icon"></span>
             </div>
@@ -134,12 +107,7 @@ onMounted(() => {
               {{ m.label }}
             </p>
             <p
-              class="mt-1 truncate text-[26px] font-bold tabular-nums leading-tight tracking-tight"
-              :style="{
-                background: BRAND_GRAD,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }"
+              class="mt-1 truncate text-[26px] font-bold tabular-nums leading-tight tracking-tight text-foreground"
             >
               <Skeleton
                 v-if="loading"
@@ -158,12 +126,8 @@ onMounted(() => {
       <Row :gutter="[16, 16]">
         <Col :xs="24" :lg="16">
           <div
-            class="panel-card relative overflow-hidden rounded-xl border border-border/80 bg-card p-5"
+            class="panel-card rounded-xl border border-border/80 bg-card p-5"
           >
-            <span
-              class="pointer-events-none absolute -left-10 -top-10 size-32 rounded-full opacity-25 blur-3xl"
-              :style="{ background: 'hsl(var(--primary) / 40%)' }"
-            ></span>
             <div class="relative">
               <div class="flex items-center justify-between">
                 <h3 class="text-sm font-semibold">
@@ -187,8 +151,7 @@ onMounted(() => {
                   </span>
                   <span
                     class="rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary"
-                    >{{ formatTokens(sumToken) }} tokens</span
-                  >
+                    >{{ formatTokens(sumToken) }} tokens</span>
                 </div>
               </div>
               <div v-if="loading" class="mt-4">
@@ -205,16 +168,15 @@ onMounted(() => {
                     <div
                       class="w-full rounded-t-[3px] transition-all duration-200 group-hover:brightness-125"
                       :style="{
-                        background: `linear-gradient(to top, hsl(var(--primary) / 55%), hsl(var(--primary) / 25%))`,
+                        background: 'hsl(var(--primary) / 60%)',
                         height: barPct(d.queryCount, maxDaily),
                       }"
                     ></div>
                     <div
                       class="w-full rounded-t-[3px] transition-all duration-200 group-hover:brightness-125"
                       :style="{
-                        background: `linear-gradient(to top, hsl(245 82% 67% / 90%), hsl(245 82% 67% / 45%))`,
+                        background: 'hsl(245 82% 67%)',
                         height: barPct(d.chatCount, maxDaily),
-                        boxShadow: '0 0 10px hsl(245 82% 67% / 25%)',
                       }"
                     ></div>
                   </div>
@@ -225,8 +187,7 @@ onMounted(() => {
                     :key="d.date"
                     class="flex-1 text-center text-[10px] leading-none text-muted-foreground"
                     :class="showTick(i) ? '' : 'invisible'"
-                    >{{ d.date.slice(5) }}</span
-                  >
+                    >{{ d.date.slice(5) }}</span>
                 </div>
                 <div
                   class="mt-3 flex items-center gap-5 border-t border-border pt-3 text-xs text-muted-foreground"
@@ -275,12 +236,8 @@ onMounted(() => {
                 >
                   <span
                     class="flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white tabular-nums"
-                    :style="{
-                      background: medal(i),
-                      boxShadow: `0 3px 8px ${medalGlow(i)}`,
-                    }"
-                    >{{ i + 1 }}</span
-                  >
+                    :style="{ background: medal(i) }"
+                    >{{ i + 1 }}</span>
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center justify-between gap-2">
                       <span class="truncate text-[13px] font-medium">{{
@@ -288,8 +245,7 @@ onMounted(() => {
                       }}</span>
                       <span
                         class="shrink-0 text-xs text-muted-foreground tabular-nums"
-                        >{{ h.count }}</span
-                      >
+                        >{{ h.count }}</span>
                     </div>
                     <div
                       class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted/60"
@@ -298,11 +254,7 @@ onMounted(() => {
                         class="h-full rounded-full transition-all duration-500"
                         :style="{
                           width: barPct(h.count, maxHot),
-                          background: BAR_GRAD,
-                          boxShadow:
-                            i === 0
-                              ? '0 0 8px hsl(var(--primary) / 35%)'
-                              : 'none',
+                          background: BAR_COLOR,
                         }"
                       ></div>
                     </div>
@@ -337,8 +289,7 @@ onMounted(() => {
                     kbDocsTotal,
                     $t('page.ai.usage.docsUnit'),
                   ])
-                }}</span
-              >
+                }}</span>
             </div>
             <div v-if="loading" class="mt-4">
               <Skeleton :paragraph="{ rows: 5 }" active />
@@ -360,7 +311,7 @@ onMounted(() => {
                       class="h-full rounded-full transition-all duration-500"
                       :style="{
                         width: barPct(k.docCount, maxKbDocs),
-                        background: BAR_GRAD,
+                        background: BAR_COLOR,
                       }"
                     ></div>
                   </div>
@@ -398,8 +349,7 @@ onMounted(() => {
                   <div class="flex items-center gap-2">
                     <span
                       class="w-8 shrink-0 text-right text-xs text-muted-foreground tabular-nums"
-                      >{{ row.percent }}%</span
-                    >
+                      >{{ row.percent }}%</span>
                     <div
                       class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/60"
                     >
@@ -407,7 +357,7 @@ onMounted(() => {
                         class="h-full rounded-full transition-all duration-500"
                         :style="{
                           width: `${Math.min(100, Math.max(0, row.percent))}%`,
-                          background: BAR_GRAD,
+                          background: BAR_COLOR,
                         }"
                       ></div>
                     </div>
@@ -423,46 +373,12 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* 指标卡：入场渐显 + hover 发光描边 */
-.metric-card {
-  transition:
-    transform 0.25s ease,
-    border-color 0.25s ease,
-    box-shadow 0.25s ease;
-  animation: metric-in 0.4s ease-out both;
-}
-
-.metric-card:hover {
-  border-color: hsl(var(--primary) / 45%);
-  box-shadow:
-    0 8px 24px hsl(var(--foreground) / 8%),
-    0 0 24px var(--glow);
-  transform: translateY(-2px);
-}
-
-@keyframes metric-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* 面板卡：hover 轻微上浮 */
+/* 面板卡：hover 只做描边变化，不做位移与发光 */
 .panel-card {
-  transition:
-    transform 0.25s ease,
-    border-color 0.25s ease,
-    box-shadow 0.25s ease;
+  transition: border-color 0.2s ease;
 }
 
 .panel-card:hover {
   border-color: hsl(var(--primary) / 30%);
-  box-shadow: 0 6px 20px hsl(var(--foreground) / 6%);
-  transform: translateY(-1px);
 }
 </style>

@@ -41,18 +41,12 @@ const {
 
 void loadStats();
 
-// ---- 统一视觉（与统计看板/分析页同语言）----
-const BRAND_GRAD =
-  'linear-gradient(135deg, hsl(var(--primary)), hsl(245 82% 67%))';
-
 // ---- 今日概览指标（真实数据：GET /dashboard/stats）----
 interface MetricCard {
   key: string;
   label: string;
   value: string;
   icon: string;
-  grad: string;
-  glow: string;
 }
 
 const stats = ref({
@@ -70,32 +64,24 @@ const metricCards = computed<MetricCard[]>(() => [
     label: $t('page.dashboard.user'),
     value: String(stats.value.userCount ?? 0),
     icon: 'i-lucide-users',
-    grad: 'linear-gradient(135deg, hsl(var(--primary)), hsl(245 82% 67%))',
-    glow: 'hsl(var(--primary) / 30%)',
   },
   {
     key: 'role',
     label: $t('page.dashboard.role'),
     value: String(stats.value.roleCount ?? 0),
     icon: 'i-lucide-user-cog',
-    grad: 'linear-gradient(135deg, hsl(245 82% 67%), hsl(161 90% 43%))',
-    glow: 'hsl(245 82% 67% / 30%)',
   },
   {
     key: 'dept',
     label: $t('page.dashboard.dept'),
     value: String(stats.value.deptCount ?? 0),
     icon: 'i-lucide-building-2',
-    grad: 'linear-gradient(135deg, hsl(199 89% 48%), hsl(161 90% 43%))',
-    glow: 'hsl(199 89% 48% / 30%)',
   },
   {
     key: 'online',
     label: $t('page.dashboard.online'),
     value: String(stats.value.onlineCount ?? 0),
     icon: 'i-lucide-wifi',
-    grad: 'linear-gradient(135deg, hsl(32 95% 44%), hsl(16 90% 50%))',
-    glow: 'hsl(32 95% 44% / 30%)',
   },
 ]);
 
@@ -292,42 +278,24 @@ function onProjectClick(item: WorkbenchProjectItem) {
               $t('page.dashboard.users')
             }}</span>
             <span
-              class="text-2xl font-bold tabular-nums leading-none"
-              :style="{
-                background: BRAND_GRAD,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }"
-              >{{ stats.userCount }}</span
-            >
+              class="text-2xl font-bold tabular-nums leading-none text-foreground"
+              >{{ stats.userCount }}</span>
           </div>
           <div class="flex flex-col items-end">
             <span class="text-xs text-muted-foreground">{{
               $t('page.dashboard.online')
             }}</span>
             <span
-              class="text-2xl font-bold tabular-nums leading-none"
-              :style="{
-                background: BRAND_GRAD,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }"
-              >{{ stats.onlineCount }}</span
-            >
+              class="text-2xl font-bold tabular-nums leading-none text-foreground"
+              >{{ stats.onlineCount }}</span>
           </div>
           <div class="flex flex-col items-end">
             <span class="text-xs text-muted-foreground">{{
               $t('page.dashboard.logs')
             }}</span>
             <span
-              class="text-2xl font-bold tabular-nums leading-none"
-              :style="{
-                background: BRAND_GRAD,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }"
-              >{{ stats.logCount }}</span
-            >
+              class="text-2xl font-bold tabular-nums leading-none text-foreground"
+              >{{ stats.logCount }}</span>
           </div>
         </div>
       </template>
@@ -336,31 +304,20 @@ function onProjectClick(item: WorkbenchProjectItem) {
     <!-- 今日概览指标条 -->
     <div class="mt-5 grid grid-cols-2 gap-4 xl:grid-cols-4">
       <div
-        v-for="(m, i) in metricCards"
+        v-for="m in metricCards"
         :key="m.key"
-        class="metric-card group relative overflow-hidden rounded-xl border border-border/80 bg-card p-4"
-        :style="{ '--glow': m.glow, animationDelay: `${i * 60}ms` }"
+        class="rounded-xl border border-border/80 bg-card p-4 transition-colors hover:border-primary/40"
       >
-        <span
-          class="pointer-events-none absolute -right-6 -top-6 size-20 rounded-full opacity-60 blur-2xl transition-opacity duration-300 group-hover:opacity-90"
-          :style="{ background: m.grad }"
-        ></span>
-        <div class="relative flex items-center gap-3">
+        <div class="flex items-center gap-3">
           <span
-            class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-white shadow-lg"
-            :style="{ background: m.grad, boxShadow: `0 6px 16px ${m.glow}` }"
+            class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
           >
             <span :class="m.icon" class="size-5"></span>
           </span>
           <div class="min-w-0">
             <p class="truncate text-xs text-muted-foreground">{{ m.label }}</p>
             <p
-              class="truncate text-2xl font-bold tabular-nums leading-tight tracking-tight"
-              :style="{
-                background: m.grad,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }"
+              class="truncate text-2xl font-bold tabular-nums leading-tight tracking-tight text-foreground"
             >
               {{ m.value }}
             </p>
@@ -447,33 +404,3 @@ function onProjectClick(item: WorkbenchProjectItem) {
     </div>
   </div>
 </template>
-
-<style scoped>
-.metric-card {
-  transition:
-    transform 0.25s ease,
-    border-color 0.25s ease,
-    box-shadow 0.25s ease;
-  animation: metric-in 0.4s ease-out both;
-}
-
-.metric-card:hover {
-  border-color: hsl(var(--primary) / 40%);
-  box-shadow:
-    0 8px 24px hsl(var(--foreground) / 8%),
-    0 0 24px var(--glow);
-  transform: translateY(-2px);
-}
-
-@keyframes metric-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-</style>

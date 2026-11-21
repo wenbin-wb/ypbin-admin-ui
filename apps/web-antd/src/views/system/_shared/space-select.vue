@@ -104,7 +104,7 @@ async function loadTree() {
     // 属「已告知用户却又制造噪声」。
     loadError.value = $t('system.space.loadFailed');
     // 保留原始错误到控制台便于排障（不是业务提示，不展示给用户）
-    console.error('加载空间树失败', error);
+    console.error('Failed to load space tree', error);
   } finally {
     loading.value = false;
   }

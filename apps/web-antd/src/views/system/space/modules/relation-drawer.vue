@@ -74,7 +74,7 @@ async function loadTypes() {
       { label: $t('system.space.typeDevice'), value: 'device' },
       { label: $t('system.space.typeAsset'), value: 'asset' },
     ];
-    console.error('加载空间对象类型字典失败', error);
+    console.error('Failed to load space object type dict', error);
   }
 }
 
@@ -204,7 +204,7 @@ function onUnbind(item: SystemSpaceApi.SpaceRelationResp) {
         await loadRelations();
       } catch (error) {
         // 解绑失败文案由全局响应拦截器展示（不重复提示）
-        console.warn('[space] 解绑空间关联失败', error);
+        console.warn('[space] Failed to unbind space relation', error);
       }
     },
     title: $t('system.space.confirmRemoveTitle'),

@@ -20,10 +20,6 @@ import AnalyticsVisitsSales from './analytics-visits-sales.vue';
 import AnalyticsVisitsSource from './analytics-visits-source.vue';
 import AnalyticsVisits from './analytics-visits.vue';
 
-// ---- 统一视觉（与统计看板/工作台同一套语言）----
-const BRAND_GRAD =
-  'linear-gradient(135deg, hsl(var(--primary)), hsl(245 82% 67%))';
-
 const stats = ref({
   userCount: 0,
   roleCount: 0,
@@ -41,8 +37,6 @@ const overviewCards = computed(() => [
     value: stats.value.userCount,
     total: $t('page.dashboard.role'),
     totalValue: stats.value.roleCount,
-    grad: 'linear-gradient(135deg, hsl(var(--primary)), hsl(245 82% 67%))',
-    glow: 'hsl(var(--primary) / 30%)',
   },
   {
     key: 'dept',
@@ -51,8 +45,6 @@ const overviewCards = computed(() => [
     value: stats.value.deptCount,
     total: $t('page.dashboard.menu'),
     totalValue: stats.value.menuCount,
-    grad: 'linear-gradient(135deg, hsl(245 82% 67%), hsl(161 90% 43%))',
-    glow: 'hsl(245 82% 67% / 30%)',
   },
   {
     key: 'online',
@@ -61,8 +53,6 @@ const overviewCards = computed(() => [
     value: stats.value.onlineCount,
     total: $t('page.dashboard.logs'),
     totalValue: stats.value.logCount,
-    grad: 'linear-gradient(135deg, hsl(199 89% 48%), hsl(161 90% 43%))',
-    glow: 'hsl(199 89% 48% / 30%)',
   },
   {
     key: 'usage',
@@ -71,8 +61,6 @@ const overviewCards = computed(() => [
     value: stats.value.menuCount,
     total: $t('page.dashboard.dept'),
     totalValue: stats.value.deptCount,
-    grad: 'linear-gradient(135deg, hsl(32 95% 44%), hsl(16 90% 50%))',
-    glow: 'hsl(32 95% 44% / 30%)',
   },
 ]);
 
@@ -131,28 +119,10 @@ onMounted(async () => {
 
 <template>
   <div class="p-5">
-    <!-- 炫彩浅色页头：淡渐变底 + 光斑 + 徽章 -->
-    <div
-      class="relative overflow-hidden rounded-2xl border border-border/70 px-6 py-5"
-      style="
-        background: linear-gradient(
-          120deg,
-          hsl(var(--primary) / 10%),
-          hsl(245deg 82% 67% / 8%) 50%,
-          hsl(199deg 89% 48% / 10%)
-        );
-      "
-    >
-      <span
-        class="pointer-events-none absolute -right-10 -top-12 size-44 rounded-full opacity-40 blur-3xl"
-        style="background: hsl(245deg 82% 67% / 35%)"
-      ></span>
-      <span
-        class="pointer-events-none absolute -bottom-14 right-40 size-36 rounded-full opacity-30 blur-3xl"
-        style="background: hsl(var(--primary) / 35%)"
-      ></span>
+    <!-- 页头：标题 + 日期 + 徽章 -->
+    <div class="rounded-2xl border border-border/70 bg-card px-6 py-5">
       <div
-        class="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+        class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
       >
         <div>
           <p class="text-xs text-muted-foreground">{{ now }}</p>
@@ -167,16 +137,11 @@ onMounted(async () => {
           <div
             v-for="b in dayBadges"
             :key="b.label"
-            class="rounded-xl border border-border/70 bg-background/70 px-4 py-2 shadow-sm backdrop-blur"
+            class="rounded-xl border border-border/70 bg-muted/50 px-4 py-2"
           >
             <p class="text-xs text-muted-foreground">{{ b.label }}</p>
             <p
-              class="mt-0.5 text-lg font-bold tabular-nums leading-none"
-              :style="{
-                background: BRAND_GRAD,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }"
+              class="mt-0.5 text-lg font-bold tabular-nums leading-none text-foreground"
             >
               {{ b.value }}
             </p>
@@ -185,44 +150,33 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- 指标卡（炫彩：渐变图标 + 光晕 + 大数字） -->
+    <!-- 指标卡 -->
     <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <div
         v-for="c in overviewCards"
         :key="c.key"
-        class="metric-card group relative overflow-hidden rounded-xl border border-border/80 bg-card p-5"
-        :style="{ '--glow': c.glow }"
+        class="group rounded-xl border border-border/80 bg-card p-5 transition-colors hover:border-primary/40"
       >
-        <span
-          class="pointer-events-none absolute -right-8 -top-8 size-24 rounded-full opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-80"
-          :style="{ background: c.grad }"
-        ></span>
-        <div class="relative flex items-start justify-between">
+        <div class="flex items-start justify-between">
           <div>
             <p class="text-sm text-muted-foreground">{{ c.title }}</p>
             <p
-              class="mt-2 text-3xl font-bold tabular-nums leading-none tracking-tight"
-              :style="{
-                background: c.grad,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }"
+              class="mt-2 text-3xl font-bold tabular-nums leading-none tracking-tight text-foreground"
             >
               {{ fmt(c.value) }}
             </p>
           </div>
           <span
-            class="inline-flex size-10 items-center justify-center rounded-xl text-white shadow-lg"
-            :style="{ background: c.grad, boxShadow: `0 8px 20px ${c.glow}` }"
+            class="inline-flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"
           >
             <component :is="c.icon" class="size-5" />
           </span>
         </div>
         <div
-          class="relative mt-4 flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground"
+          class="mt-4 flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground"
         >
           <span>{{ c.total }}</span>
-          <span class="font-semibold tabular-nums">{{
+          <span class="font-semibold tabular-nums text-foreground">{{
             fmt(c.totalValue)
           }}</span>
         </div>
@@ -260,33 +214,3 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-.metric-card {
-  transition:
-    transform 0.25s ease,
-    border-color 0.25s ease,
-    box-shadow 0.25s ease;
-  animation: metric-in 0.4s ease-out both;
-}
-
-.metric-card:hover {
-  border-color: hsl(var(--primary) / 40%);
-  box-shadow:
-    0 8px 24px hsl(var(--foreground) / 8%),
-    0 0 24px var(--glow);
-  transform: translateY(-2px);
-}
-
-@keyframes metric-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-</style>
