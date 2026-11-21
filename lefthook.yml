@@ -49,10 +49,6 @@ pre-commit:
       glob: '*.{js,jsx,ts,tsx,vue,cjs,mjs,cts,mts}'
       run: pnpm exec oxlint --fix --type-aware --threads=4 --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
-    - name: oxfmt
-      glob: '*.{js,jsx,ts,tsx,vue,cjs,mjs,cts,mts,json,jsonc}'
-      run: pnpm exec oxfmt --threads=4 --no-error-on-unmatched-pattern {staged_files}
-      stage_fixed: true
     - name: eslint
       glob: '*.{js,jsx,ts,tsx,vue,cjs,mjs,cts,mts}'
       run: pnpm exec eslint --fix {staged_files}
@@ -60,6 +56,15 @@ pre-commit:
     - name: stylelint
       glob: '*.{vue,css,less,scss}'
       run: pnpm exec stylelint --fix {staged_files}
+      stage_fixed: true
+    # 🔴 oxfmt **必须是最后一个写文件的 job**。
+    # 为什么：eslint/stylelint 的 `--fix` 也会改文件，若它们排在 oxfmt 之后，就会把刚格式化好的
+    # 结果再改回不合规形态 ⇒ 提交进 main 后 CI 的「格式检查（oxfmt）」转红（2026-11-12 事故：
+    # view-controls.vue 的 </script> 前多一个空行就这么进了 main，CI 自 run #346 起红）。
+    # 现在顺序是 oxlint → eslint → stylelint → oxfmt ⇒ 最后落盘的一定是格式化后的形态。
+    - name: oxfmt
+      glob: '*.{js,jsx,ts,tsx,vue,cjs,mjs,cts,mts,json,jsonc}'
+      run: pnpm exec oxfmt --threads=4 --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
     # 只检查「自 HEAD 起有改动的包」及其依赖方（turbo 的 ...[HEAD] 过滤器）。
     # 全量 turbo run typecheck 会同时拉起 6 个 vue-tsc，低配机上实测被 OOM Kill（36 分钟未完成）；
