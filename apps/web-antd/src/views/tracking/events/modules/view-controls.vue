@@ -15,7 +15,6 @@ const emit = defineEmits<{ export: [] }>();
  */
 const viewMode = defineModel<string>('viewMode', { required: true });
 const autoRefresh = defineModel<boolean>('autoRefresh', { required: true });
-
 </script>
 
 <template>
