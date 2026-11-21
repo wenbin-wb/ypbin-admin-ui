@@ -15,7 +15,9 @@ interface AppTagOption {
 
 describe('埋点事件列表的应用列', () => {
   it('默认可见，并用 CellTag 渲染可读的客户端标签', () => {
-    const appColumns = (useColumns() ?? []).filter(
+    // useColumns() 返回 VxeTableGridColumns（非空数组），`?? []` 恒不生效
+    // （CodeQL js/trivial-conditional 报的就是这条）。
+    const appColumns = useColumns().filter(
       (column) => column.field === 'appId',
     );
 
