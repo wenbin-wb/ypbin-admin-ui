@@ -77,7 +77,9 @@ function eventCodeOptions() {
     .toSorted((a, b) => a.value.localeCompare(b.value));
 }
 
-export function useColumns(): VxeTableGridColumns {
+// 返回类型收窄为「非空数组」：VxeTableGridColumns = VxeTableGridOptions['columns'] 含 undefined，
+// 而本函数恒返回字面量数组 ⇒ 收窄后调用方无需 `?? []` 兜底（那兜底恒不生效且掩盖类型事实）。
+export function useColumns(): NonNullable<VxeTableGridColumns> {
   return [
     {
       field: 'receivedTime',
