@@ -16,24 +16,23 @@ import Avatar from '../avatar.vue';
  * 来自 `apps/web-antd` 产物 chunk `avatar-*.js` 中的 `alt.slice(-2)`。
  */
 function fallbackText(alt: null | string | undefined): string {
-  const component = Avatar as unknown as {
-    setup?: (
-      props: Record<string, unknown>,
-      ctx: Record<string, unknown>,
-    ) => Record<string, unknown>;
-  };
-  // 强转只有断言价值、没有保证：若 SFC 编译产物把 setup 内联进 render（script setup 的常见形态），
-  // 这里就是 undefined，后续访问会抛 TypeError —— 那是测试自身的问题，不该被当成「回退文字有 bug」。
-  // CodeQL js/property-access-on-non-object（error）报的正是这条，故先显式断言再调用。
-  const setup = component.setup;
-  expect(setup, 'Avatar 的 setup 必须存在（否则本测试的取数路径失效）').toBeTypeOf(
-    'function',
-  );
+  // SFC 编译产物里的 setup 类型是 unknown：script setup 可能把它内联进 render，此时取不到。
+  // 用 typeof 守卫把「取数路径是否成立」与「回退文字是否有 bug」分开——
+  // 直接 `as {setup: fn}` 强转等于对类型系统撒谎，CodeQL js/property-access-on-non-object（error）报的就是它。
+  const rawSetup: unknown = (Avatar as { setup?: unknown }).setup;
+  if (typeof rawSetup !== 'function') {
+    throw new TypeError(
+      'Avatar 的 setup 不可调用（SFC 编译产物把 setup 内联进 render？）——本测试的取数路径失效',
+    );
+  }
   const setupState = proxyRefs(
-    setup!(
-      { alt, as: 'button', dot: false, dotClass: 'bg-green-500', fit: 'cover' },
-      { attrs: {}, emit: () => {}, expose: () => {}, slots: {} },
-    ),
+    rawSetup.call(Avatar, {
+      alt,
+      as: 'button',
+      dot: false,
+      dotClass: 'bg-green-500',
+      fit: 'cover',
+    }, { attrs: {}, emit: () => {}, expose: () => {}, slots: {} }) as Record<string, unknown>,
   ) as { text: string };
   return setupState.text;
 }
