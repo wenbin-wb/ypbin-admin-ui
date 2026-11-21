@@ -1,6 +1,6 @@
 import type { CAC } from 'cac';
 
-import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { extname, join } from 'node:path';
@@ -71,8 +71,18 @@ async function detectCircularDependencies({
       cwd,
     });
 
-    await access(outputFile);
-    const output = await readFile(outputFile, 'utf8');
+    // 不先 access()：那是「检查后再使用」的 TOCTOU（CodeQL js/file-system-race，high）。
+    // 直接 readFile 并把 ENOENT 视为「本次没有产出」——语义比先 access 更准确，
+    // 且中间被并发写/删时不会得到 by-design 之外的失败。
+    let output: string;
+    try {
+      output = await readFile(outputFile, 'utf8');
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
+        return [];
+      }
+      throw error;
+    }
     return JSON.parse(output) as CircularDependencyResult[];
   } catch (error) {
     if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {

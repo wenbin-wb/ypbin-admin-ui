@@ -17,13 +17,20 @@ import Avatar from '../avatar.vue';
  */
 function fallbackText(alt: null | string | undefined): string {
   const component = Avatar as unknown as {
-    setup: (
+    setup?: (
       props: Record<string, unknown>,
       ctx: Record<string, unknown>,
     ) => Record<string, unknown>;
   };
+  // 强转只有断言价值、没有保证：若 SFC 编译产物把 setup 内联进 render（script setup 的常见形态），
+  // 这里就是 undefined，后续访问会抛 TypeError —— 那是测试自身的问题，不该被当成「回退文字有 bug」。
+  // CodeQL js/property-access-on-non-object（error）报的正是这条，故先显式断言再调用。
+  const setup = component.setup;
+  expect(setup, 'Avatar 的 setup 必须存在（否则本测试的取数路径失效）').toBeTypeOf(
+    'function',
+  );
   const setupState = proxyRefs(
-    component.setup(
+    setup!(
       { alt, as: 'button', dot: false, dotClass: 'bg-green-500', fit: 'cover' },
       { attrs: {}, emit: () => {}, expose: () => {}, slots: {} },
     ),
