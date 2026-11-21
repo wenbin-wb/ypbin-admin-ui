@@ -279,7 +279,8 @@ function onProjectClick(item: WorkbenchProjectItem) {
             }}</span>
             <span
               class="text-2xl font-bold tabular-nums leading-none text-foreground"
-              >{{ stats.userCount }}</span>
+              >{{ stats.userCount }}</span
+            >
           </div>
           <div class="flex flex-col items-end">
             <span class="text-xs text-muted-foreground">{{
@@ -287,7 +288,8 @@ function onProjectClick(item: WorkbenchProjectItem) {
             }}</span>
             <span
               class="text-2xl font-bold tabular-nums leading-none text-foreground"
-              >{{ stats.onlineCount }}</span>
+              >{{ stats.onlineCount }}</span
+            >
           </div>
           <div class="flex flex-col items-end">
             <span class="text-xs text-muted-foreground">{{
@@ -295,7 +297,8 @@ function onProjectClick(item: WorkbenchProjectItem) {
             }}</span>
             <span
               class="text-2xl font-bold tabular-nums leading-none text-foreground"
-              >{{ stats.logCount }}</span>
+              >{{ stats.logCount }}</span
+            >
           </div>
         </div>
       </template>

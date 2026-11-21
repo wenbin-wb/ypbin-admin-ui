@@ -2,8 +2,6 @@ import type { NotificationItem } from '@vben/layouts';
 
 import type { SystemMessageApi } from '#/api/system/message';
 
-import { toPlainText } from '#/utils/text';
-
 import { computed, ref } from 'vue';
 
 import { useAppConfig } from '@vben/hooks';
@@ -20,6 +18,7 @@ import {
   markAllMessagesRead,
   markMessageRead,
 } from '#/api/system/message';
+import { toPlainText } from '#/utils/text';
 
 const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
 
@@ -207,12 +206,22 @@ export const useMessageStore = defineStore('message', () => {
       });
       source.addEventListener('message-unread', refreshFromSseEvent);
       source.addEventListener('error', () => {
-        console.error('SSE connection failed; scheduling reconnect.');
+        // 已经主动关闭（退出登录/切租户/组件卸载）或已被更新的连接替换：
+        // 这是**预期内的中止**（浏览器会以 error 事件通知 EventSource 被关闭），不是故障。
+        // 此前这里无条件 `console.error` + 重连，导致每次页面切换/登出控制台都出现一条
+        // "SSE connection failed"，把真正的故障淹掉。
+        if (!sseEnabled || eventSource !== source || version !== sseVersion) {
+          source.close();
+          return;
+        }
+        console.warn('[message] SSE 连接中断，将按退避重连');
         source.close();
         if (eventSource === source) {
           eventSource = null;
         }
-        scheduleReconnect();
+        if (version === sseVersion) {
+          scheduleReconnect();
+        }
       });
     } catch (error) {
       console.error('Failed to establish SSE connection:', error);

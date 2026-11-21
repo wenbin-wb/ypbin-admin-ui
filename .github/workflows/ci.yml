@@ -48,6 +48,19 @@ jobs:
       - name: 格式检查（oxfmt）
         run: pnpm exec oxfmt --check apps/web-antd/src
 
+      # 🔴 假加密守卫：.env 里的默认值只服务本地开发；生产构建若仍用占位符/空值，
+      # pinia 持久化等于混淆。这里 grep 生产环境文件，门禁拦截；运行时还有 packages/stores 的硬校验。
+      # 与 fork `ypbin-iot-ui` 同一判据（该门禁先在本仓落地，2026-11-21 回流）。
+      - name: 生产 store 加密密钥门禁（禁止占位符/空值）
+        run: |
+          set -euo pipefail
+          if grep -RInE '^[[:space:]]*VITE_APP_STORE_SECURE_KEY=(please-replace-me-with-your-own-key)?[[:space:]]*$' \
+            apps/web-antd/.env apps/web-antd/.env.production; then
+            echo "::error::生产构建环境不能使用空值或占位符 VITE_APP_STORE_SECURE_KEY；请在部署环境注入高强度随机密钥。"
+            exit 1
+          fi
+          echo "未发现生产 env 中的空值/占位符 store 加密密钥（实际值由部署环境注入）"
+
       # 🔴 拼写门禁：`check:cspell` 此前长期红（71 处 / 32 文件）却从未进 CI，
       # 只有本地跑过的人知道。词表已补 ypbin/tianai/rerank/gitee/TTFB，这里接入阻断。
       - name: 拼写检查（cspell）

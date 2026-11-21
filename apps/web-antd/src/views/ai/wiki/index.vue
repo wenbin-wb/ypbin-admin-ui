@@ -363,7 +363,8 @@ onMounted(loadKbs);
               <div class="mb-1.5 flex items-center gap-2">
                 <span
                   class="inline-flex size-4 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary"
-                  >#{{ idx + 1 }}</span>
+                  >#{{ idx + 1 }}</span
+                >
                 <span class="truncate text-xs text-muted-foreground">{{
                   src.source
                 }}</span>

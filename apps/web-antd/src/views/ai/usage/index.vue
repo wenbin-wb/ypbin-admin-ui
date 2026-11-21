@@ -151,7 +151,8 @@ onMounted(() => {
                   </span>
                   <span
                     class="rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary"
-                    >{{ formatTokens(sumToken) }} tokens</span>
+                    >{{ formatTokens(sumToken) }} tokens</span
+                  >
                 </div>
               </div>
               <div v-if="loading" class="mt-4">
@@ -187,7 +188,8 @@ onMounted(() => {
                     :key="d.date"
                     class="flex-1 text-center text-[10px] leading-none text-muted-foreground"
                     :class="showTick(i) ? '' : 'invisible'"
-                    >{{ d.date.slice(5) }}</span>
+                    >{{ d.date.slice(5) }}</span
+                  >
                 </div>
                 <div
                   class="mt-3 flex items-center gap-5 border-t border-border pt-3 text-xs text-muted-foreground"
@@ -237,7 +239,8 @@ onMounted(() => {
                   <span
                     class="flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white tabular-nums"
                     :style="{ background: medal(i) }"
-                    >{{ i + 1 }}</span>
+                    >{{ i + 1 }}</span
+                  >
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center justify-between gap-2">
                       <span class="truncate text-[13px] font-medium">{{
@@ -245,7 +248,8 @@ onMounted(() => {
                       }}</span>
                       <span
                         class="shrink-0 text-xs text-muted-foreground tabular-nums"
-                        >{{ h.count }}</span>
+                        >{{ h.count }}</span
+                      >
                     </div>
                     <div
                       class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted/60"
@@ -289,7 +293,8 @@ onMounted(() => {
                     kbDocsTotal,
                     $t('page.ai.usage.docsUnit'),
                   ])
-                }}</span>
+                }}</span
+              >
             </div>
             <div v-if="loading" class="mt-4">
               <Skeleton :paragraph="{ rows: 5 }" active />
@@ -349,7 +354,8 @@ onMounted(() => {
                   <div class="flex items-center gap-2">
                     <span
                       class="w-8 shrink-0 text-right text-xs text-muted-foreground tabular-nums"
-                      >{{ row.percent }}%</span>
+                      >{{ row.percent }}%</span
+                    >
                     <div
                       class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/60"
                     >
