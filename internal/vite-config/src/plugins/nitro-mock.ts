@@ -7,7 +7,11 @@ import { colors, consola, getPackage } from '@vben/node-utils';
 import getPort from 'get-port';
 import { build, createDevServer, createNitro, prepare } from 'nitropack';
 
-const hmrKeyRe = /^runtimeConfig\.|routeRules\./;
+// 判据是「key 属于 runtimeConfig.* 或 routeRules.* 命名空间」。
+// 原写法 /^runtimeConfig\.|routeRules\./ 的 `^` 只作用于左半支 ⇒ 等价于
+//   /^runtimeConfig\./ OR /routeRules\./（routeRules 可在任意位置命中），与注释意图不符
+// （CodeQL js/regex/missing-regexp-anchor 报的正是这条）。
+const hmrKeyRe = /^(?:runtimeConfig|routeRules)\./;
 
 export const viteNitroMockPlugin = ({
   mockServerPackage = '@vben/backend-mock',
