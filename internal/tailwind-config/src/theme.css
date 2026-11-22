@@ -124,9 +124,14 @@
   --color-destructive-border: hsl(var(--destructive-400));
   --color-destructive-border-light: hsl(var(--destructive-300));
   --color-destructive-hover: hsl(var(--destructive-600));
-  --color-destructive-text: hsl(var(--destructive-500));
-  --color-destructive-text-active: hsl(var(--destructive-700));
-  --color-destructive-text-hover: hsl(var(--destructive-600));
+  /* 指向「文本专用」token（`--destructive-text`），而不是实心块色阶 `--destructive-500`：
+   * 后者在本仓**从未定义**（全仓仅此处引用），⇒ `hsl(var(--destructive-500))` 是
+   * invalid at computed-value time，声明被丢弃、颜色继承父级 —— 实测 4 处
+   * `text-destructive-text` / `text-warning-text` 用法全是这个状态。
+   * 自 ypbin-iot-ui 反哺（2026-11-22），亮/暗两档见 design-tokens/{default,dark}.css。 */
+  --color-destructive-text: hsl(var(--destructive-text));
+  --color-destructive-text-active: hsl(var(--destructive-text));
+  --color-destructive-text-hover: hsl(var(--destructive-text));
 
   /* ===== Success Palette ===== */
 
@@ -147,9 +152,9 @@
   --color-success-border: hsl(var(--success-400));
   --color-success-border-light: hsl(var(--success-300));
   --color-success-hover: hsl(var(--success-600));
-  --color-success-text: hsl(var(--success-500));
-  --color-success-text-active: hsl(var(--success-700));
-  --color-success-text-hover: hsl(var(--success-600));
+  --color-success-text: hsl(var(--success-text));
+  --color-success-text-active: hsl(var(--success-text));
+  --color-success-text-hover: hsl(var(--success-text));
 
   /* ===== Warning Palette ===== */
 
@@ -170,9 +175,9 @@
   --color-warning-border: hsl(var(--warning-400));
   --color-warning-border-light: hsl(var(--warning-300));
   --color-warning-hover: hsl(var(--warning-600));
-  --color-warning-text: hsl(var(--warning-500));
-  --color-warning-text-active: hsl(var(--warning-700));
-  --color-warning-text-hover: hsl(var(--warning-600));
+  --color-warning-text: hsl(var(--warning-text));
+  --color-warning-text-active: hsl(var(--warning-text));
+  --color-warning-text-hover: hsl(var(--warning-text));
 
   /* ===== Green Palette (alias for success shades) ===== */
 

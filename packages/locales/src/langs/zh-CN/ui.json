@@ -170,5 +170,9 @@
       "setTimezone": "设置时区",
       "setSuccess": "时区设置成功"
     }
+  },
+  "userSelect": {
+    "placeholder": "选择用户",
+    "noResult": "没有匹配的用户"
   }
 }

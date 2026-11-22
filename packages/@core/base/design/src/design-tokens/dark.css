@@ -41,6 +41,13 @@
   --destructive: 359.21 68.47% 56.47%;
   --destructive-foreground: 0 0% 98%;
 
+  /* 文本专用语义色（暗底取高亮档；与 default.css 同名 token 成对维护，自 ypbin-iot-ui 反哺）。
+   * 只在本块声明即可：其余 .dark[data-theme='xxx'] 与 .dark 命中同一元素，未声明的变量
+   * 会按 CSS 变量继承规则取到这里的值。 */
+  --destructive-text: 0 91% 71%;
+  --success-text: 142 69% 58%;
+  --warning-text: 43 96% 56%;
+
   /* Used for success actions such as <message> */
 
   --info: 180, 1.54%, 12.75%;

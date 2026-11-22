@@ -170,5 +170,9 @@
       "setTimezone": "Set Timezone",
       "setSuccess": "Timezone set successfully"
     }
+  },
+  "userSelect": {
+    "placeholder": "Select users",
+    "noResult": "No matching user"
   }
 }

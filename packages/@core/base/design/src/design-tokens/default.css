@@ -39,6 +39,19 @@
   --destructive: 359.33 100% 65.1%;
   --destructive-foreground: 0 0% 98%;
 
+  /*
+   * 文本专用语义色（自 ypbin-iot-ui 反哺，2026-11-22）：
+   * `--destructive/--success/--warning` 是给**实心块**（按钮/标签底色）用的，明度偏高——
+   * 直接当正文色在白底上只有 1.74–3.27:1，达不到 WCAG AA 的 4.5:1。
+   * 这组按亮/暗模式分别取值，专供 `text-*` / 图标等**前景**使用。
+   *
+   * ⚠️ 为什么必须**新增**而不是改 `--destructive` 本身：实心块要的是高亮度底色 + 白色前景，
+   * 两者需求相反；同一变量既当底色又当正文色，必然有一边不达标。
+   */
+  --destructive-text: 0 72% 45%;
+  --success-text: 142 72% 29%;
+  --warning-text: 26 90% 37%;
+
   /* Used for success actions such as <message> */
 
   --info: 240, 5%, 96%;
