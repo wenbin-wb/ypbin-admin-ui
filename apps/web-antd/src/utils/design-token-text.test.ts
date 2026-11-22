@@ -78,7 +78,7 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
 function relativeLuminance(rgb: [number, number, number]): number {
   const [r, g, b] = rgb.map((v) => {
     const c = v / 255;
-    return c <= 0.039_28 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   }) as [number, number, number];
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
@@ -110,7 +110,10 @@ describe('文本语义色 token', () => {
         hsl,
         `default.css 缺少 --${token}（文本语义色必须存在，否则 text-*-text 类会静默失效）`,
       ).not.toBeNull();
-      const ratio = contrast(hslToRgb(...hsl!), WHITE);
+      if (!hsl) {
+        return; // 上一条断言已失败；显式返回而不是用 `!` 绕过类型检查
+      }
+      const ratio = contrast(hslToRgb(...hsl), WHITE);
       expect(
         ratio,
         `--${token} 对白底仅 ${ratio.toFixed(2)}:1，未达 AA 4.5:1`,
@@ -123,7 +126,10 @@ describe('文本语义色 token', () => {
     (token) => {
       const hsl = readHsl(darkCss, token);
       expect(hsl, `dark.css 缺少 --${token}`).not.toBeNull();
-      const ratio = contrast(hslToRgb(...hsl!), DARK_BG);
+      if (!hsl) {
+        return;
+      }
+      const ratio = contrast(hslToRgb(...hsl), DARK_BG);
       expect(
         ratio,
         `--${token}（暗）对暗底仅 ${ratio.toFixed(2)}:1，未达 AA 4.5:1`,
@@ -138,11 +144,18 @@ describe('文本语义色 token', () => {
       ...themeCss.matchAll(
         /--color-(?:destructive|success|warning)-text[a-z-]*:\s*hsl\(var\(--([\w-]+)\)\)/g,
       ),
-    ].map((m) => m[1]!);
+    ]
+      .map((m) => m[1])
+      .filter((name): name is string => Boolean(name));
     expect(referenced.length).toBeGreaterThan(0);
     const defined = new Set<string>();
     for (const css of [lightCss, darkCss, themeCss]) {
-      for (const m of css.matchAll(/--([\w-]+):/g)) defined.add(m[1]!);
+      for (const m of css.matchAll(/--([\w-]+):/g)) {
+        const name = m[1];
+        if (name) {
+          defined.add(name);
+        }
+      }
     }
     const dangling = referenced.filter((name) => !defined.has(name));
     expect(
