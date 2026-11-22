@@ -39,3 +39,18 @@
 2. 按 [PR 模板](.github/pull_request_template.md) 填写
 3. 确保 CI 通过（typecheck + build + CodeQL）
 4. 新功能必须有对应类型定义；接口字段变更需同步后端契约与 site 文档
+
+## 6. 与 fork `ypbin-iot-ui` 的关系（改公共代码前必读）
+
+本仓是 **IoT 前端的上游**：`ypbin-iot-ui` 从本仓 `main` fork，只保留 IoT 专属页面与品牌，
+公共部分（`apps/web-antd/src`、`packages`、`internal`）应当与本仓保持一致。
+
+- **改公共文件时**：等于同时影响两个产品。改完请顺手跑
+  `FORK_UI_ROOT=../ypbin-iot-ui pnpm fork:report`
+  看 fork 是否会因此产生新分歧；若你的改动属于**通用缺陷修复**，请在 PR 描述里注明
+  「需要同步到 ypbin-iot-ui」，由 fork 侧合并即可（方向：本仓 → fork，正常 merge）。
+- **反哺方向**（fork → 本仓）：`ypbin-iot-ui` 若在公共文件上修了通用缺陷，
+  正确做法是**在本仓单独提 PR 采纳同一修复**，而不是让它长期只存在于 fork ——
+  否则本仓会一直带着同一个 bug。用 `pnpm fork:report` 可以看到 fork 当前领先本仓哪些文件。
+- 为什么不在本仓设强制门禁：本仓是先有的一方，fork 的定制是**它的**事；
+  强制门禁会把 fork 的定制变成对本仓的约束。故本仓只做**报告**，「要不要反哺」由人判断。

@@ -38,6 +38,7 @@
     "check:type:changed": "turbo run typecheck --filter=\"...[HEAD]\"",
     "clean": "node ./scripts/clean.mjs",
     "sync:tracking-events": "node scripts/sync-tracking-events.mjs",
+    "fork:report": "node scripts/check-fork-sync.mjs",
     "check:tracking-events": "node scripts/sync-tracking-events.mjs --check",
     "commit": "czg",
     "dev": "turbo-run dev",
